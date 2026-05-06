@@ -6,6 +6,7 @@ Dieses Projekt implementiert eine Lipreading-Pipeline basierend auf dem GLips-Da
 1. **Title of dataset:** GLips
 2. **Authors & paper:** [Visual Speech Recognition for German (2022)](http://arxiv.org/abs/2202.13403)
 3. **Source of dataset:** Hessian Parliament (https://hessischer-landtag.de)
+4. https://www.fdr.uni-hamburg.de/record/10048
 
 ---
 
@@ -43,4 +44,11 @@ Ein abschließendes Fully-Connected-Netzwerk projiziert den Vektor auf die Anzah
 ## Pipeline Visualisierung
 Die Architektur folgt dem Prinzip: **Lokale Bewegung (3D-CNN) $\rightarrow$ Visuelle Details (ResNet) $\rightarrow$ Globaler Kontext (Transformer).**
 
-![Modell Übersicht](pstaykov%E2%80%99s%20board.png)
+## Ziel
+Folgende Pipeline:
+- [ ] Streaming von Video und Audio
+- [ ] Zuschnitt auf Mundbereich
+- [ ] Bestimmung von Wörtern mit Video und Audio
+- [ ] Klassifizierung mit Video und Audio Modell
+- [ ] orchestration
+- [ ] Captions
