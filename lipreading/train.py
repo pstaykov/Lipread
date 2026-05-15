@@ -105,7 +105,6 @@ class GLipsFullClipDataset(Dataset):
         return video.permute(1, 0, 2, 3), label
 
 
-
 class VideoAugment:
     """Consistent spatial + temporal augmentation applied across all frames of a clip."""
     def __init__(self, crop_size=88, resize_size=96, is_train=True, time_mask_max=3):
