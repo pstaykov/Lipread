@@ -1,26 +1,13 @@
 import os
 import csv
+import sys
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from train import GLipsFullClipDataset, VideoAugment, GLipsNet
-
-
-class GLips15Dataset(GLipsFullClipDataset):
-    """Restricts the dataset to the first N alphabetically-sorted classes."""
-    def __init__(self, root_dir, split='train', transform=None, num_frames=25, num_classes=15):
-        super().__init__(root_dir, split, transform, num_frames)
-        idx_to_class = {v: k for k, v in self.class_to_idx.items()}
-        self.classes = self.classes[:num_classes]
-        kept = set(self.classes)
-        self.class_to_idx = {c: i for i, c in enumerate(self.classes)}
-        self.samples = [
-            (path, self.class_to_idx[idx_to_class[old_idx]])
-            for path, old_idx in self.samples
-            if idx_to_class[old_idx] in kept
-        ]
+from train import VideoAugment, GLipsNet
+from dataset import GLips15Dataset  # noqa: F401 — re-exported for downstream imports
 
 
 if __name__ == '__main__':
@@ -61,7 +48,7 @@ if __name__ == '__main__':
         {'params': [p for p in model.parameters() if id(p) not in backbone_ids], 'lr': 1e-3},
         {'params': list(model.cnn.resnet.parameters()), 'lr': 1e-4},
     ]
-    if hasattr(torch, 'compile'):
+    if hasattr(torch, 'compile') and sys.platform != 'win32':
         model = torch.compile(model)
 
     optimizer = torch.optim.AdamW(param_groups, weight_decay=0.01)

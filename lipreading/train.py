@@ -6,103 +6,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.models as models
 import torchvision.transforms.functional as TF
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import DataLoader
 
-try:
-    import torchvision.io as io
-except RuntimeError:
-    io = None
-
-
-class GLipsFullClipDataset(Dataset):
-    def __init__(self, root_dir, split='train', transform=None, num_frames=25):
-        self.root_dir = root_dir
-        self.split = split
-        self.transform = transform
-        self.num_frames = num_frames
-        self.samples = []
-
-        self.classes = sorted([d for d in os.listdir(root_dir) if os.path.isdir(os.path.join(root_dir, d))])
-        self.class_to_idx = {cls_name: i for i, cls_name in enumerate(self.classes)}
-
-        for cls_name in self.classes:
-            split_folder = os.path.join(root_dir, cls_name, split)
-            if not os.path.exists(split_folder):
-                for alt in ['train', 'validation', 'val', 'test']:
-                    alt_folder = os.path.join(root_dir, cls_name, alt)
-                    if os.path.exists(alt_folder):
-                        split_folder = alt_folder
-                        break
-
-            if os.path.exists(split_folder):
-                for file in os.listdir(split_folder):
-                    if file.endswith('.mp4'):
-                        self.samples.append((os.path.join(split_folder, file), self.class_to_idx[cls_name]))
-
-    def __len__(self):
-        return len(self.samples)
-
-    def __getitem__(self, idx):
-        video_path, label = self.samples[idx]
-        video = None
-
-        if io is not None and hasattr(io, 'read_video'):
-            try:
-                video, _, _ = io.read_video(video_path, pts_unit='sec', output_format='TCHW')
-            except Exception:
-                video = None
-
-        if video is None:
-            try:
-                import imageio.v2 as imageio
-            except Exception:
-                try:
-                    import imageio
-                except Exception:
-                    imageio = None
-
-            if imageio is not None:
-                frames = []
-                try:
-                    reader = imageio.get_reader(video_path, 'ffmpeg')
-                    for frame in reader:
-                        frames.append(frame)
-                    reader.close()
-                    video = torch.from_numpy(np.stack(frames)).permute(0, 3, 1, 2)
-                except Exception:
-                    video = None
-
-        if video is None:
-            try:
-                import cv2
-                cap = cv2.VideoCapture(video_path)
-                frames = []
-                while True:
-                    ret, frame = cap.read()
-                    if not ret:
-                        break
-                    frames.append(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
-                cap.release()
-                if not frames:
-                    raise RuntimeError(f"No frames read from {video_path}")
-                video = torch.from_numpy(np.stack(frames)).permute(0, 3, 1, 2)
-            except Exception as e:
-                raise RuntimeError(f"Could not read video. Install imageio or opencv. Error: {e}")
-
-        video = video.float() / 255.0
-        T = video.size(0)
-
-        if T > self.num_frames:
-            indices = np.linspace(0, T - 1, num=self.num_frames).astype(int)
-            video = video[indices]
-        elif T < self.num_frames:
-            pad_count = self.num_frames - T
-            video = torch.cat([video, video[-1:].repeat(pad_count, 1, 1, 1)], dim=0)
-
-        if self.transform:
-            video = self.transform(video)
-
-        return video.permute(1, 0, 2, 3), label
+from dataset import GLipsFullClipDataset  # noqa: F401 — re-exported for downstream imports
 
 
 class VideoAugment:
@@ -236,7 +142,7 @@ class GLipsNet(nn.Module):
     def forward(self, x):
         x = self.cnn(x)
         B, T, C, H, W = x.size()
-        x = self.avgpool(x.view(B * T, C, H, W)).view(B, T, FEAT_DIM)
+        x = self.avgpool(x.view(B * T, C, H, W)).flatten(1).view(B, T, FEAT_DIM)
         x = self.proj(x)
         x = self.ms_tcn(x)
         x = x + self.pos_embed[:, :T, :]

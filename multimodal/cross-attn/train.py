@@ -7,6 +7,7 @@ and fine-tunes with audio features extracted by the Whisper large encoder.
 Install:  pip install openai-whisper
 """
 import os
+import sys
 import csv
 import signal
 import numpy as np
@@ -15,13 +16,11 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.models as models
 import torchvision.transforms.functional as TF
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-try:
-    import torchvision.io as io
-except RuntimeError:
-    io = None
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'lipreading'))
+from dataset import GLipsFullClipDataset  # noqa: F401
 
 try:
     import whisper
@@ -61,100 +60,6 @@ def _ensure_ffmpeg():
         )
 
 _ensure_ffmpeg()
-
-
-# Dataset
-class GLipsFullClipDataset(Dataset):
-    def __init__(self, root_dir, split='train', transform=None, num_frames=25):
-        self.root_dir = root_dir
-        self.split = split
-        self.transform = transform
-        self.num_frames = num_frames
-        self.samples = []
-
-        self.classes = sorted([d for d in os.listdir(root_dir)
-                                if os.path.isdir(os.path.join(root_dir, d))])
-        self.class_to_idx = {cls_name: i for i, cls_name in enumerate(self.classes)}
-
-        for cls_name in self.classes:
-            split_folder = os.path.join(root_dir, cls_name, split)
-            if not os.path.exists(split_folder):
-                for alt in ['train', 'validation', 'val', 'test']:
-                    alt_folder = os.path.join(root_dir, cls_name, alt)
-                    if os.path.exists(alt_folder):
-                        split_folder = alt_folder
-                        break
-
-            if os.path.exists(split_folder):
-                for file in os.listdir(split_folder):
-                    if file.endswith('.mp4'):
-                        self.samples.append(
-                            (os.path.join(split_folder, file), self.class_to_idx[cls_name]))
-
-    def __len__(self):
-        return len(self.samples)
-
-    def __getitem__(self, idx):
-        video_path, label = self.samples[idx]
-        video = None
-
-        if io is not None and hasattr(io, 'read_video'):
-            try:
-                video, _, _ = io.read_video(video_path, pts_unit='sec', output_format='TCHW')
-            except Exception:
-                video = None
-
-        if video is None:
-            try:
-                import imageio.v2 as imageio
-            except Exception:
-                try:
-                    import imageio
-                except Exception:
-                    imageio = None
-
-            if imageio is not None:
-                frames = []
-                try:
-                    reader = imageio.get_reader(video_path, 'ffmpeg')
-                    for frame in reader:
-                        frames.append(frame)
-                    reader.close()
-                    video = torch.from_numpy(np.stack(frames)).permute(0, 3, 1, 2)
-                except Exception:
-                    video = None
-
-        if video is None:
-            try:
-                import cv2
-                cap = cv2.VideoCapture(video_path)
-                frames = []
-                while True:
-                    ret, frame = cap.read()
-                    if not ret:
-                        break
-                    frames.append(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
-                cap.release()
-                if not frames:
-                    raise RuntimeError(f"No frames read from {video_path}")
-                video = torch.from_numpy(np.stack(frames)).permute(0, 3, 1, 2)
-            except Exception as e:
-                raise RuntimeError(f"Could not read video. Install imageio or opencv. Error: {e}")
-
-        video = video.float() / 255.0
-        T = video.size(0)
-
-        if T > self.num_frames:
-            indices = np.linspace(0, T - 1, num=self.num_frames).astype(int)
-            video = video[indices]
-        elif T < self.num_frames:
-            pad_count = self.num_frames - T
-            video = torch.cat([video, video[-1:].repeat(pad_count, 1, 1, 1)], dim=0)
-
-        if self.transform:
-            video = self.transform(video)
-
-        return video.permute(1, 0, 2, 3), label
 
 
 class VideoAugment:
@@ -273,8 +178,8 @@ class MSTemporalBlock(nn.Module):
 # Multimodal model
 # ---------------------------------------------------------------------------
 
-WHISPER_MODEL_NAME = 'large'
-AUDIO_DIM = 1280   # Whisper large encoder hidden dim
+WHISPER_MODEL_NAME = 'base'
+AUDIO_DIM = 512    # Whisper base encoder hidden dim
 AUDIO_T = 1500     # encoder time steps for 30-second padded audio
 
 
@@ -316,7 +221,7 @@ class GLipsNet(nn.Module):
     def forward(self, x, audio_features=None):
         x = self.cnn(x)
         B, T, C, H, W = x.size()
-        x = self.avgpool(x.view(B * T, C, H, W)).view(B, T, FEAT_DIM)
+        x = self.avgpool(x.view(B * T, C, H, W)).flatten(1).view(B, T, FEAT_DIM)
         x = self.proj(x)
         x = self.ms_tcn(x)
         x = x + self.pos_embed[:, :T, :]
@@ -397,17 +302,14 @@ class WhisperExtractor:
 
     @torch.no_grad()
     def extract(self, path):
-        """Return encoder features as a CPU tensor of shape (AUDIO_T, AUDIO_DIM).
-        Returns zeros if the clip has no audio track."""
+        """Return encoder features as a CPU tensor (AUDIO_T, AUDIO_DIM). Zeros if no audio."""
         try:
             audio = whisper.load_audio(path)
         except Exception:
-            # No audio track (common in cropped lip-region datasets)
             return torch.zeros(AUDIO_T, AUDIO_DIM)
         audio = whisper.pad_or_trim(audio)
         mel = whisper.log_mel_spectrogram(audio, n_mels=self.n_mels).to(self.device)
-        features = self.model.encoder(mel.unsqueeze(0))
-        return features.squeeze(0).cpu()
+        return self.model.encoder(mel.unsqueeze(0)).squeeze(0).cpu()
 
 
 # ---------------------------------------------------------------------------
@@ -420,14 +322,9 @@ class MultimodalGLipsDataset(GLipsFullClipDataset):
         self.extractor = extractor
 
     def _audio_features(self, video_path):
-        cache = video_path + '.whisper.pt'
-        if os.path.exists(cache):
-            return torch.load(cache, map_location='cpu', weights_only=True)
         if self.extractor is None:
             return torch.zeros(AUDIO_T, AUDIO_DIM)
-        feats = self.extractor.extract(video_path)
-        torch.save(feats, cache)
-        return feats
+        return self.extractor.extract(video_path)
 
     def __getitem__(self, idx):
         video, label = super().__getitem__(idx)
@@ -441,15 +338,6 @@ def collate_fn(batch):
     return torch.stack(videos), torch.stack(audios), torch.tensor(labels)
 
 
-def preextract(dataset: MultimodalGLipsDataset, desc='Extracting audio'):
-    missing = [p for p, _ in dataset.samples if not os.path.exists(p + '.whisper.pt')]
-    if not missing:
-        print(f"All {len(dataset)} audio caches present — skipping extraction.")
-        return
-    print(f"Pre-extracting Whisper features for {len(missing)} clips …")
-    for path in tqdm(missing, desc=desc, unit='clip', dynamic_ncols=True):
-        dataset._audio_features(path)
-
 
 # ---------------------------------------------------------------------------
 # Training
@@ -460,11 +348,11 @@ if __name__ == '__main__':
     torch.set_float32_matmul_precision('high')
 
     CHECKPOINT_EVERY = 5
-    VISUAL_CKPT = '../lipreading/checkpoints/best_model.pth'
+    VISUAL_CKPT = './checkpoints/visual_best_model.pth'
     SAVE_DIR = './checkpoints'
-    ROOT_DIR = '../lipreading/GLips/lipread_files'
+    ROOT_DIR = '../../lipreading/GLips/lipread_files'
     NUM_FRAMES = 25
-    NUM_EPOCHS = 50
+    NUM_EPOCHS = 100
     WARMUP_EPOCHS = 5
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -481,27 +369,13 @@ if __name__ == '__main__':
     val_ds = MultimodalGLipsDataset(ROOT_DIR, split='validation', num_frames=NUM_FRAMES,
                                     transform=val_tf, extractor=extractor)
 
-    preextract(train_ds, 'Train audio')
-    preextract(val_ds, 'Val audio')
-
-    # Free Whisper from GPU before training starts
-    del extractor
-    train_ds.extractor = None
-    val_ds.extractor = None
-    torch.cuda.empty_cache()
-
-    num_workers = min(4, os.cpu_count() or 0)
-    prefetch = 2 if num_workers > 0 else None
-
+    # num_workers must be 0: Whisper runs on CUDA, which cannot be used in forked workers
     train_loader = DataLoader(train_ds, batch_size=16, shuffle=True,
-                              num_workers=num_workers, pin_memory=True,
-                              persistent_workers=num_workers > 0,
-                              prefetch_factor=prefetch, drop_last=True,
+                              num_workers=0, pin_memory=False,
+                              drop_last=True,
                               collate_fn=collate_fn)
     val_loader = DataLoader(val_ds, batch_size=8, shuffle=False,
-                            num_workers=num_workers, pin_memory=True,
-                            persistent_workers=num_workers > 0,
-                            prefetch_factor=prefetch,
+                            num_workers=0, pin_memory=False,
                             collate_fn=collate_fn)
 
     model = GLipsNet(num_classes=len(train_ds.classes), use_audio=True)
@@ -543,9 +417,14 @@ if __name__ == '__main__':
 
     if os.path.exists(latest_path):
         try:
-            start_epoch, best_val_acc = load_checkpoint(
-                latest_path, model, optimizer, scheduler, scaler, device)
-            print(f"Resumed from {latest_path} (epoch {start_epoch}, best={best_val_acc:.4f})")
+            ckpt = torch.load(latest_path, map_location=device)
+            getattr(model, '_orig_mod', model).load_state_dict(
+                _strip_orig_mod(ckpt['model']))
+            start_epoch = ckpt['epoch']
+            best_val_acc = ckpt.get('best_val_acc', 0.0)
+            print(f"Resumed model weights from {latest_path} "
+                  f"(epoch {start_epoch}, best={best_val_acc:.4f})")
+            print("Optimizer/scheduler reset — LR schedule restarts from epoch 0.")
         except (RuntimeError, KeyError) as e:
             print(f"WARNING: {latest_path} incompatible — starting fresh. ({e})")
 

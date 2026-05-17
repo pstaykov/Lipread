@@ -4,7 +4,8 @@ import torch
 import tkinter as tk
 from PIL import Image, ImageTk
 
-from train import GLipsNet, GLipsFullClipDataset, VideoAugment, _strip_orig_mod
+from train import GLipsNet, VideoAugment, _strip_orig_mod
+from dataset import GLipsFullClipDataset
 
 ROOT_DIR = './GLips/lipread_files'
 CHECKPOINT = './checkpoints/best_model.pth'
