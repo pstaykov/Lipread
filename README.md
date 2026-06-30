@@ -1,52 +1,69 @@
-# YouTube Channel Downloader
+# Lipread Deutsch - GLips Architektur
 
-This script downloads a fixed number of videos from a YouTube channel, user, handle, or uploads page into a target folder.
+Dieses Projekt implementiert eine Lipreading-Pipeline basierend auf dem GLips-Datensatz. Das Modell nutzt eine Kombination aus räumlich-zeitlicher Merkmalsextraktion und Transformer-basierten Sequenz-Modellierung.
 
-## Install
+## Pflichinformationen zum Datensatz
+1. **Title of dataset:** GLips
+2. **Authors & paper:** [Visual Speech Recognition for German (2022)](http://arxiv.org/abs/2202.13403)
+3. **Source of dataset:** Hessian Parliament (https://hessischer-landtag.de)
+4. https://www.fdr.uni-hamburg.de/record/10048
 
-```powershell
-python -m pip install -r requirements.txt
+---
+
+## Modellarchitektur
+
+### 1. Input & Augmentierung
+Die Eingabe besteht aus RGB-Videoframes, die auf die Lippenregion zugeschnitten sind.
+* **Format:** $(B, C, T, H, W)$
+    * $B$: Batch-Größe
+    * $C$: 3 (RGB-Kanäle)
+    * $T$: 25 Frames (gleichmäßig gesampelt oder gepaddet)
+    * $H, W$: 96 × 96 → zufälliger Crop auf 88 × 88 (Training), Center-Crop (Validierung)
+* **Augmentierung:** Horizontales Flipping (p=0.5), Time Masking (bis zu 3 aufeinanderfolgende Frames auf 0 gesetzt), ImageNet-Normalisierung
+
+### 2. Spatio-Temporal Front-End (3D CNN + ResNet-18)
+* **3D CNN:** Kernel $5 \times 7 \times 7$, Stride $(1, 2, 2)$ → BatchNorm → ReLU → MaxPool $(1 \times 3 \times 3)$; extrahiert kurzzeitige Bewegungsmerkmale über die Frame-Abfolge
+* **ResNet-18 Backbone:** Stages 3–5 (ab `layer1`) verarbeiten jeden Frame einzeln und extrahieren visuelle Merkmale der Dimension 512
+* **Adaptive Average Pooling** kollabiert die räumlichen Dimensionen auf $1 \times 1$
+* **Output:** Sequenz von Frame-Features $\in \mathbb{R}^{B \times T \times 512}$
+
+### 3. Projektion
+Eine lineare Schicht mit LayerNorm projiziert die CNN-Features auf die Modell-Dimension:
+$$512 \rightarrow D_\text{model} = 256$$
+
+### 4. Multi-Scale Temporal Convolutional Network (MS-TCN)
+Zwei aufeinanderfolgende MS-TCN-Blöcke erfassen lokale temporale Muster auf verschiedenen Skalen. Jeder Block besteht aus drei parallelen Depthwise-Separable-Konvolutionen mit Kernelgrößen $k \in \{3, 5, 7\}$, deren Ausgaben gemittelt werden:
+$$\text{MS-TCN}(x) = \text{LayerNorm}\!\left(x + \frac{1}{3}\sum_{k \in \{3,5,7\}} \text{DW-Conv}_k(x)\right)$$
+* **Output:** $\in \mathbb{R}^{B \times T \times 256}$
+
+### 5. Transformer Encoder
+Einem erlernbaren Positions-Embedding folgen 4 Transformer-Encoder-Schichten (Pre-Norm):
+* **Heads:** 8, **FFN-Dim:** 1024, **Dropout:** 0.1, **Aktivierung:** GELU
+* Mean Pooling über die Zeitachse aggregiert die Sequenz zu einem fixen Vektor $\in \mathbb{R}^{B \times 256}$
+
+### 6. Classification Head
+Eine lineare Schicht projiziert auf die Zielklassen:
+* **Output:** $\in \mathbb{R}^{B \times 500}$ (Logits für 500 deutsche Wörter)
+
+---
+
+## Pipeline Visualisierung
+```
+Video (B,3,T,96,96)
+  → 3D-CNN + ResNet-18          (B, T, 512)
+  → Linear + LayerNorm          (B, T, 256)
+  → MS-TCN × 2                  (B, T, 256)
+  → Positions-Embedding
+  → Transformer Encoder × 4    (B, T, 256)
+  → Mean Pooling                (B, 256)
+  → Classifier                  (B, 500)
 ```
 
-## Usage
-
-```powershell
-python download_channel_videos.py <source_url> <count> <output_dir>
-```
-
-Videos are downloaded at up to 720p.
-
-Examples:
-
-```powershell
-python download_channel_videos.py https://www.youtube.com/@SomeChannel/videos 10 D:\Videos\SomeChannel
-python download_channel_videos.py https://www.youtube.com/channel/CHANNEL_ID/videos 25 .\downloads
-```
-
-Options:
-
-```powershell
---oldest-first
---use-cropper
---cropper <path_to_camera_preview.py>
---center-crop-ratio <float>
---prefer-gpu / --no-prefer-gpu
-```
-
-Use `--oldest-first` if you want the earliest videos from the channel instead of the newest ones.
-
-Use `--center-crop-ratio` to keep only the center of each frame before face tracking (default: `0.6`). Set it to `1.0` to disable this pre-crop.
-If you set `--center-crop-ratio` below `1.0`, the cropper will be used automatically when the script is available.
-
-The cropper now uses the YuNet face detector model from the original libfacedetection.train source: `yunet.onnx`. It tries OpenCV's CUDA backend first, then falls back to CPU. If neither YuNet backend works, it falls back to OpenCV's Haar cascade detector.
-
-Example with face cropper and center pre-crop:
-
-```powershell
-python download_channel_videos.py https://www.youtube.com/@SomeChannel/videos 10 .\output_folder --use-cropper --center-crop-ratio 0.6
-```
-
-## Notes
-
-- If yt-dlp asks for browser cookies or age verification on a particular channel, you may need to provide cookies manually.
-- Downloading best-quality video may require `ffmpeg` to be installed on your system.
+## Ziel
+Folgende Pipeline:
+- [ ] Streaming von Video und Audio
+- [ ] Zuschnitt auf Mundbereich
+- [ ] Bestimmung von Wörtern mit Video und Audio
+- [ ] Klassifizierung mit Video und Audio Modell
+- [ ] orchestration
+- [ ] Captions
