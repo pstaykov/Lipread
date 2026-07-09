@@ -1,12 +1,141 @@
 import os
+import re
+import hashlib
+import random
 import numpy as np
 import torch
+import torchvision.transforms.functional as TF
 from torch.utils.data import Dataset
 
 try:
     import torchvision.io as io
 except RuntimeError:
     io = None
+
+
+class VideoAugment:
+    """Consistent spatial + temporal augmentation applied across all frames of a clip.
+
+    Every random parameter (affine, brightness/contrast, crop offset, flip, time mask) is
+    drawn once per clip and applied identically to all frames, so temporal coherence — the
+    only signal a lip-reader has — is preserved. With ``is_train=False`` all randomness is
+    off: just resize -> center-crop -> normalize, keeping val/test deterministic.
+    """
+    def __init__(self, crop_size=88, resize_size=96, is_train=True, time_mask_max=4,
+                 max_time_masks=2, rotation_deg=10.0, scale_jitter=0.1,
+                 translate_frac=0.06, brightness=0.2, contrast=0.2,
+                 grayscale_p=0.0, random_erase=0.0, erase_scale=(0.02, 0.2),
+                 normalize='imagenet'):
+        self.crop_size = crop_size
+        self.resize_size = resize_size
+        self.is_train = is_train
+        self.time_mask_max = time_mask_max
+        self.max_time_masks = max_time_masks
+        self.rotation_deg = rotation_deg
+        self.scale_jitter = scale_jitter
+        self.translate_frac = translate_frac
+        self.brightness = brightness
+        self.contrast = contrast
+        # grayscale_p: prob of dropping colour for the whole clip (lip-reading is shape,
+        # not colour — removes a skin-tone/lighting memorization shortcut).
+        # random_erase: prob of zeroing one rectangle (same box across all frames) —
+        # cutout-style occlusion robustness.
+        self.grayscale_p = grayscale_p
+        self.random_erase = random_erase
+        self.erase_scale = erase_scale
+        # normalize: 'imagenet' -> subtract ImageNet mean/std (our default recipe);
+        # 'minmax' -> per-clip min-max to [0,1] ((x-min)/(max-min)), Ameer et al.'s scheme.
+        self.normalize = normalize
+        self.mean = torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1)
+        self.std = torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1)
+
+    @staticmethod
+    def _sym(mag):
+        """Uniform in [-mag, +mag]."""
+        return (torch.rand(1).item() * 2 - 1) * mag
+
+    def __call__(self, video):
+        # video: (T, C, H, W), float32 in [0, 1]
+        T = video.shape[0]
+
+        if self.resize_size is not None:
+            video = torch.stack([
+                TF.resize(video[t], [self.resize_size, self.resize_size], antialias=True)
+                for t in range(T)
+            ])
+
+        if self.is_train:
+            # photometric jitter — one factor per clip
+            if self.brightness > 0:
+                video = TF.adjust_brightness(video, 1.0 + self._sym(self.brightness))
+            if self.contrast > 0:
+                video = TF.adjust_contrast(video, 1.0 + self._sym(self.contrast))
+            if self.grayscale_p > 0 and torch.rand(1).item() < self.grayscale_p:
+                video = TF.rgb_to_grayscale(video, num_output_channels=3)
+            video = video.clamp(0, 1)
+
+            # geometric jitter — one affine per clip, applied before cropping so the
+            # replicate-free border padding is mostly cropped away afterwards
+            if self.rotation_deg > 0 or self.scale_jitter > 0 or self.translate_frac > 0:
+                H0, W0 = video.shape[2], video.shape[3]
+                video = TF.affine(
+                    video,
+                    angle=self._sym(self.rotation_deg),
+                    translate=[int(round(self._sym(self.translate_frac * W0))),
+                               int(round(self._sym(self.translate_frac * H0)))],
+                    scale=1.0 + self._sym(self.scale_jitter),
+                    shear=[0.0, 0.0],
+                    interpolation=TF.InterpolationMode.BILINEAR,
+                )
+
+        H, W = video.shape[2], video.shape[3]
+        cs = self.crop_size
+        if H >= cs and W >= cs:
+            if self.is_train:
+                top = torch.randint(0, H - cs + 1, (1,)).item()
+                left = torch.randint(0, W - cs + 1, (1,)).item()
+            else:
+                top = (H - cs) // 2
+                left = (W - cs) // 2
+            video = video[:, :, top:top + cs, left:left + cs]
+
+        if self.is_train:
+            if torch.rand(1).item() < 0.5:
+                video = torch.flip(video, dims=[3])
+
+            if self.time_mask_max > 0 and T > 1:
+                video = video.clone()
+                for _ in range(torch.randint(1, self.max_time_masks + 1, (1,)).item()):
+                    n = torch.randint(1, self.time_mask_max + 1, (1,)).item()
+                    start = torch.randint(0, max(1, T - n + 1), (1,)).item()
+                    video[start:start + n] = 0.0
+
+            if self.random_erase > 0 and torch.rand(1).item() < self.random_erase:
+                video = self._erase(video)
+
+        if self.normalize == 'minmax':
+            lo, hi = video.amin(), video.amax()
+            video = (video - lo) / (hi - lo + 1e-6)
+        else:
+            video = (video - self.mean) / self.std
+        return video
+
+    def _erase(self, video):
+        """Zero one rectangle, identical box across all T frames (temporal coherence)."""
+        T, C, H, W = video.shape
+        area = H * W
+        for _ in range(10):
+            er = area * random.uniform(*self.erase_scale)
+            ar = random.uniform(0.3, 3.3)
+            h = int(round((er * ar) ** 0.5))
+            w = int(round((er / ar) ** 0.5))
+            if 0 < h < H and 0 < w < W:
+                i = random.randint(0, H - h)
+                j = random.randint(0, W - w)
+                video = video.clone()
+                video[:, :, i:i + h, j:j + w] = random.random()  # fill with a flat grey
+                break
+        return video
 
 
 def _load_video_audio(video_path):
@@ -90,14 +219,64 @@ class GLipsFullClipDataset(Dataset):
 
     root_dir/
         <class>/
-            train/  validation/  test/  *.mp4
+            train/  val/  test/  *.mp4
 
     If `classes` is provided, only those class names are loaded (and indexed
     in the given order).  Otherwise all subdirectories are discovered.
     """
-    def __init__(self, root_dir, split='train', transform=None, num_frames=25, classes=None):
+
+    # Map a requested split to the on-disk folder names that are allowed to
+    # satisfy it. CRITICAL: a split must NEVER resolve to a different split's
+    # folder — doing so silently leaks train data into validation/test and
+    # produces fake metrics. 'validation' and 'val' are accepted spellings of
+    # the same held-out split; nothing else cross-resolves.
+    SPLIT_ALIASES = {
+        'train': ('train',),
+        'validation': ('val', 'validation'),
+        'val': ('val', 'validation'),
+        'test': ('test',),
+    }
+
+    # GLips clip filenames are "<word>_<SOURCE>-<CLIP>.mp4" where SOURCE is the
+    # broadcast/speaker recording the clip was cut from. The stock train/val/test
+    # folders split per-CLIP, so the same SOURCE lands in multiple splits — ~66%
+    # of val sources also appear in train. That leaks speaker/recording cues and
+    # inflates val metrics. group_split (DEFAULT, on) ignores the on-disk folders
+    # and re-partitions by SOURCE so every broadcast lives in exactly one split.
+    # Pass group_split=False only to reproduce the old (leaky) folder split.
+    _SOURCE_RE = re.compile(r'_(\d+)-\d+\.mp4$')
+
+    @classmethod
+    def _source_id(cls, filename):
+        m = cls._SOURCE_RE.search(filename)
+        return m.group(1) if m else filename  # fall back to filename = its own group
+
+    @staticmethod
+    def _grouped_split(source_id, val_frac, test_frac):
+        """Deterministically map a source-ID to 'train'/'val'/'test'.
+
+        Hash-based and class-independent, so a broadcast that appears under many
+        words always lands in the same split — no cross-class leakage, and the
+        assignment is stable across runs/machines (unlike Python's salted hash).
+        """
+        h = int(hashlib.md5(source_id.encode()).hexdigest(), 16) % 10_000 / 10_000.0
+        if h < test_frac:
+            return 'test'
+        if h < test_frac + val_frac:
+            return 'val'
+        return 'train'
+
+    def __init__(self, root_dir, split='train', transform=None, num_frames=25, classes=None,
+                 temporal_jitter=False, jitter_speed=(0.8, 1.2),
+                 group_split=True, group_val_frac=0.1, group_test_frac=0.1,
+                 require_all_classes=True):
         self.transform = transform
         self.num_frames = num_frames
+        # temporal_jitter (train only): sample num_frames from a randomly speed-warped
+        # sub-window of the clip instead of the full span — augments speaking rate
+        # without changing num_frames. Off by default so val/other trainers are unaffected.
+        self.temporal_jitter = temporal_jitter
+        self.jitter_speed = jitter_speed
         self.samples = []
 
         if classes is None:
@@ -106,19 +285,54 @@ class GLipsFullClipDataset(Dataset):
         self.classes = list(classes)
         self.class_to_idx = {c: i for i, c in enumerate(self.classes)}
 
+        if group_split:
+            self._build_grouped(root_dir, split, group_val_frac, group_test_frac)
+            return
+
+        candidates = self.SPLIT_ALIASES.get(split, (split,))
+        missing = []
         for cls_name in self.classes:
-            split_folder = os.path.join(root_dir, cls_name, split)
-            if not os.path.exists(split_folder):
-                for alt in ['train', 'validation', 'val', 'test']:
-                    alt_folder = os.path.join(root_dir, cls_name, alt)
-                    if os.path.exists(alt_folder):
-                        split_folder = alt_folder
-                        break
-            if os.path.exists(split_folder):
-                for f in os.listdir(split_folder):
-                    if f.endswith('.mp4'):
-                        self.samples.append(
-                            (os.path.join(split_folder, f), self.class_to_idx[cls_name]))
+            split_folder = next(
+                (os.path.join(root_dir, cls_name, a) for a in candidates
+                 if os.path.isdir(os.path.join(root_dir, cls_name, a))),
+                None)
+            if split_folder is None:
+                missing.append(cls_name)
+                continue
+            for f in os.listdir(split_folder):
+                if f.endswith('.mp4'):
+                    self.samples.append(
+                        (os.path.join(split_folder, f), self.class_to_idx[cls_name]))
+
+        if missing and require_all_classes:
+            raise FileNotFoundError(
+                f"Split '{split}' (folders {candidates}) not found for "
+                f"{len(missing)}/{len(self.classes)} classes, e.g. "
+                f"{missing[:3]}. Refusing to silently fall back to another "
+                f"split — that would leak data and corrupt metrics. "
+                f"Pass require_all_classes=False to allow a class to contribute "
+                f"zero samples to this split (its label index is still reserved).")
+        if missing:
+            print(f"[dataset] '{split}': {len(missing)} of {len(self.classes)} classes have no "
+                  f"such folder and contribute 0 samples (e.g. {missing[:3]}).")
+
+    def _build_grouped(self, root_dir, split, val_frac, test_frac):
+        """Source-disjoint split: pool every clip of each class across the stock
+        train/val/test folders, then keep only those whose SOURCE hashes to the
+        requested split. Guarantees no source-ID appears in two splits."""
+        want = 'val' if split in ('val', 'validation') else split
+        if want not in ('train', 'val', 'test'):
+            raise ValueError(f"group_split supports train/val/test, got '{split}'")
+        for cls_name in self.classes:
+            for sub in ('train', 'val', 'validation', 'test'):
+                d = os.path.join(root_dir, cls_name, sub)
+                if not os.path.isdir(d):
+                    continue
+                for f in os.listdir(d):
+                    if not f.endswith('.mp4'):
+                        continue
+                    if self._grouped_split(self._source_id(f), val_frac, test_frac) == want:
+                        self.samples.append((os.path.join(d, f), self.class_to_idx[cls_name]))
 
     def __len__(self):
         return len(self.samples)
@@ -127,11 +341,20 @@ class GLipsFullClipDataset(Dataset):
         """Normalize, temporally sample, augment, and permute to (C, T, H, W)."""
         video = video.float() / 255.0
         T = video.size(0)
-        if T > self.num_frames:
-            indices = np.linspace(0, T - 1, num=self.num_frames).astype(int)
+        n = self.num_frames
+        if self.temporal_jitter and T > n:
+            # warp the sampling window: speed<1 squeezes into a shorter span (slower
+            # motion), speed>1 spreads across more frames; random start adds temporal crop
+            speed = random.uniform(*self.jitter_speed)
+            L = max(2, min(T, int(round((n - 1) * speed)) + 1))
+            start = random.randint(0, T - L)
+            indices = np.linspace(start, start + L - 1, num=n).astype(int)
             video = video[indices]
-        elif T < self.num_frames:
-            pad = self.num_frames - T
+        elif T > n:
+            indices = np.linspace(0, T - 1, num=n).astype(int)
+            video = video[indices]
+        elif T < n:
+            pad = n - T
             video = torch.cat([video, video[-1:].repeat(pad, 1, 1, 1)], dim=0)
         if self.transform:
             video = self.transform(video)

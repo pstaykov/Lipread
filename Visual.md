@@ -2,7 +2,7 @@
 
 ## Overview
 
-GLipsNet is a visual lip reading model for German word classification, trained on the [GLips dataset](https://github.com/braeutigam/glips) (Bräutigam et al., 2023). Two training runs were completed:
+GLipsNet is a visual lip reading model for German word classification, trained on the [GLips dataset](https://github.com/braeutigam/glips) (Schwiebert et. al. 2022). Two training runs were completed:
 
 - **GLips-500**: 500-class German word classification, 50 epochs
 - **GLips-15**: 15-class subset (first 15 alphabetically), 30 epochs
@@ -130,11 +130,11 @@ Input video (B, C=3, T=25, H=88, W=88)
 All models evaluated on the GLips validation split (German, word-level, 500 classes).
 
 | Model | Top-1 (%) | Top-5 (%) | Year |
-|---|---|---|---|
+|---|---|---|------|
 | 3D-CNN + BiGRU (GLips paper baseline) | 27.6 | 53.4 | 2023 |
 | ResNet-18 + MS-TCN (GLips paper) | 38.2 | 64.1 | 2023 |
-| **GLipsNet — ours (500 classes)** | **59.1** | **77.2** | 2025 |
-| **GLipsNet — ours (15 classes)** | **99.9** | **100.0** | 2025 |
+| **GLipsNet — ours (500 classes)** | **59.1** | **77.2** | 2026 |
+| **GLipsNet — ours (15 classes)** | **99.9** | **100.0** | 2026 |
 
 GLipsNet outperforms the strongest published GLips baseline by **+20.9 pp top-1** and **+13.1 pp top-5**.
 

@@ -3,7 +3,7 @@ import sys
 import torch
 import torch.nn as nn
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'lipreading'))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'lipreading', 'Transformer_based'))
 from train import GLipsNet, _strip_orig_mod, D_MODEL, FEAT_DIM, VideoAugment  # noqa: F401
 
 try:

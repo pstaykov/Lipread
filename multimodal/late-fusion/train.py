@@ -10,13 +10,13 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from dataset import GLipsAVDataset
+from multimodal.av_dataset import GLipsAVDataset
 from models import MetaLearner, VideoAugment, load_visual_encoder, load_audio_encoder
 
 
 if __name__ == '__main__':
     root_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                            '..', '..', 'lipreading', 'GLips', 'lipread_files')
+                            '..', '..', 'lipreading', 'GLips_mouth', 'lipread_files')
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     assert device.type == 'cuda', f"CUDA not available — got device '{device}'"
     print(f"Using device: {torch.cuda.get_device_name(device)}")
@@ -35,7 +35,7 @@ if __name__ == '__main__':
                             persistent_workers=num_workers > 0)
 
     ckpt_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                             '..', '..', 'lipreading', 'checkpoints', 'final_model.pth')
+                             '..', '..', 'lipreading', 'Transformer_based', 'checkpoints', 'best_model.pth')
     visual_enc = load_visual_encoder(ckpt_path, device)
     audio_enc = load_audio_encoder(device)
 

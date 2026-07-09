@@ -1,14 +1,20 @@
 import os
+import sys
 import random
 import torch
 import tkinter as tk
 from PIL import Image, ImageTk
 
-from train import GLipsNet, VideoAugment, _strip_orig_mod
-from dataset import GLipsFullClipDataset
+# This file lives at the lipreading root. dataset.py is alongside it; the
+# Transformer model (GLipsNet) lives in Transformer_based/model.py.
+_LIPREAD = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(_LIPREAD, 'Transformer_based'))
 
-ROOT_DIR = './GLips/lipread_files'
-CHECKPOINT = './checkpoints/best_model.pth'
+from model import GLipsNet, _strip_orig_mod  # noqa: E402
+from dataset import GLipsFullClipDataset, VideoAugment  # noqa: E402
+
+ROOT_DIR = os.path.join(_LIPREAD, 'GLips', 'lipread_files')
+CHECKPOINT = os.path.join(_LIPREAD, 'Transformer_based', 'checkpoints', 'best_model.pth')
 NUM_SAMPLES = 5
 NUM_FRAMES = 25
 

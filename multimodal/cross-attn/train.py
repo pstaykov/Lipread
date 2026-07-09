@@ -189,6 +189,9 @@ class CrossAttention(nn.Module):
         self.audio_proj = nn.Linear(audio_dim, d_model)
         self.cross_attn = nn.MultiheadAttention(d_model, n_heads, batch_first=True)
         self.norm = nn.LayerNorm(d_model)
+        # learned residual gate, starts closed so fusion is initially a no-op and
+        # the random cross-attn can't corrupt the pretrained visual encoder
+        self.gate = nn.Parameter(torch.zeros(1))
 
     def forward(self, visual_tokens, audio_features):
         audio_proj = self.audio_proj(audio_features)
@@ -197,7 +200,7 @@ class CrossAttention(nn.Module):
             key=audio_proj,
             value=audio_proj,
         )
-        return self.norm(visual_tokens + attended), weights
+        return self.norm(visual_tokens + self.gate.tanh() * attended), weights
 
 
 class GLipsNet(nn.Module):
@@ -348,9 +351,9 @@ if __name__ == '__main__':
     torch.set_float32_matmul_precision('high')
 
     CHECKPOINT_EVERY = 5
-    VISUAL_CKPT = './checkpoints/visual_best_model.pth'
+    VISUAL_CKPT = '../../lipreading/Transformer_based/checkpoints/best_model.pth'
     SAVE_DIR = './checkpoints'
-    ROOT_DIR = '../../lipreading/GLips/lipread_files'
+    ROOT_DIR = '../../lipreading/GLips_mouth/lipread_files'
     NUM_FRAMES = 25
     NUM_EPOCHS = 100
     WARMUP_EPOCHS = 5
@@ -380,10 +383,12 @@ if __name__ == '__main__':
 
     model = GLipsNet(num_classes=len(train_ds.classes), use_audio=True)
 
-    if os.path.exists(VISUAL_CKPT):
-        load_visual_weights(model, VISUAL_CKPT, device)
-    else:
-        print(f"WARNING: visual checkpoint not found at {VISUAL_CKPT} — training from scratch.")
+    if not os.path.exists(VISUAL_CKPT):
+        raise FileNotFoundError(
+            f"Visual checkpoint required but not found at {VISUAL_CKPT}. "
+            "Train the visual-only model first and place its best checkpoint there."
+        )
+    load_visual_weights(model, VISUAL_CKPT, device)
 
     model.to(device)
 

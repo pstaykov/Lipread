@@ -1,5 +1,5 @@
 """
-Evaluate the 30-word late-fusion model on 100 random test-split samples.
+Evaluate the 15-word late-fusion model on 100 random test-split samples.
 Injects additive white Gaussian noise at SNR = {clean, +10, +5, 0, -5, -10} dB.
 
 Reports top-1 accuracy for three ablations:
@@ -24,7 +24,7 @@ import torch
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
-from dataset import _load_video_audio
+from multimodal.av_dataset import _load_video_audio
 from models import MetaLearner, VideoAugment, load_visual_encoder, load_audio_encoder
 
 try:
@@ -32,8 +32,7 @@ try:
 except ImportError:
     raise ImportError("openai-whisper not found: pip install openai-whisper")
 
-NUM_WORDS      = 30
-SUBSET_SEED    = 42
+NUM_WORDS      = 15
 TEST_SAMPLES   = 100
 TEST_SEED      = 123
 SNR_CONDITIONS = [None, 10, 5, 0, -5, -10]  # None = clean
@@ -117,7 +116,7 @@ def main():
     args = parser.parse_args()
 
     root_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                            '..', '..', 'lipreading', 'GLips', 'lipread_files')
+                            '..', '..', 'lipreading', 'GLips_mouth', 'lipread_files')
     this_dir = os.path.dirname(os.path.abspath(__file__))
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -138,10 +137,9 @@ def main():
 
     all_classes = sorted([d for d in os.listdir(root_dir)
                           if os.path.isdir(os.path.join(root_dir, d))])
-    rng = random.Random(SUBSET_SEED)
-    selected_classes = sorted(rng.sample(all_classes, NUM_WORDS))
+    selected_classes = all_classes[:NUM_WORDS]
     class_to_idx = {c: i for i, c in enumerate(selected_classes)}
-    print(f"30-word subset: {selected_classes}")
+    print(f"{NUM_WORDS}-word subset: {selected_classes}")
 
     all_test = []
     for cls_name in selected_classes:
@@ -157,9 +155,10 @@ def main():
     test_subset = rng2.sample(all_test, min(args.samples, len(all_test)))
     print(f"Test samples: {len(test_subset)} (from {len(all_test)} available)")
 
-    visual_ckpt = os.path.join(this_dir, '..', '..', 'lipreading', 'checkpoints', 'final_model.pth')
+    visual_ckpt = os.path.join(this_dir, '..', '..', 'lipreading', 'Transformer_based',
+                               'checkpoints_15_transfer', 'best_model.pth')
     print("Loading visual encoder...")
-    visual_enc = load_visual_encoder(visual_ckpt, device)
+    visual_enc = load_visual_encoder(visual_ckpt, device, num_classes=NUM_WORDS)
 
     print("Loading Whisper-small audio encoder...")
     audio_enc = load_audio_encoder(device)
