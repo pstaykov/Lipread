@@ -2,3 +2,17 @@
 .idea
 *.iml
 *.pth
+# --- large data, caches, generated artifacts (added 2026-07-23) ---
+/lipreading/GLips_mouth
+multimodal/fusion/cache/
+multimodal/fusion/logs/
+lipreading/logs/
+*.dat
+*.npz
+__pycache__/
+*.pyc
+# latex build artifacts
+paper/*.aux
+paper/*.log
+paper/*.out
+.monitor_seen/

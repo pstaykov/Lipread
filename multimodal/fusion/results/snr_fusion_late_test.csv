@@ -1,0 +1,16 @@
+system,noise,snr_db,top1,top5
+visual_only,n/a,n/a,0.3201,0.5157
+late,none,clean,0.6087,0.7545
+audio_only,none,clean,0.6100,0.7708
+late,white,15,0.5799,0.7349
+audio_only,white,15,0.5141,0.6971
+late,white,10,0.5578,0.7180
+audio_only,white,10,0.4574,0.6437
+late,white,5,0.5193,0.6886
+audio_only,white,5,0.3552,0.5433
+late,babble,15,0.5841,0.7357
+audio_only,babble,15,0.5629,0.7344
+late,babble,10,0.5447,0.7095
+audio_only,babble,10,0.4825,0.6672
+late,babble,5,0.4711,0.6471
+audio_only,babble,5,0.2962,0.4694
