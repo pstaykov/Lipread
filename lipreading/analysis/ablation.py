@@ -164,12 +164,23 @@ def _save_confusion(conf, class_names, tag):
         cm = conf.numpy()
         row = cm.sum(1, keepdims=True)
         norm = cm / np.clip(row, 1, None)          # row-normalized (per true label), like Ameer
-        fig, ax = plt.subplots(figsize=(max(6, len(class_names) * 0.5),) * 2)
+        fig, ax = plt.subplots(figsize=(max(6, len(class_names) * 0.62),) * 2)
         im = ax.imshow(norm, cmap='Blues', vmin=0, vmax=1)
+        # Annotate each cell with its row-normalized rate over the raw count. Zero
+        # cells stay blank so the populated ones read at a glance; the text flips to
+        # white on dark cells to stay legible against the colormap.
+        fs = max(6, min(11, int(150 / len(class_names))))
+        for i in range(len(class_names)):
+            for j in range(len(class_names)):
+                ax.text(j, i, f'{round(float(norm[i, j]), 2):g}', ha='center', va='center',
+                        fontsize=fs, family='serif',
+                        color='white' if norm[i, j] > 0.5 else '#1a1a6e')
         ax.set_xticks(range(len(class_names))); ax.set_yticks(range(len(class_names)))
-        ax.set_xticklabels(class_names, rotation=90, fontsize=7)
-        ax.set_yticklabels(class_names, fontsize=7)
-        ax.set_xlabel('Predicted'); ax.set_ylabel('True'); ax.set_title(tag)
+        ax.set_xticklabels(class_names, rotation=90, fontsize=10, family='serif')
+        ax.set_yticklabels(class_names, fontsize=10, family='serif')
+        ax.set_xlabel('Predicted label', fontsize=11, family='serif')
+        ax.set_ylabel('True label', fontsize=11, family='serif')
+        ax.set_title(tag, fontsize=11, family='serif')
         fig.colorbar(im, fraction=0.046, pad=0.04)
         fig.tight_layout()
         fig.savefig(os.path.join(CONF_DIR, f'{tag}.png'), dpi=150)

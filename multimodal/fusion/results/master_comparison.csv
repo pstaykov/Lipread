@@ -1,0 +1,8 @@
+system,val_top1,val_top5,regime,fusion_params
+joint_tf / AV-HuBERT-style,0.7286,0.7994,frozen backbone,2.70M
+"cross_attn (shipped, finetuned)",0.7166,0.7961,backbone finetuned,—
+cross_attn (frozen),0.7141,0.7977,frozen backbone,0.52M
+audio_only (Whisper probe),0.6137,0.7696,frozen,—
+concat fusion,0.6113,0.7560,frozen backbone,0.98M
+late fusion,0.6055,0.7535,frozen backbone,0.38M
+visual_only (standalone),0.3332,0.5337,frozen,—

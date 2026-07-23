@@ -14,7 +14,7 @@ from train import (
 _ensure_ffmpeg()
 
 ROOT_DIR = '../../lipreading/GLips/lipread_files'
-CHECKPOINT = './checkpoints/best_model.pth'
+CHECKPOINT = './models/checkpoints/best_model.pth'
 NUM_SAMPLES = 5
 NUM_FRAMES = 25
 

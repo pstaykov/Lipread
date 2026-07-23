@@ -1,0 +1,3 @@
+split,n,exact_top1,nearest_top1,empty_rate
+val,24900,0.1112,0.1280,0.0110
+test,24950,0.1065,0.1247,0.0125
