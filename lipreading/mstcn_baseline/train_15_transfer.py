@@ -29,8 +29,12 @@ from dataset15 import CLASSES, make_15_datasets  # noqa: E402
 from train_loop import make_loaders, run_training  # noqa: E402
 
 PRETRAIN_CKPT = os.path.join(SCRIPT_DIR, 'checkpoints', 'best_model.pth')
-NUM_EPOCHS = 80
-PATIENCE = 15
+# Both transfer runs plateau within ~12 epochs and early-stopped at different points
+# (MS-TCN at 25, GLipsNet at 27). Capped at 27 with early stopping off so the two
+# transfer curves span an identical 27 epochs. The LR schedule is unchanged: it was
+# built for 80 epochs and is restored from checkpoint_latest.pth on resume.
+NUM_EPOCHS = 27
+PATIENCE = None
 
 
 def main():
