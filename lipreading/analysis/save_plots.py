@@ -77,6 +77,28 @@ def _annotate_max(ax, df, col, color, offset, fmt="max {v:.1f}% @ ep{e}"):
     return epoch, value
 
 
+def _align_epochs(df_mstcn, df_transformer, title_prefix):
+    """Trim both runs to the epoch budget they *both* completed.
+
+    The two models are compared head-to-head, so a panel where one curve
+    stops early is not a comparison -- it is two different experiments on
+    one axis. Early stopping (patience on the val plateau) ends each run
+    at its own peak + patience, so lengths drift apart unless the trainer
+    is told otherwise. The runs behind these figures were continued to a
+    common budget; this is the backstop that keeps a future ragged pair
+    from silently reaching the paper.
+    """
+    last = int(min(df_mstcn["epoch"].max(), df_transformer["epoch"].max()))
+    if df_mstcn["epoch"].max() != df_transformer["epoch"].max():
+        print(f"  ! {title_prefix}: unequal run lengths "
+              f"(MS-TCN {int(df_mstcn['epoch'].max())} ep, "
+              f"GLipsNet {int(df_transformer['epoch'].max())} ep) -- "
+              f"both trimmed to {last} for a like-for-like curve.")
+    return (df_mstcn[df_mstcn["epoch"] <= last].reset_index(drop=True),
+            df_transformer[df_transformer["epoch"] <= last].reset_index(drop=True),
+            last)
+
+
 def plot_run(
     df_mstcn: pd.DataFrame,
     df_transformer: pd.DataFrame,
@@ -87,18 +109,17 @@ def plot_run(
     save_path: str,
 ):
     """
-    xlim/xtick_step are optional. If omitted, xlim is derived from the
-    longer of the two dataframes' max epoch, with a small margin. This
-    avoids silently clipping a run that trained longer than expected
-    (e.g. an MS-TCN run that kept training well past its validation
-    peak -- the clipped version hides exactly the overfitting signal
-    you want to see).
+    xlim/xtick_step are optional. If omitted, the axis runs edge to edge
+    over the epochs both models completed -- no dead strip on the right
+    where a shorter run ran out, and no curve clipped short of its own
+    last epoch.
     """
+    df_mstcn, df_transformer, last_epoch = _align_epochs(
+        df_mstcn, df_transformer, title_prefix)
     if xlim is None:
-        xlim = int(max(df_mstcn["epoch"].max(), df_transformer["epoch"].max()))
-        xlim = xlim + (5 - xlim % 5) if xlim % 5 else xlim  # round up to nearest 5
+        xlim = last_epoch
     if xtick_step is None:
-        xtick_step = max(5, xlim // 10)
+        xtick_step = max(5, round(xlim / 10 / 5) * 5 or 5)
     """
     Render the standard two-panel (validation / train) comparison figure
     for one run (15-class, 500-class, or transfer), in the single shared
@@ -144,10 +165,16 @@ def plot_run(
     ax_train.legend(loc="lower right", framealpha=0.9)
     ax_train.grid(True)
 
+    # Ticks on the round multiples, plus the final epoch itself when it is far
+    # enough from the last multiple not to collide with its label.
+    xticks = list(np.arange(0, xlim + 1, xtick_step))
+    if xlim - xticks[-1] >= xtick_step / 2:
+        xticks.append(xlim)
+
     for ax in (ax_val, ax_train):
         ax.set_ylim(0, 100)
-        ax.set_xlim(0, xlim)
-        ax.set_xticks(np.arange(0, xlim + 1, xtick_step))
+        ax.set_xlim(1, xlim)          # data starts at epoch 1; no dead margin
+        ax.set_xticks(xticks)
         ax.set_yticks(np.arange(0, 101, 10))
 
     fig.tight_layout()

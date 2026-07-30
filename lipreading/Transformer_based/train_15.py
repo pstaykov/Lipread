@@ -23,7 +23,11 @@ from dataset15 import CLASSES, make_15_datasets, ROI_ROOT  # noqa: E402  (re-exp
 from train_loop import make_loaders, run_training, EMA, mixup_cutmix  # noqa: E402  (re-exported)
 
 NUM_EPOCHS = 80
-PATIENCE = 15
+# Early stopping disabled: this run plateaued at ep50 and stopped at ep65 (50+15),
+# while its MS-TCN counterpart used the full 80. Both now train the same 80-epoch
+# budget so the comparison curves cover an identical span. The cosine schedule was
+# always sized to 80, so the continuation just fills in the tail it was built for.
+PATIENCE = None
 
 
 def build_model(num_classes, device, pool='attn', use_stem=True):
