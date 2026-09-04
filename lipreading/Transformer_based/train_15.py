@@ -1,14 +1,6 @@
-"""Train GLipsNet from scratch on Ameer et al.'s 15-class GLips benchmark.
+"""Train GLipsNet from scratch on Ameer et al.'s 15-class GLips benchmark (stock split, head-to-head comparable).
 
-Ameer's 15 classes, mouth-ROI input, stock GLips folder split (group_split=False)
-so the result is head-to-head comparable to Ameer et al. Regularization for the
-small set (~400 clips/class): attentive temporal pooling, Mixup + CutMix, random
-grayscale + random-erasing, temporal speed-perturbation, and weight EMA (both
-validation and best_model.pth come from the EMA weights). Early stopping caps the
-run at the validation plateau.
-
-``CLASSES``/``EMA``/``mixup_cutmix`` are re-exported here so existing
-``from train_15 import ...`` call sites keep working.
+CLASSES/EMA/mixup_cutmix are re-exported here so existing `from train_15 import ...` call sites keep working.
 """
 import os
 import sys
@@ -23,11 +15,7 @@ from dataset15 import CLASSES, make_15_datasets, ROI_ROOT  # noqa: E402  (re-exp
 from train_loop import make_loaders, run_training, EMA, mixup_cutmix  # noqa: E402  (re-exported)
 
 NUM_EPOCHS = 80
-# Early stopping disabled: this run plateaued at ep50 and stopped at ep65 (50+15),
-# while its MS-TCN counterpart used the full 80. Both now train the same 80-epoch
-# budget so the comparison curves cover an identical span. The cosine schedule was
-# always sized to 80, so the continuation just fills in the tail it was built for.
-PATIENCE = None
+PATIENCE = None  # disabled so this run covers the same 80-epoch span as its MS-TCN counterpart
 
 
 def build_model(num_classes, device, pool='attn', use_stem=True):

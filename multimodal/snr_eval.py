@@ -26,8 +26,8 @@ else:
 
 from train_audio_probe import AudioProbe  # noqa: E402
 
-ROOT_DIR = '../../lipreading/GLips_mouth/lipread_files'
-AUDIO_ROOT = '../../lipreading/GLips/lipread_files'
+ROOT_DIR = '../lipreading/GLips_mouth/lipread_files'
+AUDIO_ROOT = '../lipreading/GLips/lipread_files'
 CACHE_DIR = './cache/audio_cache'
 FUSED_CKPT = './models/checkpoints_500_full/best_model.pth'
 PROBE_CKPT = './models/audio_probe_500/probe.pth'

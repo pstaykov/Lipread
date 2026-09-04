@@ -1,12 +1,4 @@
-"""Fine-tune GLipsNet on GLips15, warm-started from the 500-class GLips backbone.
-
-In-domain transfer: train.py trains GLipsNet on all 500 GLips classes; this stage
-drops the 500-way classifier and fine-tunes the entire transferred feature
-extractor (3D-conv + ResNet frontend, projection, MS-TCN stem, positional
-embedding, Transformer, attentive-pool head) on Ameer's 15 classes. Only the
-15-way classifier starts fresh. Everything else — classes, stock split,
-augmentation, EMA, Mixup, schedule, early stopping — is held identical to
-train_15.py for an apples-to-apples comparison.
+"""Fine-tune GLipsNet on GLips15, warm-started from the 500-class GLips backbone (in-domain transfer); recipe matches train_15.py exactly.
 
 Run AFTER train.py (+ train_500_finetune.py) has produced checkpoints_500/best_model.pth:
     python Transformer_based/train.py
@@ -47,10 +39,8 @@ def main():
     print(f"Using device: {torch.cuda.get_device_name(device)}")
 
     model = GLipsNet(num_classes=len(CLASSES), dropout=0.3, pool='attn').to(device)
-    # Only warm-start when starting fresh; an exact resume inside run_training would
-    # otherwise be overwritten. run_training resumes from checkpoint_latest.pth if present.
     save_dir = os.path.join(_SCRIPT_DIR, 'checkpoints_15_transfer')
-    if not os.path.exists(os.path.join(save_dir, 'checkpoint_latest.pth')):
+    if not os.path.exists(os.path.join(save_dir, 'checkpoint_latest.pth')):  # only warm-start when starting fresh
         load_transfer_weights(model, PRETRAIN_CKPT, device, skip_prefixes=('classifier',))
 
     best1, best5 = run_training(model, train_loader, val_loader, num_classes=len(CLASSES),

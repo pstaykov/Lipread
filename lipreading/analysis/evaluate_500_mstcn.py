@@ -1,5 +1,4 @@
-"""Held-out test-set evaluation for the 500-class TCNLipNet (MS-TCN) backbone,
-with a bootstrap CI to match evaluate_500.py's GNet counterpart.
+"""Held-out test-set evaluation for the 500-class TCNLipNet (MS-TCN) backbone, with bootstrap CI.
 
     python analysis/evaluate_500_mstcn.py                 # test split
     python analysis/evaluate_500_mstcn.py --split val

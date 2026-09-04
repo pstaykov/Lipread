@@ -14,13 +14,7 @@ except RuntimeError:
 
 
 class VideoAugment:
-    """Consistent spatial + temporal augmentation applied across all frames of a clip.
-
-    Every random parameter (affine, brightness/contrast, crop offset, flip, time mask) is
-    drawn once per clip and applied identically to all frames, so temporal coherence — the
-    only signal a lip-reader has — is preserved. With ``is_train=False`` all randomness is
-    off: just resize -> center-crop -> normalize, keeping val/test deterministic.
-    """
+    """Spatial + temporal augmentation, one random draw per clip applied identically to every frame."""
     def __init__(self, crop_size=88, resize_size=96, is_train=True, time_mask_max=4,
                  max_time_masks=2, rotation_deg=10.0, scale_jitter=0.1,
                  translate_frac=0.06, brightness=0.2, contrast=0.2,
@@ -36,16 +30,10 @@ class VideoAugment:
         self.translate_frac = translate_frac
         self.brightness = brightness
         self.contrast = contrast
-        # grayscale_p: prob of dropping colour for the whole clip (lip-reading is shape,
-        # not colour — removes a skin-tone/lighting memorization shortcut).
-        # random_erase: prob of zeroing one rectangle (same box across all frames) —
-        # cutout-style occlusion robustness.
-        self.grayscale_p = grayscale_p
-        self.random_erase = random_erase
+        self.grayscale_p = grayscale_p    # prob of dropping colour for the whole clip
+        self.random_erase = random_erase  # prob of zeroing one rectangle (cutout-style)
         self.erase_scale = erase_scale
-        # normalize: 'imagenet' -> subtract ImageNet mean/std (our default recipe);
-        # 'minmax' -> per-clip min-max to [0,1] ((x-min)/(max-min)), Ameer et al.'s scheme.
-        self.normalize = normalize
+        self.normalize = normalize        # 'imagenet' (default) or 'minmax' (Ameer et al.'s scheme)
         self.mean = torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1)
         self.std = torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1)
 
@@ -55,7 +43,6 @@ class VideoAugment:
         return (torch.rand(1).item() * 2 - 1) * mag
 
     def __call__(self, video):
-        # video: (T, C, H, W), float32 in [0, 1]
         T = video.shape[0]
 
         if self.resize_size is not None:
@@ -65,7 +52,6 @@ class VideoAugment:
             ])
 
         if self.is_train:
-            # photometric jitter — one factor per clip
             if self.brightness > 0:
                 video = TF.adjust_brightness(video, 1.0 + self._sym(self.brightness))
             if self.contrast > 0:
@@ -74,8 +60,7 @@ class VideoAugment:
                 video = TF.rgb_to_grayscale(video, num_output_channels=3)
             video = video.clamp(0, 1)
 
-            # geometric jitter — one affine per clip, applied before cropping so the
-            # replicate-free border padding is mostly cropped away afterwards
+            # applied before cropping so the border padding is mostly cropped away afterwards
             if self.rotation_deg > 0 or self.scale_jitter > 0 or self.translate_frac > 0:
                 H0, W0 = video.shape[2], video.shape[3]
                 video = TF.affine(
@@ -121,7 +106,7 @@ class VideoAugment:
         return video
 
     def _erase(self, video):
-        """Zero one rectangle, identical box across all T frames (temporal coherence)."""
+        """Zero one rectangle, identical box across all T frames."""
         T, C, H, W = video.shape
         area = H * W
         for _ in range(10):
@@ -139,11 +124,7 @@ class VideoAugment:
 
 
 def _load_video_audio(video_path):
-    """Return (video TCHW tensor, audio_wav float32 numpy 16 kHz or None).
-
-    Tries torchvision.io first (captures both streams in one call), then
-    imageio and cv2 as video-only fallbacks.  Audio fallback via torchaudio.
-    """
+    """Return (video TCHW tensor, audio_wav float32 numpy 16 kHz or None); torchvision.io then imageio/cv2/torchaudio fallbacks."""
     video = None
     audio_wav = None
 
@@ -215,21 +196,9 @@ def _load_video_audio(video_path):
 
 
 class GLipsFullClipDataset(Dataset):
-    """Video-only dataset over the GLips folder layout.
+    """Video-only dataset over the GLips folder layout: root_dir/<class>/{train,val,test}/*.mp4."""
 
-    root_dir/
-        <class>/
-            train/  val/  test/  *.mp4
-
-    If `classes` is provided, only those class names are loaded (and indexed
-    in the given order).  Otherwise all subdirectories are discovered.
-    """
-
-    # Map a requested split to the on-disk folder names that are allowed to
-    # satisfy it. CRITICAL: a split must NEVER resolve to a different split's
-    # folder — doing so silently leaks train data into validation/test and
-    # produces fake metrics. 'validation' and 'val' are accepted spellings of
-    # the same held-out split; nothing else cross-resolves.
+    # a split must NEVER resolve to a different split's folder, or it silently leaks data and fakes metrics
     SPLIT_ALIASES = {
         'train': ('train',),
         'validation': ('val', 'validation'),
@@ -237,13 +206,8 @@ class GLipsFullClipDataset(Dataset):
         'test': ('test',),
     }
 
-    # GLips clip filenames are "<word>_<SOURCE>-<CLIP>.mp4" where SOURCE is the
-    # broadcast/speaker recording the clip was cut from. The stock train/val/test
-    # folders split per-CLIP, so the same SOURCE lands in multiple splits — ~66%
-    # of val sources also appear in train. That leaks speaker/recording cues and
-    # inflates val metrics. group_split (DEFAULT, on) ignores the on-disk folders
-    # and re-partitions by SOURCE so every broadcast lives in exactly one split.
-    # Pass group_split=False only to reproduce the old (leaky) folder split.
+    # filenames are "<word>_<SOURCE>-<CLIP>.mp4"; group_split (default) re-partitions by SOURCE
+    # so a broadcast never spans splits (the stock per-clip folders leak ~66% of val sources into train)
     _SOURCE_RE = re.compile(r'_(\d+)-\d+\.mp4$')
 
     @classmethod
@@ -253,12 +217,7 @@ class GLipsFullClipDataset(Dataset):
 
     @staticmethod
     def _grouped_split(source_id, val_frac, test_frac):
-        """Deterministically map a source-ID to 'train'/'val'/'test'.
-
-        Hash-based and class-independent, so a broadcast that appears under many
-        words always lands in the same split — no cross-class leakage, and the
-        assignment is stable across runs/machines (unlike Python's salted hash).
-        """
+        """Deterministically hash a source-ID to 'train'/'val'/'test' (stable across runs, unlike Python's salted hash)."""
         h = int(hashlib.md5(source_id.encode()).hexdigest(), 16) % 10_000 / 10_000.0
         if h < test_frac:
             return 'test'
@@ -272,10 +231,7 @@ class GLipsFullClipDataset(Dataset):
                  require_all_classes=True):
         self.transform = transform
         self.num_frames = num_frames
-        # temporal_jitter (train only): sample num_frames from a randomly speed-warped
-        # sub-window of the clip instead of the full span — augments speaking rate
-        # without changing num_frames. Off by default so val/other trainers are unaffected.
-        self.temporal_jitter = temporal_jitter
+        self.temporal_jitter = temporal_jitter  # train only: sample from a speed-warped sub-window
         self.jitter_speed = jitter_speed
         self.samples = []
 
@@ -317,9 +273,7 @@ class GLipsFullClipDataset(Dataset):
                   f"such folder and contribute 0 samples (e.g. {missing[:3]}).")
 
     def _build_grouped(self, root_dir, split, val_frac, test_frac):
-        """Source-disjoint split: pool every clip of each class across the stock
-        train/val/test folders, then keep only those whose SOURCE hashes to the
-        requested split. Guarantees no source-ID appears in two splits."""
+        """Source-disjoint split: pool every clip across the stock folders, keep only those whose SOURCE hashes to `split`."""
         want = 'val' if split in ('val', 'validation') else split
         if want not in ('train', 'val', 'test'):
             raise ValueError(f"group_split supports train/val/test, got '{split}'")
@@ -343,9 +297,7 @@ class GLipsFullClipDataset(Dataset):
         T = video.size(0)
         n = self.num_frames
         if self.temporal_jitter and T > n:
-            # warp the sampling window: speed<1 squeezes into a shorter span (slower
-            # motion), speed>1 spreads across more frames; random start adds temporal crop
-            speed = random.uniform(*self.jitter_speed)
+            speed = random.uniform(*self.jitter_speed)  # <1 squeezes (slower motion), >1 spreads out
             L = max(2, min(T, int(round((n - 1) * speed)) + 1))
             start = random.randint(0, T - L)
             indices = np.linspace(start, start + L - 1, num=n).astype(int)

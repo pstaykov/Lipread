@@ -1,8 +1,4 @@
-"""
-Due to unknown issues the original dataset was missing 2 word classes.
-Warm-start MSTCN net on the now-complete 500-class GLips set from the old
-498-class backbone (checkpoints/best_model.pth), instead of training from scratch.
-"""
+"""Warm-start TCNLipNet on the full 500-class GLips set from the old 498-class backbone, instead of training from scratch."""
 import os
 import sys
 

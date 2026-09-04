@@ -13,15 +13,15 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'lipreading', 'analysis'))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'lipreading', 'analysis'))
 from train import (  # noqa: E402
     GLipsNet, MultimodalGLipsDataset, VideoAugment, WhisperExtractor,
     collate_fn, _strip_orig_mod, WHISPER_MODEL_NAME,
 )
 from bootstrap_ci import bootstrap_ci  # noqa: E402
 
-ROOT_DIR = '../../lipreading/GLips_mouth/lipread_files'
-AUDIO_ROOT = '../../lipreading/GLips/lipread_files'
+ROOT_DIR = '../lipreading/GLips_mouth/lipread_files'
+AUDIO_ROOT = '../lipreading/GLips/lipread_files'
 AUDIO_CACHE_DIR = './cache/audio_cache'
 NUM_FRAMES = 25
 

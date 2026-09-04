@@ -1,10 +1,4 @@
-"""Train the Transformer-based GLipsNet on all 500 GLips classes (stock split).
-
-This 500-class model is the transfer source for the 15-class task. It uses the
-stock published GLips folder split (group_split=False) — the same partition used
-for the 15-class benchmark — and the plain recipe (no EMA / no Mixup), matching
-the MS-TCN 500-class baseline so the two are directly comparable. Early stopping
-(validation-plateau patience) caps the run instead of a fixed epoch budget.
+"""Train the Transformer-based GLipsNet on all 500 GLips classes (stock split); the transfer source for the 15-class task.
 
 Run from anywhere:
     python Transformer_based/train.py
@@ -36,7 +30,7 @@ def main():
 
     train_transform = VideoAugment(crop_size=88, resize_size=96, is_train=True)
     val_transform = VideoAugment(crop_size=88, resize_size=96, is_train=False)
-    classes = stock_complete_classes(ROOT_DIR)  # drop corpus-degenerate classes (no val)
+    classes = stock_complete_classes(ROOT_DIR)
     train_dataset = GLipsFullClipDataset(ROOT_DIR, split='train', num_frames=NUM_FRAMES,
                                          transform=train_transform, classes=classes,
                                          group_split=False)
@@ -52,9 +46,7 @@ def main():
     assert device.type == 'cuda', f"CUDA not available — got device '{device}'"
     print(f"Using device: {torch.cuda.get_device_name(device)}")
 
-    # pool='attn' so the WHOLE backbone (incl. attentive-pool head) transfers to the
-    # GLips15 model, which also uses pool='attn'.
-    model = GLipsNet(num_classes=num_classes, pool='attn').to(device)
+    model = GLipsNet(num_classes=num_classes, pool='attn').to(device)  # attn pool, to match the GLips15 model it transfers to
     run_training(model, train_loader, val_loader, num_classes=num_classes, device=device,
                  save_dir=os.path.join(_SCRIPT_DIR, 'checkpoints'),
                  num_epochs=NUM_EPOCHS, warmup_epochs=WARMUP_EPOCHS, weight_decay=0.01,

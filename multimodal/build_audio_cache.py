@@ -14,8 +14,8 @@ _spec = importlib.util.spec_from_file_location(
 m = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(m)
 
-ROOT_DIR = '../../lipreading/GLips_mouth/lipread_files'
-AUDIO_ROOT = '../../lipreading/GLips/lipread_files'
+ROOT_DIR = '../lipreading/GLips_mouth/lipread_files'
+AUDIO_ROOT = '../lipreading/GLips/lipread_files'
 CACHE_DIR = './cache/audio_cache'
 AUDIO_SAMPLES = m.AUDIO_SAMPLES
 NUM_THREADS = 12   # pyav decodes in-process and releases the GIL, so threads scale well

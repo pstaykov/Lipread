@@ -1,7 +1,7 @@
 """Warm-start the fusion model on the full 500-class GLips set from the old 498-class checkpoint,
 carrying over every matching-shaped tensor (load_visual_weights) except the final classifier.
 
-Run from multimodal/fusion/:
+Run from multimodal/:
     python train_500_finetune.py
 """
 import os
@@ -24,8 +24,8 @@ from train import (  # noqa: E402
 
 PRETRAIN_CKPT = './models/checkpoints_reg/best_model.pth'
 SAVE_DIR = './models/checkpoints_500'
-ROOT_DIR = '../../lipreading/GLips_mouth/lipread_files'
-AUDIO_ROOT = '../../lipreading/GLips/lipread_files'
+ROOT_DIR = '../lipreading/GLips_mouth/lipread_files'
+AUDIO_ROOT = '../lipreading/GLips/lipread_files'
 AUDIO_CACHE_DIR = './cache/audio_cache'
 NUM_FRAMES = 25
 NUM_EPOCHS = 8

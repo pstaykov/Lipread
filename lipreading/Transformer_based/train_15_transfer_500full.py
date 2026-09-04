@@ -1,11 +1,4 @@
-"""Redo the GLips500->GLips15 in-domain transfer using the NEW complete 500-class
-backbone (checkpoints_500/best_model.pth, warm-started+fine-tuned from the old
-498-class run once 'hier'/'soll' were fixed) instead of the old 498-class one used
-by train_15_transfer.py / checkpoints_15_transfer.
-
-Everything else — classes, stock split, augmentation, schedule, early stopping — is
-held identical to train_15_transfer.py for an apples-to-apples comparison against
-the existing 0.663 test SOTA.
+"""Redo the GLips500->GLips15 transfer using the complete 500-class backbone instead of the old 498-class one; otherwise identical to train_15_transfer.py.
 
 Run AFTER Transformer_based/train_500_finetune.py has produced checkpoints_500/best_model.pth:
     python Transformer_based/train_15_transfer_500full.py

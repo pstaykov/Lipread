@@ -16,7 +16,7 @@ import torchvision.transforms.functional as TF
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'lipreading'))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'lipreading'))
 from dataset import GLipsFullClipDataset, _load_video_audio  # noqa: F401
 
 try:
@@ -419,10 +419,10 @@ if __name__ == '__main__':
     torch.set_float32_matmul_precision('high')
 
     CHECKPOINT_EVERY = 5
-    VISUAL_CKPT = '../../lipreading/Transformer_based/checkpoints_500/best_model.pth'
+    VISUAL_CKPT = '../lipreading/Transformer_based/checkpoints_500/best_model.pth'
     SAVE_DIR = './models/checkpoints_500_full'
-    ROOT_DIR = '../../lipreading/GLips_mouth/lipread_files'   # video (mouth crops)
-    AUDIO_ROOT = '../../lipreading/GLips/lipread_files'       # sibling .m4a audio
+    ROOT_DIR = '../lipreading/GLips_mouth/lipread_files'   # video (mouth crops)
+    AUDIO_ROOT = '../lipreading/GLips/lipread_files'       # sibling .m4a audio
     AUDIO_CACHE_DIR = './cache/audio_cache'                         # prebuilt waveform memmap
     if not os.path.exists(os.path.join(AUDIO_CACHE_DIR, 'index.json')):
         AUDIO_CACHE_DIR = None

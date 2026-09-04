@@ -1,20 +1,6 @@
-"""Visualize the real mouth-ROI pipeline: MediaPipe landmarks, the crop box they
-produce, and the actual crop pixels — not an approximation of them.
-
-The previous version of this script never ran face detection: it drew a fixed
-fractional "kept region" box on the raw frame and resized the *whole* frame to
-96x96, which is not what preprocess_mouth_roi.py actually does once mouth-ROI
-cropping was rolled out. This version reuses the real functions
-(LIP_IDX / lip_box / smooth / crop_square) from preprocess_mouth_roi.py to
-recompute the landmark-driven crop box, and loads the actual 96x96 crop from
-the already-preprocessed GLips_mouth clips (glips15.ROI_ROOT) so the "model
-input" column is pixel-identical to what the trainers read.
-
-For a handful of GLips-15 classes it renders, side by side:
-    raw frame + FaceMesh landmarks + crop box | actual 96x96 mouth-ROI crop | actual 88x88 model input
-
-and a temporal strip of the real model input so we can confirm the lips are
-present *and move*.
+"""Visualize the real mouth-ROI pipeline for a few GLips-15 classes, side by side:
+raw frame + FaceMesh landmarks + crop box | actual 96x96 mouth-ROI crop | actual 88x88 model input,
+plus a temporal strip of the model input to confirm the lips are present and move.
 
 Run from the lipreading/ directory:
     python analysis/visualize_roi.py
@@ -70,14 +56,7 @@ def pick_sample(root, cls):
 
 
 def real_box_and_landmarks(path, box_scale=BOX_SCALE, alpha=ALPHA):
-    """Replay preprocess_mouth_roi.py's per-frame EMA box computation up to the
-    middle frame, exactly as it runs at preprocessing time.
-
-    Returns (mid_frame_bgr, box, landmarks_or_None) where `box` is the same
-    (cx, cy, side) tuple that would have been used to crop that frame, and
-    `landmarks` are the raw FaceMesh landmarks detected on the middle frame
-    itself (None if detection failed there).
-    """
+    """Replay preprocess_mouth_roi.py's per-frame EMA box computation up to the middle frame; returns (mid_frame_bgr, box, landmarks_or_None)."""
     cap = cv2.VideoCapture(path)
     n_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) or 1
     mid = n_frames // 2
@@ -129,7 +108,6 @@ def main():
     classes = CLASSES[:N_SAMPLES]
     val_aug = VideoAugment(crop_size=CROP, resize_size=RESIZE, is_train=False)
 
-    # ---- Figure 1: raw+landmarks vs actual mouth crop vs actual model input ----
     fig, axes = plt.subplots(len(classes), 3, figsize=(9, 3 * len(classes)))
     if len(classes) == 1:
         axes = axes[None, :]
@@ -151,7 +129,6 @@ def main():
                 axes[r, c].axis('off')
             continue
 
-        # column 0: raw frame + real FaceMesh landmarks + the crop box they produce
         mid_frame_bgr, box, landmarks = real_box_and_landmarks(raw_path)
         h, w = mid_frame_bgr.shape[:2]
         axes[r, 0].imshow(cv2.cvtColor(mid_frame_bgr, cv2.COLOR_BGR2RGB))
@@ -161,14 +138,12 @@ def main():
                                        fill=False, edgecolor='lime', lw=2))
         axes[r, 0].set_title(f"{cls} [{split}] raw {w}x{h} + landmarks", fontsize=9)
 
-        # column 1: the actual 96x96 mouth-ROI crop written by preprocess_mouth_roi.py
         mouth_raw, _ = _load_video_audio(mouth_path)     # (T,C,96,96) uint8
         mouth_mid = mouth_raw[mouth_raw.shape[0] // 2].float() / 255.0
         axes[r, 1].imshow(mouth_mid.permute(1, 2, 0).numpy())
         axes[r, 1].set_title(f"actual mouth-ROI crop {mouth_raw.shape[-1]}x{mouth_raw.shape[-1]}",
                              fontsize=9)
 
-        # column 2: the actual model input — real val transform on the real mouth clip
         mouth_vid01 = mouth_raw.float() / 255.0
         processed = val_aug(mouth_vid01)                 # (T,C,CROP,CROP), normalized
         proc_mid = denorm(processed[processed.shape[0] // 2])
@@ -188,7 +163,6 @@ def main():
     plt.close(fig)
     print(f"wrote {overview_path}")
 
-    # ---- Figure 2: temporal strip of the real model input for each sample ----
     if strips:
         fig2, axes2 = plt.subplots(len(strips), STRIP_FRAMES,
                                    figsize=(1.4 * STRIP_FRAMES, 1.5 * len(strips)))

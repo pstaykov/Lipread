@@ -1,21 +1,5 @@
-"""Offline mouth-ROI preprocessing for GLips.
-
-The raw GLips clips are 256x256 whole-head frames (see analysis/visualize_roi.py):
-the mouth is a tiny, unaligned ~15px patch, so visual lip-reading models never get
-a usable signal and sit at chance on validation. This pass fixes the input once,
-offline, by writing a parallel dataset of tight, mouth-centered crops.
-
-For every clip under  <in-root>/<class>/<split>/*.mp4  it:
-  1. runs MediaPipe FaceMesh per frame to locate the lip landmarks,
-  2. builds a square box centred on the lips (sized from mouth width x --box-scale),
-     EMA-smoothed across frames and held over short detection dropouts,
-  3. crops + resizes to --out-size (default 96) and writes the video,
-  4. muxes the ORIGINAL audio back in (the late-fusion model needs it).
-
-Output mirrors the input layout under <out-root>, so switching the trainers over is
-just a root_dir change. Source clips are already the highest resolution available
-(256x256), so the mouth ROI is cropped at native pixels and upscaled to --out-size;
-no detail is thrown away.
+"""Offline mouth-ROI preprocessing: crops each GLips clip to a tight, mouth-centered square (MediaPipe FaceMesh, EMA-smoothed),
+resizes to --out-size, and muxes the original audio back in. Output mirrors <in-root>/<class>/<split>/*.mp4 under <out-root>.
 
 Examples
 --------
@@ -42,19 +26,17 @@ IN_ROOT_DEFAULT = './GLips/lipread_files'
 OUT_ROOT_DEFAULT = './GLips_mouth/lipread_files'
 SPLITS_DEFAULT = ('train', 'val', 'test')
 
-# FaceMesh lip landmark indices, derived once from the connection set.
 import mediapipe as mp  # noqa: E402
 LIP_IDX = sorted({i for pair in mp.solutions.face_mesh.FACEMESH_LIPS for i in pair})
 
-# One FaceMesh per worker process, created lazily (not picklable across spawn).
-_FACE_MESH = None
+_FACE_MESH = None  # one per worker process, created lazily (not picklable across spawn)
 
 
 def _face_mesh():
     global _FACE_MESH
     if _FACE_MESH is None:
         _FACE_MESH = mp.solutions.face_mesh.FaceMesh(
-            static_image_mode=False,      # video mode: tracks between frames, smoother + faster
+            static_image_mode=False,      # video mode: tracks between frames
             max_num_faces=1,
             refine_landmarks=False,
             min_detection_confidence=0.5,
@@ -86,8 +68,7 @@ def smooth(prev, cur, alpha):
 
 
 def crop_square(frame, box, out_size):
-    """Crop a square `box`=(cx,cy,side) from `frame` (replicate-padded if it runs off
-    the edge) and resize to out_size x out_size. Returns a BGR uint8 array."""
+    """Crop square `box`=(cx,cy,side) from `frame` (replicate-padded if it runs off the edge), resized to out_size."""
     h, w = frame.shape[:2]
     cx, cy, side = box
     side = max(1, int(round(side)))
@@ -108,11 +89,7 @@ def crop_square(frame, box, out_size):
 
 
 def process_one(in_path, out_path, out_size, box_scale, alpha, overwrite):
-    """Crop one clip to a mouth ROI and write it (with original audio) to out_path.
-
-    Returns a dict of per-clip stats, including 'detect_rate' (fraction of frames
-    with a face) so callers can flag clips the detector struggled with.
-    """
+    """Crop one clip to a mouth ROI and write it (with original audio) to out_path; returns per-clip stats dict."""
     if os.path.exists(out_path) and not overwrite:
         return {'path': in_path, 'status': 'skip'}
 
@@ -138,8 +115,7 @@ def process_one(in_path, out_path, out_size, box_scale, alpha, overwrite):
             box = lip_box(res.multi_face_landmarks[0].landmark, w, h, box_scale)
             last_box = smooth(last_box, box, alpha)
         elif last_box is None:
-            # no detection yet — fall back to a centred square so we still emit a frame
-            last_box = (w / 2, h / 2, min(w, h) * 0.4)
+            last_box = (w / 2, h / 2, min(w, h) * 0.4)  # no detection yet — centred fallback
         frames.append(crop_square(frame, last_box, out_size))
     cap.release()
 
@@ -159,11 +135,9 @@ def process_one(in_path, out_path, out_size, box_scale, alpha, overwrite):
         writer.write(f)
     writer.release()
 
-    # mux the original audio (optional: -map 1:a? tolerates clips with none) and
-    # re-encode video to h264/yuv420p so torchvision/imageio read it cleanly.
     cmd = [_ffmpeg_exe(), '-y', '-hide_banner', '-loglevel', 'error',
            '-i', tmp_video, '-i', in_path,
-           '-map', '0:v:0', '-map', '1:a?',
+           '-map', '0:v:0', '-map', '1:a?',  # 1:a? tolerates clips with no audio
            '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-c:a', 'aac',
            '-shortest', '-movflags', '+faststart', out_path]
     rc = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode
@@ -274,8 +248,7 @@ def main():
     jobs = gather_jobs(args.in_root, args.out_root, classes, args.splits,
                        args.out_size, args.box_scale, args.alpha, args.overwrite)
     if args.limit is not None:
-        # keep the first `limit` per (class,split) bucket
-        seen, capped = {}, []
+        seen, capped = {}, []  # keep the first `limit` per (class,split) bucket
         for j in jobs:
             bucket = os.path.dirname(j[0])
             seen[bucket] = seen.get(bucket, 0) + 1

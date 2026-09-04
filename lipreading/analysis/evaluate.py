@@ -1,14 +1,4 @@
-"""Held-out evaluation + ENSEMBLE for the curated GLips15 task (leakage-free split).
-
-Loads the two 15-class models that share the identical CNN3D visual frontend but
-differ in temporal backend:
-  * Transformer (GLipsNet, attentive pooling) — transfer-trained from the 500-class
-    backbone, checkpoints_15_transfer/best_model.pth
-  * MS-TCN (TCNLipNet) — mstcn_baseline/checkpoints_15/best_model.pth
-
-and reports top-1 / top-5 for each model alone AND for their softmax-average
-ensemble, on a source-disjoint split (dataset.py group_split is the default now, so
-no broadcast leaks between train and the eval split). Default split: test.
+"""Held-out evaluation + softmax-average ensemble of the Transformer and MS-TCN GLips15 models.
 
     python analysis/evaluate.py                 # test split, both models + ensemble
     python analysis/evaluate.py --split val
@@ -29,9 +19,9 @@ sys.path.insert(0, os.path.join(_LIPREAD, 'Transformer_based'))  # transformer m
 
 from model import GLipsNet, _strip_orig_mod  # noqa: E402  (Transformer_based/model.py)
 from dataset import GLipsFullClipDataset, VideoAugment  # noqa: E402
-from dataset15 import CLASSES  # noqa: E402  Ameer 15 classes (single source of truth)
+from dataset15 import CLASSES  # noqa: E402
 
-# MS-TCN model lives in a sibling model.py — load by path to dodge the name clash.
+# loaded by path (not import) to dodge the name clash with Transformer_based's model.py
 _MSTCN_PATH = os.path.join(_LIPREAD, 'mstcn_baseline', 'model.py')
 _spec = importlib.util.spec_from_file_location('mstcn_model', _MSTCN_PATH)
 mstcn_model = importlib.util.module_from_spec(_spec)
@@ -71,8 +61,7 @@ def main():
     amp_dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
 
     k5 = min(5, n)
-    # accumulators: [transformer, mstcn, ensemble]
-    c1 = [0, 0, 0]
+    c1 = [0, 0, 0]  # [transformer, mstcn, ensemble]
     c5 = [0, 0, 0]
     total = 0
     for data, target in loader:

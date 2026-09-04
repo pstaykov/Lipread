@@ -1,10 +1,4 @@
-"""Ablation: GLipsNet on the UNCROPPED full-face frames (no mouth-ROI crop).
-
-Feeds the raw GLips clips (whole 256x256 head, resized to 96 -> 88 like every other
-run) instead of the mouth-ROI crops, with the identical GLipsNet architecture and
-recipe. This measures how much of the accuracy comes from the face-detection /
-mouth-ROI preprocessing versus the architecture itself — i.e. how much of the gap
-to Ameer et al. is preprocessing rather than model.
+"""Ablation: GLipsNet on the uncropped full-face frames (no mouth-ROI crop), to isolate preprocessing vs. architecture.
 
     python Transformer_based/train_15_noroi.py        -> checkpoints_15_noroi/
 """

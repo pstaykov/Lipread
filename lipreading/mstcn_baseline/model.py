@@ -1,13 +1,11 @@
-"""
-Traditional lip-reading baseline: 3D-Conv frontend -> 2D ResNet-18 -> MS-TCN.
-"""
+"""Traditional lip-reading baseline: 3D-Conv frontend -> 2D ResNet-18 -> MS-TCN."""
 import os
 import importlib.util
 
 import torch
 import torch.nn as nn
 
-# Reuse the shared visual frontend, feature dim, and checkpoint helpers from the Transformer model so the two architectures are directly comparable
+# reuse the shared visual frontend + checkpoint helpers from the Transformer model
 _TM_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                         'Transformer_based', 'model.py')
 _spec = importlib.util.spec_from_file_location('transformer_model', _TM_PATH)
@@ -15,7 +13,6 @@ transformer_model = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(transformer_model)
 
 CNN3D, FEAT_DIM = transformer_model.CNN3D, transformer_model.FEAT_DIM
-# Re-export shared training helpers so train.py/test.py can import them from here.
 _model_state = transformer_model._model_state
 _strip_orig_mod = transformer_model._strip_orig_mod
 load_transfer_weights = transformer_model.load_transfer_weights
@@ -26,9 +23,7 @@ prune_periodic_checkpoints = transformer_model.prune_periodic_checkpoints
 
 
 class TemporalBranch(nn.Module):
-    """
-    One dilated temporal-conv unit: Conv1d -> BatchNorm -> ReLU -> Dropout.
-    """
+    """One dilated temporal-conv unit: Conv1d -> BatchNorm -> ReLU -> Dropout."""
     def __init__(self, in_ch, out_ch, kernel_size, dilation, dropout):
         super().__init__()
         padding = (kernel_size - 1) * dilation // 2
@@ -44,9 +39,7 @@ class TemporalBranch(nn.Module):
 
 
 class MultibranchTCNBlock(nn.Module):
-    """
-    Residual block of two multi-branch temporal-conv layers.
-    """
+    """Residual block of two multi-branch temporal-conv layers."""
     def __init__(self, in_ch, out_ch, kernel_sizes, dilation, dropout):
         super().__init__()
         n_branches = len(kernel_sizes)
@@ -70,9 +63,7 @@ class MultibranchTCNBlock(nn.Module):
 
 
 class MultiscaleMultibranchTCN(nn.Module):
-    """
-    Stack of multi-branch TCN blocks with exponentially growing dilation (1,2,4,...).
-    """
+    """Stack of multi-branch TCN blocks with exponentially growing dilation (1,2,4,...)."""
     def __init__(self, in_ch, num_channels, kernel_sizes, dropout):
         super().__init__()
         layers = []
@@ -83,15 +74,12 @@ class MultiscaleMultibranchTCN(nn.Module):
         self.network = nn.Sequential(*layers)
 
     def forward(self, x):
-        # x: (B, T, C) -> (B, C, T) for Conv1d -> back to (B, T, C)
-        x = self.network(x.transpose(1, 2))
+        x = self.network(x.transpose(1, 2))  # (B, T, C) -> (B, C, T) for Conv1d -> back
         return x.transpose(1, 2)
 
 
 class TCNLipNet(nn.Module):
-    """
-    3D-Conv -> ResNet-18 -> MS-TCN -> temporal mean-pool -> linear classifier.
-    """
+    """3D-Conv -> ResNet-18 -> MS-TCN -> temporal mean-pool -> linear classifier."""
     def __init__(self, num_classes=500, width=384, num_layers=4,
                  kernel_sizes=(3, 5, 7), dropout=0.2):
         super().__init__()

@@ -1,10 +1,4 @@
-"""GLipsNet — the Transformer-based lip-reading model and its shared building blocks.
-
-Contains the 3D-conv + ResNet-18 visual frontend (``CNN3D``, reused by the
-``mstcn_baseline`` so the two architectures are directly comparable), the
-Transformer temporal backend (``GLipsNet``), and the checkpoint/metrics helpers
-shared by both projects' training scripts.
-"""
+"""GLipsNet: 3D-conv + ResNet-18 visual frontend (shared with mstcn_baseline) + Transformer temporal backend, plus checkpoint helpers."""
 import os
 import csv
 
@@ -61,8 +55,7 @@ D_MODEL = 256
 class MSTemporalBlock(nn.Module):
     def __init__(self, d_model, dropout=0.1):
         super().__init__()
-        # three parallel depthwise branches capture short (k=3), mid (k=5), and broad (k=7) temporal patterns
-        self.branches = nn.ModuleList([
+        self.branches = nn.ModuleList([  # depthwise branches: short (k=3), mid (k=5), broad (k=7)
             nn.Sequential(
                 nn.Conv1d(d_model, d_model, k, padding=k // 2, groups=d_model),
                 nn.Conv1d(d_model, d_model, 1),
@@ -81,13 +74,7 @@ class MSTemporalBlock(nn.Module):
 
 
 class AttentivePool(nn.Module):
-    """Learned attention pooling over the time axis.
-
-    Plain mean-pooling averages every frame equally, diluting the few frames where
-    the word is actually articulated into the near-silent ones. This scores each of
-    the T tokens and returns their softmax-weighted sum, so discriminative frames
-    dominate.
-    """
+    """Learned attention pooling over time: softmax-weighted sum instead of a plain mean, so discriminative frames dominate."""
     def __init__(self, d_model):
         super().__init__()
         self.score = nn.Sequential(
@@ -101,13 +88,8 @@ class AttentivePool(nn.Module):
 
 
 class GLipsNet(nn.Module):
-    # dropout is a plain float knob (no learned params) so raising it doesn't change the
-    # state_dict — checkpoints trained at a different dropout still load cleanly.
-    # pool='mean' (default) keeps the original temporal mean-pool so older checkpoints
-    # load unchanged; pool='attn' adds an AttentivePool head (extra params).
-    # use_stem=True (default) keeps the multi-scale temporal conv stem before the
-    # Transformer; use_stem=False replaces it with identity, isolating how much the
-    # local temporal conv stem contributes vs. the Transformer alone (ablation).
+    # pool='mean' (default) keeps old checkpoints loading unchanged; 'attn' adds an AttentivePool head.
+    # use_stem=False replaces the MS-TCN stem with identity (ablation: stem vs. Transformer alone).
     def __init__(self, num_classes=500, dropout=0.2, pool='mean', use_stem=True):
         super().__init__()
         self.cnn = CNN3D()
@@ -122,10 +104,7 @@ class GLipsNet(nn.Module):
             d_model=D_MODEL, nhead=8, dim_feedforward=1024,
             dropout=dropout, activation='gelu', batch_first=True, norm_first=True,
         )
-        # 2 layers (down from 4): at ~500 samples/class a deep 4-layer stack overfits
-        self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=2)
-        # dropout right before the classifier — the cheapest, highest-leverage guard
-        # against the large train/val gap seen on the small (15-class) subset
+        self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=2)  # 2, not 4: overfits at ~500 samples/class
         self.head_drop = nn.Dropout(dropout)
         self.classifier = nn.Linear(D_MODEL, num_classes)
         self.attn_pool = AttentivePool(D_MODEL) if pool == 'attn' else None
@@ -143,8 +122,6 @@ class GLipsNet(nn.Module):
         return self.classifier(self.head_drop(x))
 
 
-# --- checkpoint / metrics helpers shared by the Transformer and baseline trainers ---
-
 def _model_state(model):
     return getattr(model, '_orig_mod', model).state_dict()
 
@@ -158,19 +135,7 @@ def _strip_orig_mod(state_dict):
 
 
 def load_transfer_weights(model, ckpt_path, device, skip_prefixes=('classifier',)):
-    """Warm-start ``model`` from a checkpoint trained on a different label set.
-
-    Loads every parameter whose name and shape match (the 3D-conv + ResNet
-    frontend, the MS-TCN, positional embedding, Transformer, and attentive-pool
-    head — the language-agnostic feature extractor), and skips the classifier so
-    a model with a different ``num_classes`` warm-starts cleanly. This is the
-    LRW->GLips transfer step from Schwiebert et al.: the source-language head is
-    discarded, the learned lip-motion features are kept.
-
-    Accepts either a raw EMA ``state_dict`` (what ``best/final_model.pth`` hold)
-    or a full training checkpoint dict (``checkpoint_latest.pth``, key 'model').
-    Returns (loaded_keys, skipped_keys).
-    """
+    """Warm-start `model` from a checkpoint trained on a different label set: loads every name+shape match, skips the classifier."""
     ckpt = torch.load(ckpt_path, map_location=device)
     state = ckpt['model'] if isinstance(ckpt, dict) and 'model' in ckpt else ckpt
     state = _strip_orig_mod(state)
@@ -215,11 +180,7 @@ def load_checkpoint(path, model, optimizer, scheduler, scaler, device):
 
 
 def best_epoch_from_metrics(metrics_path):
-    """Return (epoch, val_top1) of the row with the highest val_top1 in metrics.csv.
-
-    best_model.pth stores only weights, so the matching epoch is recovered from
-    the logged metrics. Returns (0, 0.0) if the file is missing or unreadable.
-    """
+    """Return (epoch, val_top1) of the row with the highest val_top1 in metrics.csv, or (0, 0.0) if missing/unreadable."""
     if not os.path.exists(metrics_path):
         return 0, 0.0
     best_ep, best_acc = 0, 0.0

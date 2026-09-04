@@ -5,8 +5,6 @@ import torch
 import tkinter as tk
 from PIL import Image, ImageTk
 
-# This file lives at the lipreading root. dataset.py is alongside it; the
-# Transformer model (GLipsNet) lives in Transformer_based/model.py.
 _LIPREAD = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(_LIPREAD, 'Transformer_based'))
 
@@ -72,7 +70,6 @@ def main():
             s['top3'] = [(classes[top3.indices[0, k].item()],
                           top3.values[0, k].item()) for k in range(3)]
 
-    # --- GUI ---
     root = tk.Tk()
     root.title('GLips Lip Reading — Test')
     root.resizable(False, False)

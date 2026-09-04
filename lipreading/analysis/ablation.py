@@ -1,17 +1,4 @@
-"""Post-hoc ablation tables + confusion matrices for the GLips lip-reading models.
-
-Scores every trained checkpoint on the SAME stock *test* split (group_split=False,
-Ameer et al.'s 15 classes) and prints markdown ablation tables for both scales:
-
-  * GLips-500 : MS-TCN vs GLipsNet (from-scratch)
-  * GLips-15  : MS-TCN vs GLipsNet  x  {from-scratch, GLips500->15 transfer}
-                + architecture ablations (mean-pool, no conv stem, no mouth-ROI)
-                + the softmax-average ensemble of the two best backends.
-
-For every row it reports Top-1, Top-5 AND macro-F1, and writes the full confusion
-matrix (``.npy`` always, ``.png`` when matplotlib is available) plus a per-class-F1
-CSV to ``analysis/figures/confusion/``. One identical protocol per row (same split,
-preprocessing, num_frames), so the numbers are directly comparable.
+"""Post-hoc ablation tables + confusion matrices for every trained GLips checkpoint, on the same stock test split.
 
     python analysis/ablation.py                # both tables, test split
     python analysis/ablation.py --split val    # sanity-check against metrics.csv
@@ -36,7 +23,7 @@ from dataset import GLipsFullClipDataset, VideoAugment  # noqa: E402
 from dataset15 import CLASSES, ROI_ROOT, FULL_ROOT, stock_complete_classes  # noqa: E402
 from train_loop import macro_f1_from_confusion        # noqa: E402
 
-# MS-TCN model lives in a sibling model.py — load by path to dodge the name clash.
+# loaded by path (not import) to dodge the name clash with Transformer_based's model.py
 _MSTCN_PATH = os.path.join(_LIPREAD, 'mstcn_baseline', 'model.py')
 _spec = importlib.util.spec_from_file_location('mstcn_model', _MSTCN_PATH)
 mstcn_model = importlib.util.module_from_spec(_spec)
@@ -45,11 +32,7 @@ TCNLipNet = mstcn_model.TCNLipNet
 
 CONF_DIR = os.path.join(_HERE, 'figures', 'confusion')
 GROUP_SPLIT = False  # stock split, to compare head-to-head with Ameer et al.
-# A confusion matrix is only meaningful when each class has enough test clips: the
-# 15-word task has 50/class (readable 15x15, like Ameer's). The 500-word task has
-# ~0.1 samples per 500x500 cell — unreadably sparse — so we skip its matrix entirely
-# and keep only per-class F1 + summary metrics. Threshold well above 15, below 500.
-MATRIX_MAX_CLASSES = 50
+MATRIX_MAX_CLASSES = 50  # above this, a confusion matrix is too sparse to be meaningful (500-class task)
 
 
 def _ckpt(*parts):
@@ -59,7 +42,6 @@ def _ckpt(*parts):
 # (label, backend, kwargs, checkpoint, root_dir). backend in {'tf','mstcn'}.
 TASKS = {
     500: {
-        # full 500-class list (hier/soll mouth-ROI bug fixed, so no classes are dropped).
         'classes': stock_complete_classes(ROI_ROOT),
         'rows': [
             ('MS-TCN',   'mstcn', {},              _ckpt('mstcn_baseline', 'checkpoints_500'),      ROI_ROOT),
@@ -76,9 +58,7 @@ TASKS = {
             ('GLipsNet/mean-pool',   'tf',    {'pool': 'mean'},                    _ckpt('Transformer_based', 'checkpoints_15_meanpool'), ROI_ROOT),
             ('GLipsNet/no-stem',     'tf',    {'pool': 'attn', 'use_stem': False}, _ckpt('Transformer_based', 'checkpoints_15_nostem'),   ROI_ROOT),
             ('GLipsNet/no-ROI',      'tf',    {'pool': 'attn'},                    _ckpt('Transformer_based', 'checkpoints_15_noroi'),    FULL_ROOT),
-            # Ameer-matched (uncropped 128x128, 16 frames, min-max) — head-to-head vs
-            # Ameer et al.'s NASNetMobile (0.484 acc / 0.485 F1). Scored on Ameer's
-            # own preprocessing (see _loader_for's 'ameer' branch).
+            # Ameer-matched preprocessing (see _loader_for's 'ameer' branch), for head-to-head vs their NASNetMobile
             ('GLipsNet/ameer',       'tf',    {'pool': 'attn'},                    _ckpt('Transformer_based', 'checkpoints_15_ameer'),    FULL_ROOT),
             ('MS-TCN/ameer',         'mstcn', {},                                  _ckpt('mstcn_baseline', 'checkpoints_15_ameer'),       FULL_ROOT),
         ],
@@ -94,8 +74,7 @@ def _build_model(backend, n, device, ckpt_path, kwargs):
 
 def _loader_for(root_dir, classes, split, batch_size,
                 resize=96, crop=88, num_frames=25, normalize='imagenet'):
-    """Cached test/val loader. Preprocessing defaults to our ROI recipe; the Ameer
-    rows pass resize=crop=128, num_frames=16, normalize='minmax' to match Ameer."""
+    """Test/val loader; Ameer rows pass resize=crop=128, num_frames=16, normalize='minmax' to match Ameer."""
     val_transform = VideoAugment(crop_size=crop, resize_size=resize, is_train=False,
                                  normalize=normalize)
     dataset = GLipsFullClipDataset(root_dir, split=split, num_frames=num_frames,
@@ -132,14 +111,10 @@ def _metrics(logits, targets, n):
 
 
 def _save_confusion(conf, class_names, tag):
-    """Always write the per-class F1 CSV. Only write the confusion matrix (.npy + a
-    row-normalized .png, Ameer-style) when the class count is small enough for it to
-    be meaningful (<= MATRIX_MAX_CLASSES) — so the 15-word tasks get matrices and the
-    500-word task does not (0.1 samples/cell is unreadably sparse)."""
+    """Always write the per-class F1 CSV; only write the confusion matrix if class count <= MATRIX_MAX_CLASSES."""
     os.makedirs(CONF_DIR, exist_ok=True)
     import numpy as np
 
-    # per-class F1 CSV — useful at every scale (e.g. best/worst of the 500 classes)
     c = conf.double()
     tp, fp, fn = c.diag(), c.sum(0) - c.diag(), c.sum(1) - c.diag()
     denom = 2 * tp + fp + fn
@@ -165,9 +140,6 @@ def _save_confusion(conf, class_names, tag):
         norm = cm / np.clip(row, 1, None)          # row-normalized (per true label), like Ameer
         fig, ax = plt.subplots(figsize=(max(6, len(class_names) * 0.62),) * 2)
         im = ax.imshow(norm, cmap='Blues', vmin=0, vmax=1)
-        # Annotate each cell with its row-normalized rate over the raw count. Zero
-        # cells stay blank so the populated ones read at a glance; the text flips to
-        # white on dark cells to stay legible against the colormap.
         fs = max(6, min(11, int(150 / len(class_names))))
         for i in range(len(class_names)):
             for j in range(len(class_names)):
@@ -210,8 +182,7 @@ def run_task(scale, cfg, split, device, amp_dtype, batch_size):
         results.append((label, top1, top5, f1))
         names = classes if classes is not None else [str(i) for i in range(n)]
         _save_confusion(conf, names, f'glips{scale}_{label.replace("/", "_")}')
-        # cache best (transfer preferred) per backend for the ensemble
-        if scale == 15 and (backend not in cached or 'transfer' in label):
+        if scale == 15 and (backend not in cached or 'transfer' in label):  # cache best per backend for the ensemble
             cached[backend] = (logits, targets, n)
         del model
         torch.cuda.empty_cache()
