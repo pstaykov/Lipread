@@ -1,0 +1,5227 @@
+{
+ "classes_n": 500,
+ "noise_conditions": [
+  {
+   "key": "clean",
+   "label": "Sauber"
+  },
+  {
+   "key": "white_10db",
+   "label": "Weißes Rauschen, 10 dB SNR"
+  },
+  {
+   "key": "white_5db",
+   "label": "Weißes Rauschen, 5 dB SNR"
+  },
+  {
+   "key": "babble_10db",
+   "label": "Stimmengewirr, 10 dB SNR"
+  },
+  {
+   "key": "babble_5db",
+   "label": "Stimmengewirr, 5 dB SNR"
+  }
+ ],
+ "model_headline_accuracy": {
+  "video_only": {
+   "test_top1": 0.342,
+   "test_top5": 0.539,
+   "label": "GNet, visual-only, 500-class GLips"
+  },
+  "audio_only": {
+   "val_top1": 0.6122,
+   "val_top5": 0.7693,
+   "label": "Whisper-base probe, audio-only, 500-class GLips"
+  },
+  "multimodal": {
+   "test_top1": 0.72,
+   "label": "GNet + Whisper, fine-tuned end-to-end cross-attention, 500-class GLips"
+  }
+ },
+ "clips": [
+  {
+   "id": 0,
+   "clip_files": {
+    "clean": "00_gehört.mp4",
+    "white_10db": "00_gehört_white_10db.mp4",
+    "white_5db": "00_gehört_white_5db.mp4",
+    "babble_10db": "00_gehört_babble_10db.mp4",
+    "babble_5db": "00_gehört_babble_5db.mp4"
+   },
+   "source_file": "gehört_0085-0436.mp4",
+   "ground_truth": "gehört",
+   "video_only": {
+    "top5": [
+     {
+      "word": "hören",
+      "prob": 0.516
+     },
+     {
+      "word": "gehört",
+      "prob": 0.1464
+     },
+     {
+      "word": "ausschuss",
+      "prob": 0.0655
+     },
+     {
+      "word": "heute",
+      "prob": 0.0354
+     },
+     {
+      "word": "rock",
+      "prob": 0.0305
+     }
+    ],
+    "top1": "hören",
+    "correct": false,
+    "top5_correct": true,
+    "true_word_prob": 0.1464
+   },
+   "audio_only": {
+    "clean": {
+     "top5": [
+      {
+       "word": "gehört",
+       "prob": 0.4996
+      },
+      {
+       "word": "viel",
+       "prob": 0.0343
+      },
+      {
+       "word": "geführt",
+       "prob": 0.0211
+      },
+      {
+       "word": "steht",
+       "prob": 0.017
+      },
+      {
+       "word": "schön",
+       "prob": 0.0163
+      }
+     ],
+     "top1": "gehört",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.4996
+    },
+    "white_10db": {
+     "top5": [
+      {
+       "word": "hören",
+       "prob": 0.3758
+      },
+      {
+       "word": "gehört",
+       "prob": 0.0971
+      },
+      {
+       "word": "frau",
+       "prob": 0.0341
+      },
+      {
+       "word": "kollegin",
+       "prob": 0.0271
+      },
+      {
+       "word": "rock",
+       "prob": 0.02
+      }
+     ],
+     "top1": "hören",
+     "correct": false,
+     "top5_correct": true,
+     "true_word_prob": 0.0971
+    },
+    "white_5db": {
+     "top5": [
+      {
+       "word": "hören",
+       "prob": 0.7115
+      },
+      {
+       "word": "herrn",
+       "prob": 0.0196
+      },
+      {
+       "word": "frau",
+       "prob": 0.0166
+      },
+      {
+       "word": "rock",
+       "prob": 0.0129
+      },
+      {
+       "word": "schön",
+       "prob": 0.012
+      }
+     ],
+     "top1": "hören",
+     "correct": false,
+     "top5_correct": false,
+     "true_word_prob": 0.0034
+    },
+    "babble_10db": {
+     "top5": [
+      {
+       "word": "schön",
+       "prob": 0.0573
+      },
+      {
+       "word": "vielen",
+       "prob": 0.0477
+      },
+      {
+       "word": "viel",
+       "prob": 0.0435
+      },
+      {
+       "word": "kommen",
+       "prob": 0.0365
+      },
+      {
+       "word": "bildung",
+       "prob": 0.0265
+      }
+     ],
+     "top1": "schön",
+     "correct": false,
+     "top5_correct": false,
+     "true_word_prob": 0.0028
+    },
+    "babble_5db": {
+     "top5": [
+      {
+       "word": "bildung",
+       "prob": 0.0873
+      },
+      {
+       "word": "kommen",
+       "prob": 0.0583
+      },
+      {
+       "word": "vielen",
+       "prob": 0.0478
+      },
+      {
+       "word": "hören",
+       "prob": 0.0269
+      },
+      {
+       "word": "bürger",
+       "prob": 0.0168
+      }
+     ],
+     "top1": "bildung",
+     "correct": false,
+     "top5_correct": false,
+     "true_word_prob": 0.0105
+    }
+   },
+   "multimodal": {
+    "clean": {
+     "top5": [
+      {
+       "word": "gehört",
+       "prob": 0.857
+      },
+      {
+       "word": "hören",
+       "prob": 0.0258
+      },
+      {
+       "word": "gemeldet",
+       "prob": 0.0041
+      },
+      {
+       "word": "können",
+       "prob": 0.0031
+      },
+      {
+       "word": "schön",
+       "prob": 0.0031
+      }
+     ],
+     "top1": "gehört",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.857
+    },
+    "white_10db": {
+     "top5": [
+      {
+       "word": "gehört",
+       "prob": 0.8341
+      },
+      {
+       "word": "hören",
+       "prob": 0.07
+      },
+      {
+       "word": "gemeldet",
+       "prob": 0.004
+      },
+      {
+       "word": "grünen",
+       "prob": 0.0038
+      },
+      {
+       "word": "schön",
+       "prob": 0.0033
+      }
+     ],
+     "top1": "gehört",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.8341
+    },
+    "white_5db": {
+     "top5": [
+      {
+       "word": "gehört",
+       "prob": 0.5891
+      },
+      {
+       "word": "hören",
+       "prob": 0.1796
+      },
+      {
+       "word": "können",
+       "prob": 0.0137
+      },
+      {
+       "word": "schön",
+       "prob": 0.0124
+      },
+      {
+       "word": "herr",
+       "prob": 0.0113
+      }
+     ],
+     "top1": "gehört",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.5891
+    },
+    "babble_10db": {
+     "top5": [
+      {
+       "word": "gehört",
+       "prob": 0.3118
+      },
+      {
+       "word": "hören",
+       "prob": 0.2469
+      },
+      {
+       "word": "schön",
+       "prob": 0.0329
+      },
+      {
+       "word": "können",
+       "prob": 0.0251
+      },
+      {
+       "word": "würden",
+       "prob": 0.0188
+      }
+     ],
+     "top1": "gehört",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.3118
+    },
+    "babble_5db": {
+     "top5": [
+      {
+       "word": "hören",
+       "prob": 0.4236
+      },
+      {
+       "word": "gehört",
+       "prob": 0.1917
+      },
+      {
+       "word": "würden",
+       "prob": 0.0816
+      },
+      {
+       "word": "kurz",
+       "prob": 0.0153
+      },
+      {
+       "word": "würde",
+       "prob": 0.0124
+      }
+     ],
+     "top1": "hören",
+     "correct": false,
+     "top5_correct": true,
+     "true_word_prob": 0.1917
+    }
+   }
+  },
+  {
+   "id": 1,
+   "clip_files": {
+    "clean": "01_zumindest.mp4",
+    "white_10db": "01_zumindest_white_10db.mp4",
+    "white_5db": "01_zumindest_white_5db.mp4",
+    "babble_10db": "01_zumindest_babble_10db.mp4",
+    "babble_5db": "01_zumindest_babble_5db.mp4"
+   },
+   "source_file": "zumindest_0123-0242.mp4",
+   "ground_truth": "zumindest",
+   "video_only": {
+    "top5": [
+     {
+      "word": "schülerinnen",
+      "prob": 0.045
+     },
+     {
+      "word": "müssen",
+      "prob": 0.043
+     },
+     {
+      "word": "bisschen",
+      "prob": 0.0394
+     },
+     {
+      "word": "bisher",
+      "prob": 0.0366
+     },
+     {
+      "word": "sinne",
+      "prob": 0.0258
+     }
+    ],
+    "top1": "schülerinnen",
+    "correct": false,
+    "top5_correct": false,
+    "true_word_prob": 0.0047
+   },
+   "audio_only": {
+    "clean": {
+     "top5": [
+      {
+       "word": "zumindest",
+       "prob": 0.5781
+      },
+      {
+       "word": "fest",
+       "prob": 0.039
+      },
+      {
+       "word": "werde",
+       "prob": 0.0189
+      },
+      {
+       "word": "minister",
+       "prob": 0.0176
+      },
+      {
+       "word": "stimmen",
+       "prob": 0.0148
+      }
+     ],
+     "top1": "zumindest",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.5781
+    },
+    "white_10db": {
+     "top5": [
+      {
+       "word": "zumindest",
+       "prob": 0.8657
+      },
+      {
+       "word": "fest",
+       "prob": 0.0102
+      },
+      {
+       "word": "wissen",
+       "prob": 0.0077
+      },
+      {
+       "word": "würde",
+       "prob": 0.007
+      },
+      {
+       "word": "werde",
+       "prob": 0.0069
+      }
+     ],
+     "top1": "zumindest",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.8657
+    },
+    "white_5db": {
+     "top5": [
+      {
+       "word": "zumindest",
+       "prob": 0.2806
+      },
+      {
+       "word": "völlig",
+       "prob": 0.0813
+      },
+      {
+       "word": "wenig",
+       "prob": 0.0577
+      },
+      {
+       "word": "werde",
+       "prob": 0.0394
+      },
+      {
+       "word": "besser",
+       "prob": 0.035
+      }
+     ],
+     "top1": "zumindest",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.2806
+    },
+    "babble_10db": {
+     "top5": [
+      {
+       "word": "zumindest",
+       "prob": 0.2941
+      },
+      {
+       "word": "fest",
+       "prob": 0.0912
+      },
+      {
+       "word": "stimmen",
+       "prob": 0.0489
+      },
+      {
+       "word": "steht",
+       "prob": 0.0308
+      },
+      {
+       "word": "wichtig",
+       "prob": 0.0251
+      }
+     ],
+     "top1": "zumindest",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.2941
+    },
+    "babble_5db": {
+     "top5": [
+      {
+       "word": "zumindest",
+       "prob": 0.2831
+      },
+      {
+       "word": "stimmen",
+       "prob": 0.0566
+      },
+      {
+       "word": "stunde",
+       "prob": 0.0254
+      },
+      {
+       "word": "ministerpräsident",
+       "prob": 0.0239
+      },
+      {
+       "word": "zunächst",
+       "prob": 0.0209
+      }
+     ],
+     "top1": "zumindest",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.2831
+    }
+   },
+   "multimodal": {
+    "clean": {
+     "top5": [
+      {
+       "word": "zumindest",
+       "prob": 0.7115
+      },
+      {
+       "word": "müssen",
+       "prob": 0.0109
+      },
+      {
+       "word": "bisschen",
+       "prob": 0.0096
+      },
+      {
+       "word": "mich",
+       "prob": 0.0092
+      },
+      {
+       "word": "besser",
+       "prob": 0.0085
+      }
+     ],
+     "top1": "zumindest",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.7115
+    },
+    "white_10db": {
+     "top5": [
+      {
+       "word": "zumindest",
+       "prob": 0.6295
+      },
+      {
+       "word": "müssen",
+       "prob": 0.0122
+      },
+      {
+       "word": "besser",
+       "prob": 0.0116
+      },
+      {
+       "word": "beispielsweise",
+       "prob": 0.0099
+      },
+      {
+       "word": "bisschen",
+       "prob": 0.0094
+      }
+     ],
+     "top1": "zumindest",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.6295
+    },
+    "white_5db": {
+     "top5": [
+      {
+       "word": "zumindest",
+       "prob": 0.1725
+      },
+      {
+       "word": "müssen",
+       "prob": 0.081
+      },
+      {
+       "word": "besser",
+       "prob": 0.0356
+      },
+      {
+       "word": "mittel",
+       "prob": 0.0334
+      },
+      {
+       "word": "bisschen",
+       "prob": 0.0286
+      }
+     ],
+     "top1": "zumindest",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.1725
+    },
+    "babble_10db": {
+     "top5": [
+      {
+       "word": "zumindest",
+       "prob": 0.8051
+      },
+      {
+       "word": "sinne",
+       "prob": 0.008
+      },
+      {
+       "word": "müssen",
+       "prob": 0.0078
+      },
+      {
+       "word": "staatsminister",
+       "prob": 0.0067
+      },
+      {
+       "word": "mittel",
+       "prob": 0.0063
+      }
+     ],
+     "top1": "zumindest",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.8051
+    },
+    "babble_5db": {
+     "top5": [
+      {
+       "word": "zumindest",
+       "prob": 0.4418
+      },
+      {
+       "word": "müssen",
+       "prob": 0.0308
+      },
+      {
+       "word": "besser",
+       "prob": 0.0167
+      },
+      {
+       "word": "mich",
+       "prob": 0.0144
+      },
+      {
+       "word": "will",
+       "prob": 0.0139
+      }
+     ],
+     "top1": "zumindest",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.4418
+    }
+   }
+  },
+  {
+   "id": 2,
+   "clip_files": {
+    "clean": "02_denke.mp4",
+    "white_10db": "02_denke_white_10db.mp4",
+    "white_5db": "02_denke_white_5db.mp4",
+    "babble_10db": "02_denke_babble_10db.mp4",
+    "babble_5db": "02_denke_babble_5db.mp4"
+   },
+   "source_file": "denke_0533-0525.mp4",
+   "ground_truth": "denke",
+   "video_only": {
+    "top5": [
+     {
+      "word": "denke",
+      "prob": 0.9597
+     },
+     {
+      "word": "sehen",
+      "prob": 0.0225
+     },
+     {
+      "word": "denen",
+      "prob": 0.0015
+     },
+     {
+      "word": "deren",
+      "prob": 0.0011
+     },
+     {
+      "word": "sein",
+      "prob": 0.0009
+     }
+    ],
+    "top1": "denke",
+    "correct": true,
+    "top5_correct": true,
+    "true_word_prob": 0.9597
+   },
+   "audio_only": {
+    "clean": {
+     "top5": [
+      {
+       "word": "denke",
+       "prob": 0.9789
+      },
+      {
+       "word": "danke",
+       "prob": 0.0035
+      },
+      {
+       "word": "finde",
+       "prob": 0.0011
+      },
+      {
+       "word": "glaube",
+       "prob": 0.001
+      },
+      {
+       "word": "dass",
+       "prob": 0.0007
+      }
+     ],
+     "top1": "denke",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.9789
+    },
+    "white_10db": {
+     "top5": [
+      {
+       "word": "denke",
+       "prob": 0.7069
+      },
+      {
+       "word": "sehr",
+       "prob": 0.0194
+      },
+      {
+       "word": "besser",
+       "prob": 0.011
+      },
+      {
+       "word": "kollegin",
+       "prob": 0.0104
+      },
+      {
+       "word": "frau",
+       "prob": 0.0089
+      }
+     ],
+     "top1": "denke",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.7069
+    },
+    "white_5db": {
+     "top5": [
+      {
+       "word": "denke",
+       "prob": 0.2405
+      },
+      {
+       "word": "herr",
+       "prob": 0.0576
+      },
+      {
+       "word": "sehr",
+       "prob": 0.0572
+      },
+      {
+       "word": "geehrte",
+       "prob": 0.0443
+      },
+      {
+       "word": "dank",
+       "prob": 0.0308
+      }
+     ],
+     "top1": "denke",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.2405
+    },
+    "babble_10db": {
+     "top5": [
+      {
+       "word": "denke",
+       "prob": 0.5681
+      },
+      {
+       "word": "danke",
+       "prob": 0.1093
+      },
+      {
+       "word": "finde",
+       "prob": 0.0123
+      },
+      {
+       "word": "schön",
+       "prob": 0.0078
+      },
+      {
+       "word": "gilt",
+       "prob": 0.0074
+      }
+     ],
+     "top1": "denke",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.5681
+    },
+    "babble_5db": {
+     "top5": [
+      {
+       "word": "danke",
+       "prob": 0.0733
+      },
+      {
+       "word": "gern",
+       "prob": 0.0454
+      },
+      {
+       "word": "denke",
+       "prob": 0.0387
+      },
+      {
+       "word": "genau",
+       "prob": 0.0248
+      },
+      {
+       "word": "redner",
+       "prob": 0.0243
+      }
+     ],
+     "top1": "danke",
+     "correct": false,
+     "top5_correct": true,
+     "true_word_prob": 0.0387
+    }
+   },
+   "multimodal": {
+    "clean": {
+     "top5": [
+      {
+       "word": "denke",
+       "prob": 0.9785
+      },
+      {
+       "word": "dinge",
+       "prob": 0.0012
+      },
+      {
+       "word": "linke",
+       "prob": 0.001
+      },
+      {
+       "word": "danke",
+       "prob": 0.0008
+      },
+      {
+       "word": "gern",
+       "prob": 0.0004
+      }
+     ],
+     "top1": "denke",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.9785
+    },
+    "white_10db": {
+     "top5": [
+      {
+       "word": "denke",
+       "prob": 0.9724
+      },
+      {
+       "word": "dinge",
+       "prob": 0.0016
+      },
+      {
+       "word": "linke",
+       "prob": 0.0012
+      },
+      {
+       "word": "danke",
+       "prob": 0.001
+      },
+      {
+       "word": "sache",
+       "prob": 0.0008
+      }
+     ],
+     "top1": "denke",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.9724
+    },
+    "white_5db": {
+     "top5": [
+      {
+       "word": "denke",
+       "prob": 0.9477
+      },
+      {
+       "word": "linke",
+       "prob": 0.0034
+      },
+      {
+       "word": "danke",
+       "prob": 0.003
+      },
+      {
+       "word": "geehrter",
+       "prob": 0.0016
+      },
+      {
+       "word": "dinge",
+       "prob": 0.0016
+      }
+     ],
+     "top1": "denke",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.9477
+    },
+    "babble_10db": {
+     "top5": [
+      {
+       "word": "denke",
+       "prob": 0.9703
+      },
+      {
+       "word": "danke",
+       "prob": 0.0019
+      },
+      {
+       "word": "linke",
+       "prob": 0.0015
+      },
+      {
+       "word": "sache",
+       "prob": 0.0014
+      },
+      {
+       "word": "dinge",
+       "prob": 0.0012
+      }
+     ],
+     "top1": "denke",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.9703
+    },
+    "babble_5db": {
+     "top5": [
+      {
+       "word": "denke",
+       "prob": 0.7899
+      },
+      {
+       "word": "gern",
+       "prob": 0.0223
+      },
+      {
+       "word": "denn",
+       "prob": 0.0145
+      },
+      {
+       "word": "danke",
+       "prob": 0.0094
+      },
+      {
+       "word": "dinge",
+       "prob": 0.0069
+      }
+     ],
+     "top1": "denke",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.7899
+    }
+   }
+  },
+  {
+   "id": 3,
+   "clip_files": {
+    "clean": "03_haushalt.mp4",
+    "white_10db": "03_haushalt_white_10db.mp4",
+    "white_5db": "03_haushalt_white_5db.mp4",
+    "babble_10db": "03_haushalt_babble_10db.mp4",
+    "babble_5db": "03_haushalt_babble_5db.mp4"
+   },
+   "source_file": "haushalt_0613-0726.mp4",
+   "ground_truth": "haushalt",
+   "video_only": {
+    "top5": [
+     {
+      "word": "gewesen",
+      "prob": 0.1704
+     },
+     {
+      "word": "wissen",
+      "prob": 0.1189
+     },
+     {
+      "word": "dass",
+      "prob": 0.0537
+     },
+     {
+      "word": "weise",
+      "prob": 0.0496
+     },
+     {
+      "word": "wenn",
+      "prob": 0.0478
+     }
+    ],
+    "top1": "gewesen",
+    "correct": false,
+    "top5_correct": false,
+    "true_word_prob": 0.0002
+   },
+   "audio_only": {
+    "clean": {
+     "top5": [
+      {
+       "word": "jahre",
+       "prob": 0.7242
+      },
+      {
+       "word": "jahr",
+       "prob": 0.0986
+      },
+      {
+       "word": "drucksache",
+       "prob": 0.0437
+      },
+      {
+       "word": "jahren",
+       "prob": 0.0153
+      },
+      {
+       "word": "zwei",
+       "prob": 0.0119
+      }
+     ],
+     "top1": "jahre",
+     "correct": false,
+     "top5_correct": false,
+     "true_word_prob": 0.0002
+    },
+    "white_10db": {
+     "top5": [
+      {
+       "word": "jahre",
+       "prob": 0.4777
+      },
+      {
+       "word": "jahren",
+       "prob": 0.1429
+      },
+      {
+       "word": "fünf",
+       "prob": 0.0293
+      },
+      {
+       "word": "jahr",
+       "prob": 0.0239
+      },
+      {
+       "word": "drucksache",
+       "prob": 0.0138
+      }
+     ],
+     "top1": "jahre",
+     "correct": false,
+     "top5_correct": false,
+     "true_word_prob": 0.0001
+    },
+    "white_5db": {
+     "top5": [
+      {
+       "word": "jahre",
+       "prob": 0.1004
+      },
+      {
+       "word": "hören",
+       "prob": 0.0776
+      },
+      {
+       "word": "milliarden",
+       "prob": 0.0204
+      },
+      {
+       "word": "stunde",
+       "prob": 0.0201
+      },
+      {
+       "word": "jahren",
+       "prob": 0.019
+      }
+     ],
+     "top1": "jahre",
+     "correct": false,
+     "top5_correct": false,
+     "true_word_prob": 0.0
+    },
+    "babble_10db": {
+     "top5": [
+      {
+       "word": "jahre",
+       "prob": 0.6334
+      },
+      {
+       "word": "jahr",
+       "prob": 0.0503
+      },
+      {
+       "word": "jahren",
+       "prob": 0.0431
+      },
+      {
+       "word": "milliarden",
+       "prob": 0.036
+      },
+      {
+       "word": "etwa",
+       "prob": 0.0119
+      }
+     ],
+     "top1": "jahre",
+     "correct": false,
+     "top5_correct": false,
+     "true_word_prob": 0.0003
+    },
+    "babble_5db": {
+     "top5": [
+      {
+       "word": "jahre",
+       "prob": 0.1245
+      },
+      {
+       "word": "jahr",
+       "prob": 0.0354
+      },
+      {
+       "word": "jahren",
+       "prob": 0.0302
+      },
+      {
+       "word": "fünf",
+       "prob": 0.0228
+      },
+      {
+       "word": "minuten",
+       "prob": 0.02
+      }
+     ],
+     "top1": "jahre",
+     "correct": false,
+     "top5_correct": false,
+     "true_word_prob": 0.0006
+    }
+   },
+   "multimodal": {
+    "clean": {
+     "top5": [
+      {
+       "word": "fast",
+       "prob": 0.0705
+      },
+      {
+       "word": "jahr",
+       "prob": 0.0537
+      },
+      {
+       "word": "drucksache",
+       "prob": 0.0532
+      },
+      {
+       "word": "weiß",
+       "prob": 0.0425
+      },
+      {
+       "word": "jahre",
+       "prob": 0.0398
+      }
+     ],
+     "top1": "fast",
+     "correct": false,
+     "top5_correct": false,
+     "true_word_prob": 0.003
+    },
+    "white_10db": {
+     "top5": [
+      {
+       "word": "fast",
+       "prob": 0.0509
+      },
+      {
+       "word": "weiß",
+       "prob": 0.0411
+      },
+      {
+       "word": "dass",
+       "prob": 0.0327
+      },
+      {
+       "word": "jahre",
+       "prob": 0.0327
+      },
+      {
+       "word": "weil",
+       "prob": 0.0227
+      }
+     ],
+     "top1": "fast",
+     "correct": false,
+     "top5_correct": false,
+     "true_word_prob": 0.0018
+    },
+    "white_5db": {
+     "top5": [
+      {
+       "word": "weil",
+       "prob": 0.0986
+      },
+      {
+       "word": "denn",
+       "prob": 0.0334
+      },
+      {
+       "word": "worden",
+       "prob": 0.0235
+      },
+      {
+       "word": "waren",
+       "prob": 0.0208
+      },
+      {
+       "word": "falsch",
+       "prob": 0.0178
+      }
+     ],
+     "top1": "weil",
+     "correct": false,
+     "top5_correct": false,
+     "true_word_prob": 0.0025
+    },
+    "babble_10db": {
+     "top5": [
+      {
+       "word": "fast",
+       "prob": 0.1088
+      },
+      {
+       "word": "weiß",
+       "prob": 0.0766
+      },
+      {
+       "word": "jahre",
+       "prob": 0.0288
+      },
+      {
+       "word": "drucksache",
+       "prob": 0.0265
+      },
+      {
+       "word": "waren",
+       "prob": 0.0169
+      }
+     ],
+     "top1": "fast",
+     "correct": false,
+     "top5_correct": false,
+     "true_word_prob": 0.0025
+    },
+    "babble_5db": {
+     "top5": [
+      {
+       "word": "weiß",
+       "prob": 0.1518
+      },
+      {
+       "word": "falsch",
+       "prob": 0.0299
+      },
+      {
+       "word": "wenn",
+       "prob": 0.0274
+      },
+      {
+       "word": "weil",
+       "prob": 0.0256
+      },
+      {
+       "word": "zweite",
+       "prob": 0.0198
+      }
+     ],
+     "top1": "weiß",
+     "correct": false,
+     "top5_correct": false,
+     "true_word_prob": 0.0005
+    }
+   }
+  },
+  {
+   "id": 4,
+   "clip_files": {
+    "clean": "04_rahmen.mp4",
+    "white_10db": "04_rahmen_white_10db.mp4",
+    "white_5db": "04_rahmen_white_5db.mp4",
+    "babble_10db": "04_rahmen_babble_10db.mp4",
+    "babble_5db": "04_rahmen_babble_5db.mp4"
+   },
+   "source_file": "rahmen_0078-0221.mp4",
+   "ground_truth": "rahmen",
+   "video_only": {
+    "top5": [
+     {
+      "word": "rahmen",
+      "prob": 0.9985
+     },
+     {
+      "word": "bleiben",
+      "prob": 0.0008
+     },
+     {
+      "word": "bleibt",
+      "prob": 0.0002
+     },
+     {
+      "word": "haben",
+      "prob": 0.0002
+     },
+     {
+      "word": "einem",
+      "prob": 0.0
+     }
+    ],
+    "top1": "rahmen",
+    "correct": true,
+    "top5_correct": true,
+    "true_word_prob": 0.9985
+   },
+   "audio_only": {
+    "clean": {
+     "top5": [
+      {
+       "word": "rahmen",
+       "prob": 0.5392
+      },
+      {
+       "word": "einem",
+       "prob": 0.0432
+      },
+      {
+       "word": "raum",
+       "prob": 0.0308
+      },
+      {
+       "word": "unternehmen",
+       "prob": 0.0204
+      },
+      {
+       "word": "geführt",
+       "prob": 0.0174
+      }
+     ],
+     "top1": "rahmen",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.5392
+    },
+    "white_10db": {
+     "top5": [
+      {
+       "word": "rahmen",
+       "prob": 0.5136
+      },
+      {
+       "word": "unternehmen",
+       "prob": 0.0166
+      },
+      {
+       "word": "damen",
+       "prob": 0.0146
+      },
+      {
+       "word": "paar",
+       "prob": 0.0119
+      },
+      {
+       "word": "einem",
+       "prob": 0.0115
+      }
+     ],
+     "top1": "rahmen",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.5136
+    },
+    "white_5db": {
+     "top5": [
+      {
+       "word": "paar",
+       "prob": 0.093
+      },
+      {
+       "word": "satz",
+       "prob": 0.057
+      },
+      {
+       "word": "lange",
+       "prob": 0.0531
+      },
+      {
+       "word": "gebracht",
+       "prob": 0.0304
+      },
+      {
+       "word": "rahmen",
+       "prob": 0.0277
+      }
+     ],
+     "top1": "paar",
+     "correct": false,
+     "top5_correct": true,
+     "true_word_prob": 0.0277
+    },
+    "babble_10db": {
+     "top5": [
+      {
+       "word": "rahmen",
+       "prob": 0.9575
+      },
+      {
+       "word": "raum",
+       "prob": 0.0075
+      },
+      {
+       "word": "einem",
+       "prob": 0.0047
+      },
+      {
+       "word": "einer",
+       "prob": 0.0016
+      },
+      {
+       "word": "damen",
+       "prob": 0.0012
+      }
+     ],
+     "top1": "rahmen",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.9575
+    },
+    "babble_5db": {
+     "top5": [
+      {
+       "word": "rahmen",
+       "prob": 0.2179
+      },
+      {
+       "word": "präsident",
+       "prob": 0.0397
+      },
+      {
+       "word": "freien",
+       "prob": 0.0228
+      },
+      {
+       "word": "haben",
+       "prob": 0.0221
+      },
+      {
+       "word": "eine",
+       "prob": 0.0208
+      }
+     ],
+     "top1": "rahmen",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.2179
+    }
+   },
+   "multimodal": {
+    "clean": {
+     "top5": [
+      {
+       "word": "rahmen",
+       "prob": 0.9407
+      },
+      {
+       "word": "haben",
+       "prob": 0.0059
+      },
+      {
+       "word": "raum",
+       "prob": 0.0038
+      },
+      {
+       "word": "damit",
+       "prob": 0.0018
+      },
+      {
+       "word": "damen",
+       "prob": 0.0017
+      }
+     ],
+     "top1": "rahmen",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.9407
+    },
+    "white_10db": {
+     "top5": [
+      {
+       "word": "rahmen",
+       "prob": 0.9462
+      },
+      {
+       "word": "haben",
+       "prob": 0.0084
+      },
+      {
+       "word": "raum",
+       "prob": 0.0036
+      },
+      {
+       "word": "waren",
+       "prob": 0.002
+      },
+      {
+       "word": "aufgaben",
+       "prob": 0.0014
+      }
+     ],
+     "top1": "rahmen",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.9462
+    },
+    "white_5db": {
+     "top5": [
+      {
+       "word": "rahmen",
+       "prob": 0.7927
+      },
+      {
+       "word": "waren",
+       "prob": 0.0154
+      },
+      {
+       "word": "haben",
+       "prob": 0.0146
+      },
+      {
+       "word": "damit",
+       "prob": 0.0104
+      },
+      {
+       "word": "arbeit",
+       "prob": 0.0098
+      }
+     ],
+     "top1": "rahmen",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.7927
+    },
+    "babble_10db": {
+     "top5": [
+      {
+       "word": "rahmen",
+       "prob": 0.9665
+      },
+      {
+       "word": "raum",
+       "prob": 0.0019
+      },
+      {
+       "word": "haben",
+       "prob": 0.0018
+      },
+      {
+       "word": "waren",
+       "prob": 0.0012
+      },
+      {
+       "word": "damit",
+       "prob": 0.001
+      }
+     ],
+     "top1": "rahmen",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.9665
+    },
+    "babble_5db": {
+     "top5": [
+      {
+       "word": "rahmen",
+       "prob": 0.8054
+      },
+      {
+       "word": "haben",
+       "prob": 0.0293
+      },
+      {
+       "word": "arbeit",
+       "prob": 0.0091
+      },
+      {
+       "word": "bleibt",
+       "prob": 0.0089
+      },
+      {
+       "word": "bleiben",
+       "prob": 0.0082
+      }
+     ],
+     "top1": "rahmen",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.8054
+    }
+   }
+  },
+  {
+   "id": 5,
+   "clip_files": {
+    "clean": "05_aufgrund.mp4",
+    "white_10db": "05_aufgrund_white_10db.mp4",
+    "white_5db": "05_aufgrund_white_5db.mp4",
+    "babble_10db": "05_aufgrund_babble_10db.mp4",
+    "babble_5db": "05_aufgrund_babble_5db.mp4"
+   },
+   "source_file": "aufgrund_0356-0424.mp4",
+   "ground_truth": "aufgrund",
+   "video_only": {
+    "top5": [
+     {
+      "word": "paar",
+      "prob": 0.4215
+     },
+     {
+      "word": "aufgrund",
+      "prob": 0.2175
+     },
+     {
+      "word": "beim",
+      "prob": 0.1362
+     },
+     {
+      "word": "bleibt",
+      "prob": 0.0834
+     },
+     {
+      "word": "rahmen",
+      "prob": 0.027
+     }
+    ],
+    "top1": "paar",
+    "correct": false,
+    "top5_correct": true,
+    "true_word_prob": 0.2175
+   },
+   "audio_only": {
+    "clean": {
+     "top5": [
+      {
+       "word": "bleibt",
+       "prob": 0.3298
+      },
+      {
+       "word": "aufgrund",
+       "prob": 0.1551
+      },
+      {
+       "word": "beim",
+       "prob": 0.0432
+      },
+      {
+       "word": "grund",
+       "prob": 0.0266
+      },
+      {
+       "word": "land",
+       "prob": 0.0212
+      }
+     ],
+     "top1": "bleibt",
+     "correct": false,
+     "top5_correct": true,
+     "true_word_prob": 0.1551
+    },
+    "white_10db": {
+     "top5": [
+      {
+       "word": "aufgrund",
+       "prob": 0.2792
+      },
+      {
+       "word": "bleibt",
+       "prob": 0.1647
+      },
+      {
+       "word": "bund",
+       "prob": 0.0347
+      },
+      {
+       "word": "gleich",
+       "prob": 0.0288
+      },
+      {
+       "word": "liegt",
+       "prob": 0.0269
+      }
+     ],
+     "top1": "aufgrund",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.2792
+    },
+    "white_5db": {
+     "top5": [
+      {
+       "word": "aufgrund",
+       "prob": 0.0847
+      },
+      {
+       "word": "bleibt",
+       "prob": 0.0601
+      },
+      {
+       "word": "gleich",
+       "prob": 0.0541
+      },
+      {
+       "word": "bund",
+       "prob": 0.0468
+      },
+      {
+       "word": "spricht",
+       "prob": 0.0443
+      }
+     ],
+     "top1": "aufgrund",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.0847
+    },
+    "babble_10db": {
+     "top5": [
+      {
+       "word": "bleibt",
+       "prob": 0.4503
+      },
+      {
+       "word": "bleiben",
+       "prob": 0.1027
+      },
+      {
+       "word": "beim",
+       "prob": 0.0471
+      },
+      {
+       "word": "ländlichen",
+       "prob": 0.0449
+      },
+      {
+       "word": "aufgrund",
+       "prob": 0.0437
+      }
+     ],
+     "top1": "bleibt",
+     "correct": false,
+     "top5_correct": true,
+     "true_word_prob": 0.0437
+    },
+    "babble_5db": {
+     "top5": [
+      {
+       "word": "land",
+       "prob": 0.0306
+      },
+      {
+       "word": "vielleicht",
+       "prob": 0.0304
+      },
+      {
+       "word": "bleibt",
+       "prob": 0.0293
+      },
+      {
+       "word": "präsident",
+       "prob": 0.0267
+      },
+      {
+       "word": "fraktion",
+       "prob": 0.0242
+      }
+     ],
+     "top1": "land",
+     "correct": false,
+     "top5_correct": false,
+     "true_word_prob": 0.0163
+    }
+   },
+   "multimodal": {
+    "clean": {
+     "top5": [
+      {
+       "word": "aufgrund",
+       "prob": 0.914
+      },
+      {
+       "word": "rund",
+       "prob": 0.0086
+      },
+      {
+       "word": "grund",
+       "prob": 0.0041
+      },
+      {
+       "word": "frankfurt",
+       "prob": 0.0027
+      },
+      {
+       "word": "bleibt",
+       "prob": 0.0022
+      }
+     ],
+     "top1": "aufgrund",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.914
+    },
+    "white_10db": {
+     "top5": [
+      {
+       "word": "aufgrund",
+       "prob": 0.9047
+      },
+      {
+       "word": "grund",
+       "prob": 0.0031
+      },
+      {
+       "word": "bleibt",
+       "prob": 0.0025
+      },
+      {
+       "word": "frankfurt",
+       "prob": 0.0023
+      },
+      {
+       "word": "einfach",
+       "prob": 0.0022
+      }
+     ],
+     "top1": "aufgrund",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.9047
+    },
+    "white_5db": {
+     "top5": [
+      {
+       "word": "aufgrund",
+       "prob": 0.7647
+      },
+      {
+       "word": "verfügung",
+       "prob": 0.0072
+      },
+      {
+       "word": "dürfen",
+       "prob": 0.0071
+      },
+      {
+       "word": "hatten",
+       "prob": 0.0052
+      },
+      {
+       "word": "einfach",
+       "prob": 0.0051
+      }
+     ],
+     "top1": "aufgrund",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.7647
+    },
+    "babble_10db": {
+     "top5": [
+      {
+       "word": "aufgrund",
+       "prob": 0.8748
+      },
+      {
+       "word": "rund",
+       "prob": 0.0047
+      },
+      {
+       "word": "bleibt",
+       "prob": 0.0041
+      },
+      {
+       "word": "frankfurt",
+       "prob": 0.0038
+      },
+      {
+       "word": "verfügung",
+       "prob": 0.0026
+      }
+     ],
+     "top1": "aufgrund",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.8748
+    },
+    "babble_5db": {
+     "top5": [
+      {
+       "word": "aufgrund",
+       "prob": 0.5304
+      },
+      {
+       "word": "bleibt",
+       "prob": 0.0457
+      },
+      {
+       "word": "aber",
+       "prob": 0.0147
+      },
+      {
+       "word": "einfach",
+       "prob": 0.0137
+      },
+      {
+       "word": "bleiben",
+       "prob": 0.0111
+      }
+     ],
+     "top1": "aufgrund",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.5304
+    }
+   }
+  },
+  {
+   "id": 6,
+   "clip_files": {
+    "clean": "06_beschäftigten.mp4",
+    "white_10db": "06_beschäftigten_white_10db.mp4",
+    "white_5db": "06_beschäftigten_white_5db.mp4",
+    "babble_10db": "06_beschäftigten_babble_10db.mp4",
+    "babble_5db": "06_beschäftigten_babble_5db.mp4"
+   },
+   "source_file": "beschäftigten_0249-0190.mp4",
+   "ground_truth": "beschäftigten",
+   "video_only": {
+    "top5": [
+     {
+      "word": "beschäftigten",
+      "prob": 0.918
+     },
+     {
+      "word": "schaffen",
+      "prob": 0.0066
+     },
+     {
+      "word": "landtag",
+      "prob": 0.0027
+     },
+     {
+      "word": "sinne",
+      "prob": 0.0026
+     },
+     {
+      "word": "erst",
+      "prob": 0.0021
+     }
+    ],
+    "top1": "beschäftigten",
+    "correct": true,
+    "top5_correct": true,
+    "true_word_prob": 0.918
+   },
+   "audio_only": {
+    "clean": {
+     "top5": [
+      {
+       "word": "beschäftigten",
+       "prob": 0.7174
+      },
+      {
+       "word": "geschaffen",
+       "prob": 0.0169
+      },
+      {
+       "word": "gesprochen",
+       "prob": 0.0151
+      },
+      {
+       "word": "angesprochen",
+       "prob": 0.0084
+      },
+      {
+       "word": "schulen",
+       "prob": 0.0077
+      }
+     ],
+     "top1": "beschäftigten",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.7174
+    },
+    "white_10db": {
+     "top5": [
+      {
+       "word": "beschäftigten",
+       "prob": 0.1074
+      },
+      {
+       "word": "drucksache",
+       "prob": 0.0557
+      },
+      {
+       "word": "bündnis",
+       "prob": 0.0379
+      },
+      {
+       "word": "wochen",
+       "prob": 0.0343
+      },
+      {
+       "word": "unseres",
+       "prob": 0.0324
+      }
+     ],
+     "top1": "beschäftigten",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.1074
+    },
+    "white_5db": {
+     "top5": [
+      {
+       "word": "bündnis",
+       "prob": 0.155
+      },
+      {
+       "word": "beschäftigten",
+       "prob": 0.1162
+      },
+      {
+       "word": "drucksache",
+       "prob": 0.0946
+      },
+      {
+       "word": "zwischen",
+       "prob": 0.0462
+      },
+      {
+       "word": "sicht",
+       "prob": 0.0272
+      }
+     ],
+     "top1": "bündnis",
+     "correct": false,
+     "top5_correct": true,
+     "true_word_prob": 0.1162
+    },
+    "babble_10db": {
+     "top5": [
+      {
+       "word": "beschäftigten",
+       "prob": 0.4002
+      },
+      {
+       "word": "fraktion",
+       "prob": 0.0584
+      },
+      {
+       "word": "schulen",
+       "prob": 0.0546
+      },
+      {
+       "word": "geschaffen",
+       "prob": 0.0491
+      },
+      {
+       "word": "nächste",
+       "prob": 0.0427
+      }
+     ],
+     "top1": "beschäftigten",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.4002
+    },
+    "babble_5db": {
+     "top5": [
+      {
+       "word": "beschäftigten",
+       "prob": 0.1316
+      },
+      {
+       "word": "angesprochen",
+       "prob": 0.0528
+      },
+      {
+       "word": "schauen",
+       "prob": 0.0275
+      },
+      {
+       "word": "nächste",
+       "prob": 0.026
+      },
+      {
+       "word": "schulen",
+       "prob": 0.0257
+      }
+     ],
+     "top1": "beschäftigten",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.1316
+    }
+   },
+   "multimodal": {
+    "clean": {
+     "top5": [
+      {
+       "word": "beschäftigten",
+       "prob": 0.9291
+      },
+      {
+       "word": "geschaffen",
+       "prob": 0.0022
+      },
+      {
+       "word": "schaffen",
+       "prob": 0.0018
+      },
+      {
+       "word": "bisher",
+       "prob": 0.0013
+      },
+      {
+       "word": "hätte",
+       "prob": 0.0012
+      }
+     ],
+     "top1": "beschäftigten",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.9291
+    },
+    "white_10db": {
+     "top5": [
+      {
+       "word": "beschäftigten",
+       "prob": 0.9147
+      },
+      {
+       "word": "schaffen",
+       "prob": 0.0041
+      },
+      {
+       "word": "tatsächlich",
+       "prob": 0.0032
+      },
+      {
+       "word": "richtig",
+       "prob": 0.0024
+      },
+      {
+       "word": "schülerinnen",
+       "prob": 0.0024
+      }
+     ],
+     "top1": "beschäftigten",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.9147
+    },
+    "white_5db": {
+     "top5": [
+      {
+       "word": "beschäftigten",
+       "prob": 0.9287
+      },
+      {
+       "word": "schaffen",
+       "prob": 0.0057
+      },
+      {
+       "word": "schülerinnen",
+       "prob": 0.0021
+      },
+      {
+       "word": "tatsächlich",
+       "prob": 0.0019
+      },
+      {
+       "word": "geschaffen",
+       "prob": 0.0018
+      }
+     ],
+     "top1": "beschäftigten",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.9287
+    },
+    "babble_10db": {
+     "top5": [
+      {
+       "word": "beschäftigten",
+       "prob": 0.8407
+      },
+      {
+       "word": "schaffen",
+       "prob": 0.0143
+      },
+      {
+       "word": "tatsächlich",
+       "prob": 0.0074
+      },
+      {
+       "word": "schülerinnen",
+       "prob": 0.0049
+      },
+      {
+       "word": "förderung",
+       "prob": 0.0046
+      }
+     ],
+     "top1": "beschäftigten",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.8407
+    },
+    "babble_5db": {
+     "top5": [
+      {
+       "word": "beschäftigten",
+       "prob": 0.9087
+      },
+      {
+       "word": "schaffen",
+       "prob": 0.0097
+      },
+      {
+       "word": "geschaffen",
+       "prob": 0.0053
+      },
+      {
+       "word": "finden",
+       "prob": 0.0022
+      },
+      {
+       "word": "stimmen",
+       "prob": 0.0017
+      }
+     ],
+     "top1": "beschäftigten",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.9087
+    }
+   }
+  },
+  {
+   "id": 7,
+   "clip_files": {
+    "clean": "07_unserer.mp4",
+    "white_10db": "07_unserer_white_10db.mp4",
+    "white_5db": "07_unserer_white_5db.mp4",
+    "babble_10db": "07_unserer_babble_10db.mp4",
+    "babble_5db": "07_unserer_babble_5db.mp4"
+   },
+   "source_file": "unserer_0503-1879.mp4",
+   "ground_truth": "unserer",
+   "video_only": {
+    "top5": [
+     {
+      "word": "unserer",
+      "prob": 0.2501
+     },
+     {
+      "word": "unseres",
+      "prob": 0.159
+     },
+     {
+      "word": "unsere",
+      "prob": 0.126
+     },
+     {
+      "word": "unseren",
+      "prob": 0.0524
+     },
+     {
+      "word": "bisher",
+      "prob": 0.0517
+     }
+    ],
+    "top1": "unserer",
+    "correct": true,
+    "top5_correct": true,
+    "true_word_prob": 0.2501
+   },
+   "audio_only": {
+    "clean": {
+     "top5": [
+      {
+       "word": "rahmen",
+       "prob": 0.3343
+      },
+      {
+       "word": "unserer",
+       "prob": 0.1553
+      },
+      {
+       "word": "unserem",
+       "prob": 0.0642
+      },
+      {
+       "word": "möglichkeiten",
+       "prob": 0.0245
+      },
+      {
+       "word": "immer",
+       "prob": 0.0182
+      }
+     ],
+     "top1": "rahmen",
+     "correct": false,
+     "top5_correct": true,
+     "true_word_prob": 0.1553
+    },
+    "white_10db": {
+     "top5": [
+      {
+       "word": "rahmen",
+       "prob": 0.1234
+      },
+      {
+       "word": "unseres",
+       "prob": 0.0553
+      },
+      {
+       "word": "unserer",
+       "prob": 0.0393
+      },
+      {
+       "word": "wirklich",
+       "prob": 0.0291
+      },
+      {
+       "word": "leben",
+       "prob": 0.0275
+      }
+     ],
+     "top1": "rahmen",
+     "correct": false,
+     "top5_correct": true,
+     "true_word_prob": 0.0393
+    },
+    "white_5db": {
+     "top5": [
+      {
+       "word": "wirklich",
+       "prob": 0.0884
+      },
+      {
+       "word": "rahmen",
+       "prob": 0.0782
+      },
+      {
+       "word": "rock",
+       "prob": 0.0404
+      },
+      {
+       "word": "raum",
+       "prob": 0.0351
+      },
+      {
+       "word": "völlig",
+       "prob": 0.035
+      }
+     ],
+     "top1": "wirklich",
+     "correct": false,
+     "top5_correct": false,
+     "true_word_prob": 0.0266
+    },
+    "babble_10db": {
+     "top5": [
+      {
+       "word": "rahmen",
+       "prob": 0.3574
+      },
+      {
+       "word": "raum",
+       "prob": 0.0835
+      },
+      {
+       "word": "beim",
+       "prob": 0.0295
+      },
+      {
+       "word": "ländlichen",
+       "prob": 0.0277
+      },
+      {
+       "word": "wirklich",
+       "prob": 0.0267
+      }
+     ],
+     "top1": "rahmen",
+     "correct": false,
+     "top5_correct": false,
+     "true_word_prob": 0.0079
+    },
+    "babble_5db": {
+     "top5": [
+      {
+       "word": "rahmen",
+       "prob": 0.2387
+      },
+      {
+       "word": "raum",
+       "prob": 0.0493
+      },
+      {
+       "word": "gerade",
+       "prob": 0.048
+      },
+      {
+       "word": "möglich",
+       "prob": 0.0322
+      },
+      {
+       "word": "überhaupt",
+       "prob": 0.0312
+      }
+     ],
+     "top1": "rahmen",
+     "correct": false,
+     "top5_correct": false,
+     "true_word_prob": 0.0029
+    }
+   },
+   "multimodal": {
+    "clean": {
+     "top5": [
+      {
+       "word": "unser",
+       "prob": 0.226
+      },
+      {
+       "word": "unsere",
+       "prob": 0.1182
+      },
+      {
+       "word": "unserem",
+       "prob": 0.1093
+      },
+      {
+       "word": "unserer",
+       "prob": 0.1004
+      },
+      {
+       "word": "unseres",
+       "prob": 0.0562
+      }
+     ],
+     "top1": "unser",
+     "correct": false,
+     "top5_correct": true,
+     "true_word_prob": 0.1004
+    },
+    "white_10db": {
+     "top5": [
+      {
+       "word": "unserem",
+       "prob": 0.2437
+      },
+      {
+       "word": "unser",
+       "prob": 0.1681
+      },
+      {
+       "word": "unseres",
+       "prob": 0.1334
+      },
+      {
+       "word": "unseren",
+       "prob": 0.0582
+      },
+      {
+       "word": "unsere",
+       "prob": 0.0552
+      }
+     ],
+     "top1": "unserem",
+     "correct": false,
+     "top5_correct": false,
+     "true_word_prob": 0.0397
+    },
+    "white_5db": {
+     "top5": [
+      {
+       "word": "unser",
+       "prob": 0.3304
+      },
+      {
+       "word": "unserem",
+       "prob": 0.0841
+      },
+      {
+       "word": "unsere",
+       "prob": 0.0794
+      },
+      {
+       "word": "unseres",
+       "prob": 0.0648
+      },
+      {
+       "word": "unseren",
+       "prob": 0.0569
+      }
+     ],
+     "top1": "unser",
+     "correct": false,
+     "top5_correct": false,
+     "true_word_prob": 0.0343
+    },
+    "babble_10db": {
+     "top5": [
+      {
+       "word": "unser",
+       "prob": 0.1096
+      },
+      {
+       "word": "unsere",
+       "prob": 0.0587
+      },
+      {
+       "word": "wirklich",
+       "prob": 0.0423
+      },
+      {
+       "word": "müssen",
+       "prob": 0.0369
+      },
+      {
+       "word": "muss",
+       "prob": 0.0252
+      }
+     ],
+     "top1": "unser",
+     "correct": false,
+     "top5_correct": false,
+     "true_word_prob": 0.0088
+    },
+    "babble_5db": {
+     "top5": [
+      {
+       "word": "müssen",
+       "prob": 0.1418
+      },
+      {
+       "word": "besteht",
+       "prob": 0.0649
+      },
+      {
+       "word": "unsere",
+       "prob": 0.0241
+      },
+      {
+       "word": "warum",
+       "prob": 0.0226
+      },
+      {
+       "word": "diese",
+       "prob": 0.02
+      }
+     ],
+     "top1": "müssen",
+     "correct": false,
+     "top5_correct": false,
+     "true_word_prob": 0.0013
+    }
+   }
+  },
+  {
+   "id": 8,
+   "clip_files": {
+    "clean": "08_liegen.mp4",
+    "white_10db": "08_liegen_white_10db.mp4",
+    "white_5db": "08_liegen_white_5db.mp4",
+    "babble_10db": "08_liegen_babble_10db.mp4",
+    "babble_5db": "08_liegen_babble_5db.mp4"
+   },
+   "source_file": "liegen_0612-0838.mp4",
+   "ground_truth": "liegen",
+   "video_only": {
+    "top5": [
+     {
+      "word": "dass",
+      "prob": 0.1031
+     },
+     {
+      "word": "diesen",
+      "prob": 0.0688
+     },
+     {
+      "word": "dies",
+      "prob": 0.062
+     },
+     {
+      "word": "diese",
+      "prob": 0.0465
+     },
+     {
+      "word": "hätten",
+      "prob": 0.0415
+     }
+    ],
+    "top1": "dass",
+    "correct": false,
+    "top5_correct": false,
+    "true_word_prob": 0.0053
+   },
+   "audio_only": {
+    "clean": {
+     "top5": [
+      {
+       "word": "zwischen",
+       "prob": 0.7203
+      },
+      {
+       "word": "liegen",
+       "prob": 0.0845
+      },
+      {
+       "word": "drei",
+       "prob": 0.0569
+      },
+      {
+       "word": "liegt",
+       "prob": 0.0508
+      },
+      {
+       "word": "diesen",
+       "prob": 0.0061
+      }
+     ],
+     "top1": "zwischen",
+     "correct": false,
+     "top5_correct": true,
+     "true_word_prob": 0.0845
+    },
+    "white_10db": {
+     "top5": [
+      {
+       "word": "zwischen",
+       "prob": 0.6698
+      },
+      {
+       "word": "liegt",
+       "prob": 0.0707
+      },
+      {
+       "word": "liegen",
+       "prob": 0.0562
+      },
+      {
+       "word": "drei",
+       "prob": 0.0114
+      },
+      {
+       "word": "bringen",
+       "prob": 0.0067
+      }
+     ],
+     "top1": "zwischen",
+     "correct": false,
+     "top5_correct": true,
+     "true_word_prob": 0.0562
+    },
+    "white_5db": {
+     "top5": [
+      {
+       "word": "zwischen",
+       "prob": 0.627
+      },
+      {
+       "word": "liegen",
+       "prob": 0.0657
+      },
+      {
+       "word": "liegt",
+       "prob": 0.0581
+      },
+      {
+       "word": "kollegin",
+       "prob": 0.015
+      },
+      {
+       "word": "lesung",
+       "prob": 0.0125
+      }
+     ],
+     "top1": "zwischen",
+     "correct": false,
+     "top5_correct": true,
+     "true_word_prob": 0.0657
+    },
+    "babble_10db": {
+     "top5": [
+      {
+       "word": "zwischen",
+       "prob": 0.798
+      },
+      {
+       "word": "drei",
+       "prob": 0.0538
+      },
+      {
+       "word": "zwei",
+       "prob": 0.0138
+      },
+      {
+       "word": "liegen",
+       "prob": 0.0077
+      },
+      {
+       "word": "diesem",
+       "prob": 0.0059
+      }
+     ],
+     "top1": "zwischen",
+     "correct": false,
+     "top5_correct": true,
+     "true_word_prob": 0.0077
+    },
+    "babble_5db": {
+     "top5": [
+      {
+       "word": "ihren",
+       "prob": 0.1043
+      },
+      {
+       "word": "zwischen",
+       "prob": 0.0807
+      },
+      {
+       "word": "sicherlich",
+       "prob": 0.0449
+      },
+      {
+       "word": "waren",
+       "prob": 0.0404
+      },
+      {
+       "word": "deren",
+       "prob": 0.0305
+      }
+     ],
+     "top1": "ihren",
+     "correct": false,
+     "top5_correct": false,
+     "true_word_prob": 0.0041
+    }
+   },
+   "multimodal": {
+    "clean": {
+     "top5": [
+      {
+       "word": "liegen",
+       "prob": 0.8474
+      },
+      {
+       "word": "liegt",
+       "prob": 0.0163
+      },
+      {
+       "word": "leben",
+       "prob": 0.0077
+      },
+      {
+       "word": "bekommen",
+       "prob": 0.005
+      },
+      {
+       "word": "union",
+       "prob": 0.0029
+      }
+     ],
+     "top1": "liegen",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.8474
+    },
+    "white_10db": {
+     "top5": [
+      {
+       "word": "liegen",
+       "prob": 0.8527
+      },
+      {
+       "word": "liegt",
+       "prob": 0.029
+      },
+      {
+       "word": "bekommen",
+       "prob": 0.007
+      },
+      {
+       "word": "leben",
+       "prob": 0.0061
+      },
+      {
+       "word": "lesung",
+       "prob": 0.002
+      }
+     ],
+     "top1": "liegen",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.8527
+    },
+    "white_5db": {
+     "top5": [
+      {
+       "word": "liegen",
+       "prob": 0.7487
+      },
+      {
+       "word": "liegt",
+       "prob": 0.028
+      },
+      {
+       "word": "lesung",
+       "prob": 0.0121
+      },
+      {
+       "word": "leben",
+       "prob": 0.0094
+      },
+      {
+       "word": "bekommen",
+       "prob": 0.0073
+      }
+     ],
+     "top1": "liegen",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.7487
+    },
+    "babble_10db": {
+     "top5": [
+      {
+       "word": "liegen",
+       "prob": 0.3169
+      },
+      {
+       "word": "ihren",
+       "prob": 0.0421
+      },
+      {
+       "word": "ihrem",
+       "prob": 0.0299
+      },
+      {
+       "word": "liegt",
+       "prob": 0.0252
+      },
+      {
+       "word": "gegen",
+       "prob": 0.0224
+      }
+     ],
+     "top1": "liegen",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.3169
+    },
+    "babble_5db": {
+     "top5": [
+      {
+       "word": "ihren",
+       "prob": 0.3463
+      },
+      {
+       "word": "deren",
+       "prob": 0.1782
+      },
+      {
+       "word": "liegen",
+       "prob": 0.1158
+      },
+      {
+       "word": "ihrem",
+       "prob": 0.0495
+      },
+      {
+       "word": "ihre",
+       "prob": 0.0279
+      }
+     ],
+     "top1": "ihren",
+     "correct": false,
+     "top5_correct": true,
+     "true_word_prob": 0.1158
+    }
+   }
+  },
+  {
+   "id": 9,
+   "clip_files": {
+    "clean": "09_brauchen.mp4",
+    "white_10db": "09_brauchen_white_10db.mp4",
+    "white_5db": "09_brauchen_white_5db.mp4",
+    "babble_10db": "09_brauchen_babble_10db.mp4",
+    "babble_5db": "09_brauchen_babble_5db.mp4"
+   },
+   "source_file": "brauchen_0087-0715.mp4",
+   "ground_truth": "brauchen",
+   "video_only": {
+    "top5": [
+     {
+      "word": "brauchen",
+      "prob": 0.8634
+     },
+     {
+      "word": "braucht",
+      "prob": 0.088
+     },
+     {
+      "word": "punkt",
+      "prob": 0.0071
+     },
+     {
+      "word": "bund",
+      "prob": 0.0043
+     },
+     {
+      "word": "bekommen",
+      "prob": 0.0038
+     }
+    ],
+    "top1": "brauchen",
+    "correct": true,
+    "top5_correct": true,
+    "true_word_prob": 0.8634
+   },
+   "audio_only": {
+    "clean": {
+     "top5": [
+      {
+       "word": "brauchen",
+       "prob": 0.2549
+      },
+      {
+       "word": "dafür",
+       "prob": 0.0275
+      },
+      {
+       "word": "geben",
+       "prob": 0.0241
+      },
+      {
+       "word": "gehen",
+       "prob": 0.0233
+      },
+      {
+       "word": "gesprochen",
+       "prob": 0.0219
+      }
+     ],
+     "top1": "brauchen",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.2549
+    },
+    "white_10db": {
+     "top5": [
+      {
+       "word": "habe",
+       "prob": 0.2673
+      },
+      {
+       "word": "besser",
+       "prob": 0.1714
+      },
+      {
+       "word": "kann",
+       "prob": 0.0662
+      },
+      {
+       "word": "dagegen",
+       "prob": 0.0488
+      },
+      {
+       "word": "überhaupt",
+       "prob": 0.0342
+      }
+     ],
+     "top1": "habe",
+     "correct": false,
+     "top5_correct": false,
+     "true_word_prob": 0.0015
+    },
+    "white_5db": {
+     "top5": [
+      {
+       "word": "besser",
+       "prob": 0.1231
+      },
+      {
+       "word": "habe",
+       "prob": 0.0886
+      },
+      {
+       "word": "dagegen",
+       "prob": 0.061
+      },
+      {
+       "word": "kann",
+       "prob": 0.0487
+      },
+      {
+       "word": "debatte",
+       "prob": 0.0309
+      }
+     ],
+     "top1": "besser",
+     "correct": false,
+     "top5_correct": false,
+     "true_word_prob": 0.0039
+    },
+    "babble_10db": {
+     "top5": [
+      {
+       "word": "lassen",
+       "prob": 0.241
+      },
+      {
+       "word": "geben",
+       "prob": 0.0452
+      },
+      {
+       "word": "geld",
+       "prob": 0.0329
+      },
+      {
+       "word": "abgeordneten",
+       "prob": 0.026
+      },
+      {
+       "word": "liegt",
+       "prob": 0.0186
+      }
+     ],
+     "top1": "lassen",
+     "correct": false,
+     "top5_correct": false,
+     "true_word_prob": 0.0015
+    },
+    "babble_5db": {
+     "top5": [
+      {
+       "word": "sache",
+       "prob": 0.1536
+      },
+      {
+       "word": "gewesen",
+       "prob": 0.0374
+      },
+      {
+       "word": "geld",
+       "prob": 0.0314
+      },
+      {
+       "word": "ministerpräsident",
+       "prob": 0.0192
+      },
+      {
+       "word": "welt",
+       "prob": 0.0165
+      }
+     ],
+     "top1": "sache",
+     "correct": false,
+     "top5_correct": false,
+     "true_word_prob": 0.0004
+    }
+   },
+   "multimodal": {
+    "clean": {
+     "top5": [
+      {
+       "word": "brauchen",
+       "prob": 0.8075
+      },
+      {
+       "word": "braucht",
+       "prob": 0.0387
+      },
+      {
+       "word": "gesprochen",
+       "prob": 0.022
+      },
+      {
+       "word": "bekommen",
+       "prob": 0.0083
+      },
+      {
+       "word": "würden",
+       "prob": 0.003
+      }
+     ],
+     "top1": "brauchen",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.8075
+    },
+    "white_10db": {
+     "top5": [
+      {
+       "word": "braucht",
+       "prob": 0.3022
+      },
+      {
+       "word": "brauchen",
+       "prob": 0.1926
+      },
+      {
+       "word": "bekommen",
+       "prob": 0.0617
+      },
+      {
+       "word": "punkt",
+       "prob": 0.0175
+      },
+      {
+       "word": "gesprochen",
+       "prob": 0.0134
+      }
+     ],
+     "top1": "braucht",
+     "correct": false,
+     "top5_correct": true,
+     "true_word_prob": 0.1926
+    },
+    "white_5db": {
+     "top5": [
+      {
+       "word": "braucht",
+       "prob": 0.2063
+      },
+      {
+       "word": "brauchen",
+       "prob": 0.1497
+      },
+      {
+       "word": "bekommen",
+       "prob": 0.1233
+      },
+      {
+       "word": "paar",
+       "prob": 0.0234
+      },
+      {
+       "word": "bürger",
+       "prob": 0.0231
+      }
+     ],
+     "top1": "braucht",
+     "correct": false,
+     "top5_correct": true,
+     "true_word_prob": 0.1497
+    },
+    "babble_10db": {
+     "top5": [
+      {
+       "word": "brauchen",
+       "prob": 0.1486
+      },
+      {
+       "word": "bekommen",
+       "prob": 0.1115
+      },
+      {
+       "word": "erhalten",
+       "prob": 0.0189
+      },
+      {
+       "word": "lassen",
+       "prob": 0.0185
+      },
+      {
+       "word": "gesprochen",
+       "prob": 0.0172
+      }
+     ],
+     "top1": "brauchen",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.1486
+    },
+    "babble_5db": {
+     "top5": [
+      {
+       "word": "braucht",
+       "prob": 0.2336
+      },
+      {
+       "word": "brauchen",
+       "prob": 0.2228
+      },
+      {
+       "word": "bekommen",
+       "prob": 0.0788
+      },
+      {
+       "word": "insbesondere",
+       "prob": 0.0227
+      },
+      {
+       "word": "bedeutet",
+       "prob": 0.0222
+      }
+     ],
+     "top1": "braucht",
+     "correct": false,
+     "top5_correct": true,
+     "true_word_prob": 0.2228
+    }
+   }
+  },
+  {
+   "id": 10,
+   "clip_files": {
+    "clean": "10_glaube.mp4",
+    "white_10db": "10_glaube_white_10db.mp4",
+    "white_5db": "10_glaube_white_5db.mp4",
+    "babble_10db": "10_glaube_babble_10db.mp4",
+    "babble_5db": "10_glaube_babble_5db.mp4"
+   },
+   "source_file": "glaube_0440-1959.mp4",
+   "ground_truth": "glaube",
+   "video_only": {
+    "top5": [
+     {
+      "word": "aber",
+      "prob": 0.1896
+     },
+     {
+      "word": "habe",
+      "prob": 0.1019
+     },
+     {
+      "word": "schauen",
+      "prob": 0.0908
+     },
+     {
+      "word": "glaube",
+      "prob": 0.0838
+     },
+     {
+      "word": "beim",
+      "prob": 0.0294
+     }
+    ],
+    "top1": "aber",
+    "correct": false,
+    "top5_correct": true,
+    "true_word_prob": 0.0838
+   },
+   "audio_only": {
+    "clean": {
+     "top5": [
+      {
+       "word": "beim",
+       "prob": 0.6591
+      },
+      {
+       "word": "glaube",
+       "prob": 0.0273
+      },
+      {
+       "word": "thema",
+       "prob": 0.0118
+      },
+      {
+       "word": "einem",
+       "prob": 0.01
+      },
+      {
+       "word": "bleiben",
+       "prob": 0.0088
+      }
+     ],
+     "top1": "beim",
+     "correct": false,
+     "top5_correct": true,
+     "true_word_prob": 0.0273
+    },
+    "white_10db": {
+     "top5": [
+      {
+       "word": "bündnis",
+       "prob": 0.2255
+      },
+      {
+       "word": "würde",
+       "prob": 0.076
+      },
+      {
+       "word": "bisschen",
+       "prob": 0.0576
+      },
+      {
+       "word": "möchte",
+       "prob": 0.0383
+      },
+      {
+       "word": "wohl",
+       "prob": 0.0267
+      }
+     ],
+     "top1": "bündnis",
+     "correct": false,
+     "top5_correct": false,
+     "true_word_prob": 0.0184
+    },
+    "white_5db": {
+     "top5": [
+      {
+       "word": "völlig",
+       "prob": 0.0769
+      },
+      {
+       "word": "bündnis",
+       "prob": 0.073
+      },
+      {
+       "word": "frau",
+       "prob": 0.0614
+      },
+      {
+       "word": "kollegin",
+       "prob": 0.0606
+      },
+      {
+       "word": "probleme",
+       "prob": 0.0435
+      }
+     ],
+     "top1": "völlig",
+     "correct": false,
+     "top5_correct": false,
+     "true_word_prob": 0.0105
+    },
+    "babble_10db": {
+     "top5": [
+      {
+       "word": "glaube",
+       "prob": 0.3423
+      },
+      {
+       "word": "beim",
+       "prob": 0.0972
+      },
+      {
+       "word": "auch",
+       "prob": 0.0229
+      },
+      {
+       "word": "würde",
+       "prob": 0.0228
+      },
+      {
+       "word": "liebe",
+       "prob": 0.0151
+      }
+     ],
+     "top1": "glaube",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.3423
+    },
+    "babble_5db": {
+     "top5": [
+      {
+       "word": "vielleicht",
+       "prob": 0.0421
+      },
+      {
+       "word": "beim",
+       "prob": 0.0307
+      },
+      {
+       "word": "gemacht",
+       "prob": 0.029
+      },
+      {
+       "word": "dieses",
+       "prob": 0.028
+      },
+      {
+       "word": "kein",
+       "prob": 0.0279
+      }
+     ],
+     "top1": "vielleicht",
+     "correct": false,
+     "top5_correct": false,
+     "true_word_prob": 0.0271
+    }
+   },
+   "multimodal": {
+    "clean": {
+     "top5": [
+      {
+       "word": "glaube",
+       "prob": 0.7689
+      },
+      {
+       "word": "denke",
+       "prob": 0.0415
+      },
+      {
+       "word": "raum",
+       "prob": 0.0245
+      },
+      {
+       "word": "aber",
+       "prob": 0.0158
+      },
+      {
+       "word": "wohl",
+       "prob": 0.0105
+      }
+     ],
+     "top1": "glaube",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.7689
+    },
+    "white_10db": {
+     "top5": [
+      {
+       "word": "glaube",
+       "prob": 0.7167
+      },
+      {
+       "word": "raum",
+       "prob": 0.0681
+      },
+      {
+       "word": "ländlichen",
+       "prob": 0.0143
+      },
+      {
+       "word": "aber",
+       "prob": 0.013
+      },
+      {
+       "word": "habe",
+       "prob": 0.01
+      }
+     ],
+     "top1": "glaube",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.7167
+    },
+    "white_5db": {
+     "top5": [
+      {
+       "word": "glaube",
+       "prob": 0.7955
+      },
+      {
+       "word": "raum",
+       "prob": 0.0687
+      },
+      {
+       "word": "ländlichen",
+       "prob": 0.0097
+      },
+      {
+       "word": "denke",
+       "prob": 0.0081
+      },
+      {
+       "word": "habe",
+       "prob": 0.0049
+      }
+     ],
+     "top1": "glaube",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.7955
+    },
+    "babble_10db": {
+     "top5": [
+      {
+       "word": "glaube",
+       "prob": 0.8023
+      },
+      {
+       "word": "denke",
+       "prob": 0.0338
+      },
+      {
+       "word": "raum",
+       "prob": 0.0273
+      },
+      {
+       "word": "wohl",
+       "prob": 0.0104
+      },
+      {
+       "word": "aber",
+       "prob": 0.0103
+      }
+     ],
+     "top1": "glaube",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.8023
+    },
+    "babble_5db": {
+     "top5": [
+      {
+       "word": "glaube",
+       "prob": 0.6982
+      },
+      {
+       "word": "raum",
+       "prob": 0.0929
+      },
+      {
+       "word": "aber",
+       "prob": 0.0205
+      },
+      {
+       "word": "denke",
+       "prob": 0.0097
+      },
+      {
+       "word": "habe",
+       "prob": 0.0077
+      }
+     ],
+     "top1": "glaube",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.6982
+    }
+   }
+  },
+  {
+   "id": 11,
+   "clip_files": {
+    "clean": "11_möglich.mp4",
+    "white_10db": "11_möglich_white_10db.mp4",
+    "white_5db": "11_möglich_white_5db.mp4",
+    "babble_10db": "11_möglich_babble_10db.mp4",
+    "babble_5db": "11_möglich_babble_5db.mp4"
+   },
+   "source_file": "möglich_0187-0464.mp4",
+   "ground_truth": "möglich",
+   "video_only": {
+    "top5": [
+     {
+      "word": "wurden",
+      "prob": 0.2643
+     },
+     {
+      "word": "wurde",
+      "prob": 0.256
+     },
+     {
+      "word": "wohl",
+      "prob": 0.0624
+     },
+     {
+      "word": "würden",
+      "prob": 0.0568
+     },
+     {
+      "word": "wollen",
+      "prob": 0.0537
+     }
+    ],
+    "top1": "wurden",
+    "correct": false,
+    "top5_correct": false,
+    "true_word_prob": 0.0418
+   },
+   "audio_only": {
+    "clean": {
+     "top5": [
+      {
+       "word": "möglich",
+       "prob": 0.3292
+      },
+      {
+       "word": "möglichkeit",
+       "prob": 0.0411
+      },
+      {
+       "word": "ausdrücklich",
+       "prob": 0.0368
+      },
+      {
+       "word": "ländlichen",
+       "prob": 0.0288
+      },
+      {
+       "word": "gerade",
+       "prob": 0.0245
+      }
+     ],
+     "top1": "möglich",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.3292
+    },
+    "white_10db": {
+     "top5": [
+      {
+       "word": "möglich",
+       "prob": 0.3149
+      },
+      {
+       "word": "öffentlichen",
+       "prob": 0.0614
+      },
+      {
+       "word": "zumindest",
+       "prob": 0.0373
+      },
+      {
+       "word": "völlig",
+       "prob": 0.0356
+      },
+      {
+       "word": "geehrte",
+       "prob": 0.033
+      }
+     ],
+     "top1": "möglich",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.3149
+    },
+    "white_5db": {
+     "top5": [
+      {
+       "word": "öffentlichen",
+       "prob": 0.344
+      },
+      {
+       "word": "ländlichen",
+       "prob": 0.0477
+      },
+      {
+       "word": "völlig",
+       "prob": 0.0387
+      },
+      {
+       "word": "selbstverständlich",
+       "prob": 0.0277
+      },
+      {
+       "word": "wenig",
+       "prob": 0.0259
+      }
+     ],
+     "top1": "öffentlichen",
+     "correct": false,
+     "top5_correct": false,
+     "true_word_prob": 0.0239
+    },
+    "babble_10db": {
+     "top5": [
+      {
+       "word": "möglich",
+       "prob": 0.3935
+      },
+      {
+       "word": "möglichkeit",
+       "prob": 0.1238
+      },
+      {
+       "word": "mittel",
+       "prob": 0.027
+      },
+      {
+       "word": "möglichkeiten",
+       "prob": 0.0233
+      },
+      {
+       "word": "drei",
+       "prob": 0.0217
+      }
+     ],
+     "top1": "möglich",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.3935
+    },
+    "babble_5db": {
+     "top5": [
+      {
+       "word": "ländlichen",
+       "prob": 0.0475
+      },
+      {
+       "word": "möglich",
+       "prob": 0.0433
+      },
+      {
+       "word": "geld",
+       "prob": 0.0431
+      },
+      {
+       "word": "gerade",
+       "prob": 0.036
+      },
+      {
+       "word": "mittel",
+       "prob": 0.0312
+      }
+     ],
+     "top1": "ländlichen",
+     "correct": false,
+     "top5_correct": true,
+     "true_word_prob": 0.0433
+    }
+   },
+   "multimodal": {
+    "clean": {
+     "top5": [
+      {
+       "word": "möglich",
+       "prob": 0.8374
+      },
+      {
+       "word": "wirklich",
+       "prob": 0.021
+      },
+      {
+       "word": "möglichkeit",
+       "prob": 0.0121
+      },
+      {
+       "word": "führen",
+       "prob": 0.005
+      },
+      {
+       "word": "nämlich",
+       "prob": 0.0029
+      }
+     ],
+     "top1": "möglich",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.8374
+    },
+    "white_10db": {
+     "top5": [
+      {
+       "word": "möglich",
+       "prob": 0.555
+      },
+      {
+       "word": "möglichkeit",
+       "prob": 0.0318
+      },
+      {
+       "word": "wirklich",
+       "prob": 0.0316
+      },
+      {
+       "word": "führen",
+       "prob": 0.0145
+      },
+      {
+       "word": "fordern",
+       "prob": 0.0135
+      }
+     ],
+     "top1": "möglich",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.555
+    },
+    "white_5db": {
+     "top5": [
+      {
+       "word": "möglich",
+       "prob": 0.3934
+      },
+      {
+       "word": "wirklich",
+       "prob": 0.1312
+      },
+      {
+       "word": "möglichkeit",
+       "prob": 0.0282
+      },
+      {
+       "word": "würde",
+       "prob": 0.0194
+      },
+      {
+       "word": "bürgerinnen",
+       "prob": 0.0136
+      }
+     ],
+     "top1": "möglich",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.3934
+    },
+    "babble_10db": {
+     "top5": [
+      {
+       "word": "möglich",
+       "prob": 0.8145
+      },
+      {
+       "word": "möglichkeit",
+       "prob": 0.0206
+      },
+      {
+       "word": "wirklich",
+       "prob": 0.0205
+      },
+      {
+       "word": "führen",
+       "prob": 0.0063
+      },
+      {
+       "word": "bürgerinnen",
+       "prob": 0.004
+      }
+     ],
+     "top1": "möglich",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.8145
+    },
+    "babble_5db": {
+     "top5": [
+      {
+       "word": "möglich",
+       "prob": 0.5061
+      },
+      {
+       "word": "möchte",
+       "prob": 0.0238
+      },
+      {
+       "word": "müssen",
+       "prob": 0.015
+      },
+      {
+       "word": "bürgerinnen",
+       "prob": 0.015
+      },
+      {
+       "word": "wirklich",
+       "prob": 0.0114
+      }
+     ],
+     "top1": "möglich",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.5061
+    }
+   }
+  },
+  {
+   "id": 12,
+   "clip_files": {
+    "clean": "12_beiden.mp4",
+    "white_10db": "12_beiden_white_10db.mp4",
+    "white_5db": "12_beiden_white_5db.mp4",
+    "babble_10db": "12_beiden_babble_10db.mp4",
+    "babble_5db": "12_beiden_babble_5db.mp4"
+   },
+   "source_file": "beiden_0260-0297.mp4",
+   "ground_truth": "beiden",
+   "video_only": {
+    "top5": [
+     {
+      "word": "beiden",
+      "prob": 0.2505
+     },
+     {
+      "word": "debatte",
+      "prob": 0.1347
+     },
+     {
+      "word": "menschen",
+      "prob": 0.1153
+     },
+     {
+      "word": "mehr",
+      "prob": 0.0359
+     },
+     {
+      "word": "macht",
+      "prob": 0.0332
+     }
+    ],
+    "top1": "beiden",
+    "correct": true,
+    "top5_correct": true,
+    "true_word_prob": 0.2505
+   },
+   "audio_only": {
+    "clean": {
+     "top5": [
+      {
+       "word": "beiden",
+       "prob": 0.8006
+      },
+      {
+       "word": "schulen",
+       "prob": 0.0108
+      },
+      {
+       "word": "beispielsweise",
+       "prob": 0.0064
+      },
+      {
+       "word": "freien",
+       "prob": 0.0051
+      },
+      {
+       "word": "grünen",
+       "prob": 0.0048
+      }
+     ],
+     "top1": "beiden",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.8006
+    },
+    "white_10db": {
+     "top5": [
+      {
+       "word": "beiden",
+       "prob": 0.1861
+      },
+      {
+       "word": "weiß",
+       "prob": 0.0848
+      },
+      {
+       "word": "führen",
+       "prob": 0.0731
+      },
+      {
+       "word": "denen",
+       "prob": 0.0484
+      },
+      {
+       "word": "sehr",
+       "prob": 0.0384
+      }
+     ],
+     "top1": "beiden",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.1861
+    },
+    "white_5db": {
+     "top5": [
+      {
+       "word": "solche",
+       "prob": 0.1912
+      },
+      {
+       "word": "solchen",
+       "prob": 0.1125
+      },
+      {
+       "word": "debatte",
+       "prob": 0.0703
+      },
+      {
+       "word": "weiß",
+       "prob": 0.0538
+      },
+      {
+       "word": "bisschen",
+       "prob": 0.0412
+      }
+     ],
+     "top1": "solche",
+     "correct": false,
+     "top5_correct": false,
+     "true_word_prob": 0.0027
+    },
+    "babble_10db": {
+     "top5": [
+      {
+       "word": "beispielsweise",
+       "prob": 0.0621
+      },
+      {
+       "word": "beiden",
+       "prob": 0.031
+      },
+      {
+       "word": "minuten",
+       "prob": 0.0258
+      },
+      {
+       "word": "gilt",
+       "prob": 0.0189
+      },
+      {
+       "word": "solche",
+       "prob": 0.0171
+      }
+     ],
+     "top1": "beispielsweise",
+     "correct": false,
+     "top5_correct": true,
+     "true_word_prob": 0.031
+    },
+    "babble_5db": {
+     "top5": [
+      {
+       "word": "solchen",
+       "prob": 0.4328
+      },
+      {
+       "word": "solche",
+       "prob": 0.0844
+      },
+      {
+       "word": "seine",
+       "prob": 0.034
+      },
+      {
+       "word": "seite",
+       "prob": 0.0272
+      },
+      {
+       "word": "zukunft",
+       "prob": 0.0172
+      }
+     ],
+     "top1": "solchen",
+     "correct": false,
+     "top5_correct": false,
+     "true_word_prob": 0.0025
+    }
+   },
+   "multimodal": {
+    "clean": {
+     "top5": [
+      {
+       "word": "beiden",
+       "prob": 0.9369
+      },
+      {
+       "word": "debatte",
+       "prob": 0.0039
+      },
+      {
+       "word": "beitrag",
+       "prob": 0.003
+      },
+      {
+       "word": "beim",
+       "prob": 0.0026
+      },
+      {
+       "word": "meinung",
+       "prob": 0.0022
+      }
+     ],
+     "top1": "beiden",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.9369
+    },
+    "white_10db": {
+     "top5": [
+      {
+       "word": "beiden",
+       "prob": 0.8313
+      },
+      {
+       "word": "debatte",
+       "prob": 0.0289
+      },
+      {
+       "word": "beitrag",
+       "prob": 0.0094
+      },
+      {
+       "word": "beim",
+       "prob": 0.0066
+      },
+      {
+       "word": "meinung",
+       "prob": 0.0061
+      }
+     ],
+     "top1": "beiden",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.8313
+    },
+    "white_5db": {
+     "top5": [
+      {
+       "word": "debatte",
+       "prob": 0.3575
+      },
+      {
+       "word": "beiden",
+       "prob": 0.1912
+      },
+      {
+       "word": "beim",
+       "prob": 0.0225
+      },
+      {
+       "word": "weil",
+       "prob": 0.022
+      },
+      {
+       "word": "meinung",
+       "prob": 0.0153
+      }
+     ],
+     "top1": "debatte",
+     "correct": false,
+     "top5_correct": true,
+     "true_word_prob": 0.1912
+    },
+    "babble_10db": {
+     "top5": [
+      {
+       "word": "beiden",
+       "prob": 0.6316
+      },
+      {
+       "word": "debatte",
+       "prob": 0.0375
+      },
+      {
+       "word": "beim",
+       "prob": 0.0309
+      },
+      {
+       "word": "meinung",
+       "prob": 0.0128
+      },
+      {
+       "word": "beitrag",
+       "prob": 0.0087
+      }
+     ],
+     "top1": "beiden",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.6316
+    },
+    "babble_5db": {
+     "top5": [
+      {
+       "word": "debatte",
+       "prob": 0.6298
+      },
+      {
+       "word": "beiden",
+       "prob": 0.095
+      },
+      {
+       "word": "meinung",
+       "prob": 0.0155
+      },
+      {
+       "word": "beim",
+       "prob": 0.0142
+      },
+      {
+       "word": "paar",
+       "prob": 0.0125
+      }
+     ],
+     "top1": "debatte",
+     "correct": false,
+     "top5_correct": true,
+     "true_word_prob": 0.095
+    }
+   }
+  },
+  {
+   "id": 13,
+   "clip_files": {
+    "clean": "13_wochen.mp4",
+    "white_10db": "13_wochen_white_10db.mp4",
+    "white_5db": "13_wochen_white_5db.mp4",
+    "babble_10db": "13_wochen_babble_10db.mp4",
+    "babble_5db": "13_wochen_babble_5db.mp4"
+   },
+   "source_file": "wochen_0932-0006.mp4",
+   "ground_truth": "wochen",
+   "video_only": {
+    "top5": [
+     {
+      "word": "wochen",
+      "prob": 0.3549
+     },
+     {
+      "word": "solchen",
+      "prob": 0.2324
+     },
+     {
+      "word": "fordern",
+      "prob": 0.1029
+     },
+     {
+      "word": "neuen",
+      "prob": 0.0497
+     },
+     {
+      "word": "neue",
+      "prob": 0.0458
+     }
+    ],
+    "top1": "wochen",
+    "correct": true,
+    "top5_correct": true,
+    "true_word_prob": 0.3549
+   },
+   "audio_only": {
+    "clean": {
+     "top5": [
+      {
+       "word": "wochen",
+       "prob": 0.3405
+      },
+      {
+       "word": "ohne",
+       "prob": 0.0437
+      },
+      {
+       "word": "hochschulen",
+       "prob": 0.0413
+      },
+      {
+       "word": "ihre",
+       "prob": 0.0309
+      },
+      {
+       "word": "waren",
+       "prob": 0.0306
+      }
+     ],
+     "top1": "wochen",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.3405
+    },
+    "white_10db": {
+     "top5": [
+      {
+       "word": "wochen",
+       "prob": 0.9514
+      },
+      {
+       "word": "ohne",
+       "prob": 0.0052
+      },
+      {
+       "word": "wohnungen",
+       "prob": 0.0045
+      },
+      {
+       "word": "wohl",
+       "prob": 0.0045
+      },
+      {
+       "word": "rund",
+       "prob": 0.0027
+      }
+     ],
+     "top1": "wochen",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.9514
+    },
+    "white_5db": {
+     "top5": [
+      {
+       "word": "wochen",
+       "prob": 0.5682
+      },
+      {
+       "word": "wohl",
+       "prob": 0.1137
+      },
+      {
+       "word": "ohne",
+       "prob": 0.1114
+      },
+      {
+       "word": "wohnungen",
+       "prob": 0.0409
+      },
+      {
+       "word": "liegen",
+       "prob": 0.0177
+      }
+     ],
+     "top1": "wochen",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.5682
+    },
+    "babble_10db": {
+     "top5": [
+      {
+       "word": "wohnungen",
+       "prob": 0.0687
+      },
+      {
+       "word": "liebe",
+       "prob": 0.0532
+      },
+      {
+       "word": "wochen",
+       "prob": 0.0346
+      },
+      {
+       "word": "wohl",
+       "prob": 0.0304
+      },
+      {
+       "word": "bildung",
+       "prob": 0.0292
+      }
+     ],
+     "top1": "wohnungen",
+     "correct": false,
+     "top5_correct": true,
+     "true_word_prob": 0.0346
+    },
+    "babble_5db": {
+     "top5": [
+      {
+       "word": "wochen",
+       "prob": 0.395
+      },
+      {
+       "word": "gesprochen",
+       "prob": 0.0702
+      },
+      {
+       "word": "machen",
+       "prob": 0.0585
+      },
+      {
+       "word": "schauen",
+       "prob": 0.0281
+      },
+      {
+       "word": "schulen",
+       "prob": 0.0278
+      }
+     ],
+     "top1": "wochen",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.395
+    }
+   },
+   "multimodal": {
+    "clean": {
+     "top5": [
+      {
+       "word": "wochen",
+       "prob": 0.8112
+      },
+      {
+       "word": "solchen",
+       "prob": 0.0223
+      },
+      {
+       "word": "sollen",
+       "prob": 0.0131
+      },
+      {
+       "word": "wollen",
+       "prob": 0.0122
+      },
+      {
+       "word": "worden",
+       "prob": 0.0108
+      }
+     ],
+     "top1": "wochen",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.8112
+    },
+    "white_10db": {
+     "top5": [
+      {
+       "word": "wochen",
+       "prob": 0.7628
+      },
+      {
+       "word": "solchen",
+       "prob": 0.0259
+      },
+      {
+       "word": "wollen",
+       "prob": 0.015
+      },
+      {
+       "word": "worden",
+       "prob": 0.0133
+      },
+      {
+       "word": "neuen",
+       "prob": 0.0125
+      }
+     ],
+     "top1": "wochen",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.7628
+    },
+    "white_5db": {
+     "top5": [
+      {
+       "word": "wochen",
+       "prob": 0.7953
+      },
+      {
+       "word": "worden",
+       "prob": 0.0149
+      },
+      {
+       "word": "solchen",
+       "prob": 0.0136
+      },
+      {
+       "word": "wollen",
+       "prob": 0.0109
+      },
+      {
+       "word": "neuen",
+       "prob": 0.0092
+      }
+     ],
+     "top1": "wochen",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.7953
+    },
+    "babble_10db": {
+     "top5": [
+      {
+       "word": "wochen",
+       "prob": 0.4308
+      },
+      {
+       "word": "solchen",
+       "prob": 0.0677
+      },
+      {
+       "word": "sollen",
+       "prob": 0.0565
+      },
+      {
+       "word": "worden",
+       "prob": 0.0451
+      },
+      {
+       "word": "wollen",
+       "prob": 0.0435
+      }
+     ],
+     "top1": "wochen",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.4308
+    },
+    "babble_5db": {
+     "top5": [
+      {
+       "word": "wochen",
+       "prob": 0.9266
+      },
+      {
+       "word": "worden",
+       "prob": 0.0068
+      },
+      {
+       "word": "solchen",
+       "prob": 0.0043
+      },
+      {
+       "word": "wollen",
+       "prob": 0.0026
+      },
+      {
+       "word": "neuen",
+       "prob": 0.0026
+      }
+     ],
+     "top1": "wochen",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.9266
+    }
+   }
+  },
+  {
+   "id": 14,
+   "clip_files": {
+    "clean": "14_lage.mp4",
+    "white_10db": "14_lage_white_10db.mp4",
+    "white_5db": "14_lage_white_5db.mp4",
+    "babble_10db": "14_lage_babble_10db.mp4",
+    "babble_5db": "14_lage_babble_5db.mp4"
+   },
+   "source_file": "lage_0734-0574.mp4",
+   "ground_truth": "lage",
+   "video_only": {
+    "top5": [
+     {
+      "word": "lage",
+      "prob": 0.5301
+     },
+     {
+      "word": "erreichen",
+      "prob": 0.1844
+     },
+     {
+      "word": "ernst",
+      "prob": 0.0565
+     },
+     {
+      "word": "gerade",
+      "prob": 0.0493
+     },
+     {
+      "word": "heißt",
+      "prob": 0.0154
+     }
+    ],
+    "top1": "lage",
+    "correct": true,
+    "top5_correct": true,
+    "true_word_prob": 0.5301
+   },
+   "audio_only": {
+    "clean": {
+     "top5": [
+      {
+       "word": "lage",
+       "prob": 0.9543
+      },
+      {
+       "word": "dieser",
+       "prob": 0.0033
+      },
+      {
+       "word": "schüler",
+       "prob": 0.0033
+      },
+      {
+       "word": "länder",
+       "prob": 0.0031
+      },
+      {
+       "word": "wichtige",
+       "prob": 0.0012
+      }
+     ],
+     "top1": "lage",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.9543
+    },
+    "white_10db": {
+     "top5": [
+      {
+       "word": "lage",
+       "prob": 0.6536
+      },
+      {
+       "word": "gesellschaft",
+       "prob": 0.0815
+      },
+      {
+       "word": "bürger",
+       "prob": 0.0473
+      },
+      {
+       "word": "landtag",
+       "prob": 0.0189
+      },
+      {
+       "word": "welche",
+       "prob": 0.0079
+      }
+     ],
+     "top1": "lage",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.6536
+    },
+    "white_5db": {
+     "top5": [
+      {
+       "word": "lage",
+       "prob": 0.1793
+      },
+      {
+       "word": "gesellschaft",
+       "prob": 0.086
+      },
+      {
+       "word": "bürger",
+       "prob": 0.0425
+      },
+      {
+       "word": "sehr",
+       "prob": 0.0354
+      },
+      {
+       "word": "wohl",
+       "prob": 0.0212
+      }
+     ],
+     "top1": "lage",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.1793
+    },
+    "babble_10db": {
+     "top5": [
+      {
+       "word": "lage",
+       "prob": 0.8286
+      },
+      {
+       "word": "länder",
+       "prob": 0.016
+      },
+      {
+       "word": "gesetz",
+       "prob": 0.0107
+      },
+      {
+       "word": "dieser",
+       "prob": 0.0091
+      },
+      {
+       "word": "landesregierung",
+       "prob": 0.009
+      }
+     ],
+     "top1": "lage",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.8286
+    },
+    "babble_5db": {
+     "top5": [
+      {
+       "word": "lage",
+       "prob": 0.1576
+      },
+      {
+       "word": "schüler",
+       "prob": 0.0629
+      },
+      {
+       "word": "ihren",
+       "prob": 0.0607
+      },
+      {
+       "word": "vielleicht",
+       "prob": 0.0281
+      },
+      {
+       "word": "abgeordneten",
+       "prob": 0.024
+      }
+     ],
+     "top1": "lage",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.1576
+    }
+   },
+   "multimodal": {
+    "clean": {
+     "top5": [
+      {
+       "word": "lage",
+       "prob": 0.9364
+      },
+      {
+       "word": "lange",
+       "prob": 0.0053
+      },
+      {
+       "word": "gerade",
+       "prob": 0.0021
+      },
+      {
+       "word": "leider",
+       "prob": 0.0021
+      },
+      {
+       "word": "lehrer",
+       "prob": 0.0015
+      }
+     ],
+     "top1": "lage",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.9364
+    },
+    "white_10db": {
+     "top5": [
+      {
+       "word": "lage",
+       "prob": 0.9333
+      },
+      {
+       "word": "lange",
+       "prob": 0.008
+      },
+      {
+       "word": "gerade",
+       "prob": 0.0034
+      },
+      {
+       "word": "klar",
+       "prob": 0.003
+      },
+      {
+       "word": "tragen",
+       "prob": 0.0026
+      }
+     ],
+     "top1": "lage",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.9333
+    },
+    "white_5db": {
+     "top5": [
+      {
+       "word": "lage",
+       "prob": 0.8977
+      },
+      {
+       "word": "lange",
+       "prob": 0.0162
+      },
+      {
+       "word": "gerade",
+       "prob": 0.0042
+      },
+      {
+       "word": "klar",
+       "prob": 0.0042
+      },
+      {
+       "word": "tragen",
+       "prob": 0.003
+      }
+     ],
+     "top1": "lage",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.8977
+    },
+    "babble_10db": {
+     "top5": [
+      {
+       "word": "lage",
+       "prob": 0.8975
+      },
+      {
+       "word": "lange",
+       "prob": 0.0108
+      },
+      {
+       "word": "gerade",
+       "prob": 0.0076
+      },
+      {
+       "word": "klar",
+       "prob": 0.0035
+      },
+      {
+       "word": "allein",
+       "prob": 0.003
+      }
+     ],
+     "top1": "lage",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.8975
+    },
+    "babble_5db": {
+     "top5": [
+      {
+       "word": "lage",
+       "prob": 0.4298
+      },
+      {
+       "word": "lassen",
+       "prob": 0.0498
+      },
+      {
+       "word": "letzten",
+       "prob": 0.0425
+      },
+      {
+       "word": "ersten",
+       "prob": 0.0257
+      },
+      {
+       "word": "leisten",
+       "prob": 0.025
+      }
+     ],
+     "top1": "lage",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.4298
+    }
+   }
+  },
+  {
+   "id": 15,
+   "clip_files": {
+    "clean": "15_einem.mp4",
+    "white_10db": "15_einem_white_10db.mp4",
+    "white_5db": "15_einem_white_5db.mp4",
+    "babble_10db": "15_einem_babble_10db.mp4",
+    "babble_5db": "15_einem_babble_5db.mp4"
+   },
+   "source_file": "einem_0977-0456.mp4",
+   "ground_truth": "einem",
+   "video_only": {
+    "top5": [
+     {
+      "word": "haben",
+      "prob": 0.0621
+     },
+     {
+      "word": "natürlich",
+      "prob": 0.0335
+     },
+     {
+      "word": "bildung",
+      "prob": 0.0308
+     },
+     {
+      "word": "bleiben",
+      "prob": 0.0306
+     },
+     {
+      "word": "ausdrücklich",
+      "prob": 0.0265
+     }
+    ],
+    "top1": "haben",
+    "correct": false,
+    "top5_correct": false,
+    "true_word_prob": 0.0025
+   },
+   "audio_only": {
+    "clean": {
+     "top5": [
+      {
+       "word": "einem",
+       "prob": 0.2051
+      },
+      {
+       "word": "jahr",
+       "prob": 0.117
+      },
+      {
+       "word": "eines",
+       "prob": 0.0331
+      },
+      {
+       "word": "insgesamt",
+       "prob": 0.0271
+      },
+      {
+       "word": "zwei",
+       "prob": 0.0242
+      }
+     ],
+     "top1": "einem",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.2051
+    },
+    "white_10db": {
+     "top5": [
+      {
+       "word": "eines",
+       "prob": 0.1494
+      },
+      {
+       "word": "einem",
+       "prob": 0.0891
+      },
+      {
+       "word": "zunächst",
+       "prob": 0.0434
+      },
+      {
+       "word": "drucksache",
+       "prob": 0.0358
+      },
+      {
+       "word": "eine",
+       "prob": 0.0329
+      }
+     ],
+     "top1": "eines",
+     "correct": false,
+     "top5_correct": true,
+     "true_word_prob": 0.0891
+    },
+    "white_5db": {
+     "top5": [
+      {
+       "word": "einem",
+       "prob": 0.3215
+      },
+      {
+       "word": "zunächst",
+       "prob": 0.102
+      },
+      {
+       "word": "eines",
+       "prob": 0.0686
+      },
+      {
+       "word": "dies",
+       "prob": 0.0235
+      },
+      {
+       "word": "einen",
+       "prob": 0.0228
+      }
+     ],
+     "top1": "einem",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.3215
+    },
+    "babble_10db": {
+     "top5": [
+      {
+       "word": "eine",
+       "prob": 0.0476
+      },
+      {
+       "word": "jahr",
+       "prob": 0.0433
+      },
+      {
+       "word": "tagesordnungspunkt",
+       "prob": 0.031
+      },
+      {
+       "word": "gesetz",
+       "prob": 0.0284
+      },
+      {
+       "word": "seine",
+       "prob": 0.0257
+      }
+     ],
+     "top1": "eine",
+     "correct": false,
+     "top5_correct": false,
+     "true_word_prob": 0.024
+    },
+    "babble_5db": {
+     "top5": [
+      {
+       "word": "einem",
+       "prob": 0.0593
+      },
+      {
+       "word": "zwei",
+       "prob": 0.0544
+      },
+      {
+       "word": "danke",
+       "prob": 0.0524
+      },
+      {
+       "word": "zunächst",
+       "prob": 0.0483
+      },
+      {
+       "word": "jahr",
+       "prob": 0.0348
+      }
+     ],
+     "top1": "einem",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.0593
+    }
+   },
+   "multimodal": {
+    "clean": {
+     "top5": [
+      {
+       "word": "einem",
+       "prob": 0.5069
+      },
+      {
+       "word": "eines",
+       "prob": 0.0722
+      },
+      {
+       "word": "einen",
+       "prob": 0.0561
+      },
+      {
+       "word": "einer",
+       "prob": 0.0234
+      },
+      {
+       "word": "rund",
+       "prob": 0.0198
+      }
+     ],
+     "top1": "einem",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.5069
+    },
+    "white_10db": {
+     "top5": [
+      {
+       "word": "einem",
+       "prob": 0.4451
+      },
+      {
+       "word": "eines",
+       "prob": 0.0383
+      },
+      {
+       "word": "einen",
+       "prob": 0.0349
+      },
+      {
+       "word": "vier",
+       "prob": 0.0244
+      },
+      {
+       "word": "rund",
+       "prob": 0.0219
+      }
+     ],
+     "top1": "einem",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.4451
+    },
+    "white_5db": {
+     "top5": [
+      {
+       "word": "einem",
+       "prob": 0.564
+      },
+      {
+       "word": "eines",
+       "prob": 0.0311
+      },
+      {
+       "word": "einen",
+       "prob": 0.0246
+      },
+      {
+       "word": "rahmen",
+       "prob": 0.0232
+      },
+      {
+       "word": "vier",
+       "prob": 0.0197
+      }
+     ],
+     "top1": "einem",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.564
+    },
+    "babble_10db": {
+     "top5": [
+      {
+       "word": "einem",
+       "prob": 0.2438
+      },
+      {
+       "word": "rund",
+       "prob": 0.0484
+      },
+      {
+       "word": "vier",
+       "prob": 0.0399
+      },
+      {
+       "word": "eines",
+       "prob": 0.0353
+      },
+      {
+       "word": "rahmen",
+       "prob": 0.0324
+      }
+     ],
+     "top1": "einem",
+     "correct": true,
+     "top5_correct": true,
+     "true_word_prob": 0.2438
+    },
+    "babble_5db": {
+     "top5": [
+      {
+       "word": "nämlich",
+       "prob": 0.0432
+      },
+      {
+       "word": "mich",
+       "prob": 0.0268
+      },
+      {
+       "word": "selbst",
+       "prob": 0.0259
+      },
+      {
+       "word": "damit",
+       "prob": 0.0235
+      },
+      {
+       "word": "ausdrücklich",
+       "prob": 0.0177
+      }
+     ],
+     "top1": "nämlich",
+     "correct": false,
+     "top5_correct": false,
+     "true_word_prob": 0.0078
+    }
+   }
+  }
+ ]
+}

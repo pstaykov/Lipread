@@ -1,18 +1,7 @@
-"""Audio-only ASR baseline: real Whisper transcription (one word) as the classifier.
+"""Audio-only ASR baseline: transcribe each clip with Whisper and map the first word to the nearest class.
 
-Instead of mean-pooling Whisper encoder embeddings (the 0.61 probe), this runs the
-full Whisper decoder on each clip, takes the first transcribed word, and maps it to
-the nearest of the 498 German classes. Answers "does real ASR beat the embedding
-probe, and how close to the fusion model?".
-
-Two numbers per split:
-  exact   -- normalized transcription == true class string (strict)
-  nearest -- transcription mapped to closest class by string similarity, i.e. a
-             closed-vocabulary ASR classifier (the fair comparison to a 498-way head)
-
-Uses the same 2 s cached waveforms as the probe/fusion, so it's apples-to-apples.
     SPLIT=val,test  LIMIT=0  python eval_asr_baseline.py
-Writes asr_baseline.csv.
+Writes asr_baseline.csv with exact-match and nearest-class top1 per split.
 """
 import os
 import sys
@@ -43,7 +32,7 @@ BATCH = 64
 
 
 def norm(s):
-    """lowercase, letters only (umlauts kept, they are alphabetic)."""
+    """Lowercase, letters only (umlauts kept)."""
     return ''.join(ch for ch in s.lower() if ch.isalpha())
 
 
@@ -90,7 +79,6 @@ def main():
                     t = r.text.strip().split()
                     preds_word.append(norm(t[0]) if t else '')
 
-        # map each unique transcribed word to nearest class once
         uniq = set(preds_word)
         nearest = {}
         for w in uniq:

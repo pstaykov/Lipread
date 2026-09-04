@@ -59,12 +59,11 @@ def _ckpt(*parts):
 # (label, backend, kwargs, checkpoint, root_dir). backend in {'tf','mstcn'}.
 TASKS = {
     500: {
-        # same complete-class list the 500-class backbone was trained on (drops the
-        # corpus-degenerate classes with no val folder, e.g. soll/hier).
+        # full 500-class list (hier/soll mouth-ROI bug fixed, so no classes are dropped).
         'classes': stock_complete_classes(ROI_ROOT),
         'rows': [
-            ('MS-TCN',   'mstcn', {},              _ckpt('mstcn_baseline', 'checkpoints'),      ROI_ROOT),
-            ('GLipsNet', 'tf',    {'pool': 'attn'}, _ckpt('Transformer_based', 'checkpoints'),  ROI_ROOT),
+            ('MS-TCN',   'mstcn', {},              _ckpt('mstcn_baseline', 'checkpoints_500'),      ROI_ROOT),
+            ('GLipsNet', 'tf',    {'pool': 'attn'}, _ckpt('Transformer_based', 'checkpoints_500'),  ROI_ROOT),
         ],
     },
     15: {

@@ -1,14 +1,4 @@
-"""Settle the disputed visual-only baseline.
-
-Three numbers are in circulation for the standalone visual model:
-  0.262  (multimodal fused, audio masked -- a different, atrophied model)
-  0.334  (Transformer_based/checkpoints/metrics.csv, possibly stale)
-  0.591  (Visual.md, claimed 50-epoch run)
-
-This evaluates the actual weights in Transformer_based/checkpoints/best_model.pth on
-the validation split of BOTH the mouth-crop tree and the full-face tree, so we know
-what the checkpoint really scores and which imagery it expects. No training.
-"""
+"""Evaluate the standalone visual checkpoint on val for both the mouth-crop and full-face trees."""
 import os
 import sys
 import torch
@@ -21,12 +11,12 @@ sys.path.insert(0, LIPREAD)
 from model import GLipsNet, _strip_orig_mod        # noqa: E402
 from dataset import GLipsFullClipDataset, VideoAugment  # noqa: E402
 
-CKPT = os.path.join(LIPREAD, 'Transformer_based', 'checkpoints', 'best_model.pth')
+CKPT = os.path.join(LIPREAD, 'Transformer_based', 'checkpoints_500', 'best_model.pth')
 ROOTS = {
     'mouth_crop': os.path.join(LIPREAD, 'GLips_mouth', 'lipread_files'),
     'full_face':  os.path.join(LIPREAD, 'GLips', 'lipread_files'),
 }
-EXCLUDED = ('hier', 'soll')
+EXCLUDED = ()  # hier/soll mouth-ROI bug fixed upstream; full 500-class vocabulary now
 
 
 def evaluate(root, device):

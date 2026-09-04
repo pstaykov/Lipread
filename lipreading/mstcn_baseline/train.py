@@ -1,13 +1,5 @@
-"""Train the MS-TCN baseline (TCNLipNet, width 384) on all 500 GLips classes.
-
-The MS-TCN counterpart of Transformer_based/train.py: identical CNN3D + ResNet-18
-frontend, identical stock-split data (group_split=False), identical plain recipe
-(no EMA / no Mixup) and early stopping, so the only difference is the temporal
-back-end. Width is 384 (down from 768) to keep the baseline capacity-comparable
-to GLipsNet. This 500-class model is the transfer source for the 15-class task.
-
-Run from anywhere:
-    python mstcn_baseline/train.py
+"""
+Train the MS-TCN baseline (TCNLipNet, width 384) on all 500 GLips classes.
 """
 import os
 import sys

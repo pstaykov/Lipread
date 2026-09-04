@@ -14,7 +14,7 @@ from train import (
 _ensure_ffmpeg()
 
 ROOT_DIR = '../../lipreading/GLips/lipread_files'
-CHECKPOINT = './models/checkpoints/best_model.pth'
+CHECKPOINT = './models/checkpoints_500/best_model.pth'
 NUM_SAMPLES = 5
 NUM_FRAMES = 25
 
@@ -39,7 +39,6 @@ def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Using device: {device}")
 
-    # Whisper only needed if audio caches are missing
     extractor = WhisperExtractor(WHISPER_MODEL_NAME, device=device)
 
     val_tf = VideoAugment(crop_size=88, resize_size=96, is_train=False)
@@ -82,7 +81,6 @@ def main():
             s['top3'] = [(classes[top3.indices[0, k].item()],
                           top3.values[0, k].item()) for k in range(3)]
 
-    # --- GUI ---
     root = tk.Tk()
     root.title('GLips Multimodal — Test')
     root.resizable(False, False)

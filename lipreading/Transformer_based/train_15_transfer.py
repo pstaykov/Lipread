@@ -8,7 +8,7 @@ embedding, Transformer, attentive-pool head) on Ameer's 15 classes. Only the
 augmentation, EMA, Mixup, schedule, early stopping — is held identical to
 train_15.py for an apples-to-apples comparison.
 
-Run AFTER train.py has produced checkpoints/best_model.pth:
+Run AFTER train.py (+ train_500_finetune.py) has produced checkpoints_500/best_model.pth:
     python Transformer_based/train.py
     python Transformer_based/train_15_transfer.py
 """
@@ -24,7 +24,7 @@ from model import GLipsNet, load_transfer_weights  # noqa: E402
 from dataset15 import CLASSES, make_15_datasets  # noqa: E402
 from train_loop import make_loaders, run_training  # noqa: E402
 
-PRETRAIN_CKPT = os.path.join(_SCRIPT_DIR, 'checkpoints', 'best_model.pth')
+PRETRAIN_CKPT = os.path.join(_SCRIPT_DIR, 'checkpoints_500', 'best_model.pth')
 NUM_EPOCHS = 80
 PATIENCE = 15
 

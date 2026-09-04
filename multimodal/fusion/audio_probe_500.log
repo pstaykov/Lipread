@@ -1,0 +1,34 @@
+ffmpeg not on PATH — using bundled: C:\Users\pstay\AppData\Local\Programs\Python\Python311\Lib\site-packages\imageio_ffmpeg\binaries\ffmpeg-win-x86_64-v7.1.exe
+reusing cached features: ./models/audio_probe_500\features.npz
+[ 1/30] train=0.2840 val_top1=0.4946 val_top5=0.6900
+[ 2/30] train=0.5222 val_top1=0.5597 val_top5=0.7386
+[ 3/30] train=0.5698 val_top1=0.5761 val_top5=0.7553
+[ 4/30] train=0.5938 val_top1=0.5912 val_top5=0.7609
+[ 5/30] train=0.6103 val_top1=0.5988 val_top5=0.7645
+[ 6/30] train=0.6219 val_top1=0.6019 val_top5=0.7668
+[ 7/30] train=0.6334 val_top1=0.6074 val_top5=0.7675
+[ 8/30] train=0.6426 val_top1=0.6081 val_top5=0.7692
+[ 9/30] train=0.6537 val_top1=0.6108 val_top5=0.7689
+[10/30] train=0.6619 val_top1=0.6125 val_top5=0.7697
+[11/30] train=0.6696 val_top1=0.6133 val_top5=0.7704
+[12/30] train=0.6776 val_top1=0.6128 val_top5=0.7698
+[13/30] train=0.6846 val_top1=0.6143 val_top5=0.7700
+[14/30] train=0.6906 val_top1=0.6134 val_top5=0.7687
+[15/30] train=0.6969 val_top1=0.6124 val_top5=0.7692
+[16/30] train=0.7031 val_top1=0.6124 val_top5=0.7675
+[17/30] train=0.7076 val_top1=0.6133 val_top5=0.7682
+[18/30] train=0.7131 val_top1=0.6117 val_top5=0.7674
+[19/30] train=0.7181 val_top1=0.6100 val_top5=0.7671
+[20/30] train=0.7211 val_top1=0.6113 val_top5=0.7667
+[21/30] train=0.7256 val_top1=0.6117 val_top5=0.7669
+[22/30] train=0.7288 val_top1=0.6111 val_top5=0.7669
+[23/30] train=0.7302 val_top1=0.6114 val_top5=0.7661
+[24/30] train=0.7322 val_top1=0.6100 val_top5=0.7657
+[25/30] train=0.7347 val_top1=0.6104 val_top5=0.7655
+[26/30] train=0.7363 val_top1=0.6100 val_top5=0.7648
+[27/30] train=0.7372 val_top1=0.6102 val_top5=0.7652
+[28/30] train=0.7378 val_top1=0.6104 val_top5=0.7651
+[29/30] train=0.7395 val_top1=0.6105 val_top5=0.7653
+[30/30] train=0.7393 val_top1=0.6103 val_top5=0.7652
+
+BEST audio-only (500-class) val_top1=0.6143  ->  ./models/audio_probe_500/probe.pth

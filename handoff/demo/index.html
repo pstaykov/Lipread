@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GNet Lippenlesen — Modellvergleich</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="masthead">
+  <div class="wrap masthead-row">
+    <span class="wordmark">GNET // LIPPENLESEN</span>
+    <span class="chain" aria-hidden="true">
+      <span class="chain-chip ch-video">Video</span>
+      <span class="chain-plus">+</span>
+      <span class="chain-chip ch-audio">Audio</span>
+      <span class="chain-arrow">→</span>
+      <span class="chain-chip ch-fusion">Fusion</span>
+    </span>
+    <span class="server-status" id="server-status">
+      <span class="dot" id="status-dot"></span><span id="status-text">prüfe server…</span>
+    </span>
+  </div>
+</div>
+
+<header class="wrap">
+  <p class="eyebrow">GLips-500 · deutsche Wortklassifikation</p>
+  <h1>Video vs. Audio vs. Multimodal</h1>
+  <p class="sub">
+    16 echte Testclips aus GLips-500, ausgewertet mit den Checkpoints aus
+    <code>../models/</code> — nicht nachgestellt, keine Auswahl nach Ergebnis.
+  </p>
+
+  <div class="control-strip">
+    <label for="noise-select">Audiobedingung</label>
+    <select id="noise-select"></select>
+    <span class="hint">gilt für Testclips und eigene Aufnahme — Video bleibt unverändert</span>
+  </div>
+
+  <div class="metrics-wrap">
+    <table class="metrics-table" id="metrics-table">
+      <thead>
+        <tr class="mt-group-row">
+          <th scope="col"></th>
+          <th scope="col" colspan="2">Volles Testset</th>
+          <th scope="col" colspan="2" id="mt-sample-head">16 Clips</th>
+        </tr>
+        <tr>
+          <th scope="col" class="mt-model">Modell</th>
+          <th scope="col">Top-1</th>
+          <th scope="col">Top-5</th>
+          <th scope="col">Top-1</th>
+          <th scope="col">Top-5</th>
+        </tr>
+      </thead>
+      <tbody id="metrics-tbody">
+        <tr><td colspan="5">Lade Testergebnisse…</td></tr>
+      </tbody>
+    </table>
+  </div>
+</header>
+
+<section class="wrap panel" id="record-section" hidden>
+  <p class="tag">live</p>
+  <h2>Selbst aufnehmen</h2>
+  <p class="sub">
+    Sag das Wort vor der Kamera — die Mundregion wird per MediaPipe FaceMesh
+    zugeschnitten, genau wie beim Trainingsdatensatz, bevor alle drei Modelle darauf laufen.
+  </p>
+  <div class="record-target">
+    <span class="label">Wort</span>
+    <strong id="target-word">…</strong>
+    <button id="shuffle-word" type="button">Neues Wort</button>
+  </div>
+  <div class="record-panels">
+    <div class="record-panel">
+      <div class="viewfinder">
+        <video id="cam-preview" autoplay muted playsinline></video>
+        <span class="vf-corner tl"></span><span class="vf-corner tr"></span>
+        <span class="vf-corner bl"></span><span class="vf-corner br"></span>
+      </div>
+      <button id="record-btn" type="button" class="btn-primary">
+        <span class="dot" id="rec-dot"></span>Aufnahme starten
+      </button>
+      <div class="record-status" id="record-status"></div>
+    </div>
+    <div class="record-panel" id="record-result" hidden>
+      <video id="result-preview" controls playsinline></video>
+      <div class="model-cols" id="record-cols"></div>
+    </div>
+  </div>
+</section>
+
+<section class="wrap panel">
+  <p class="tag">konfidenz</p>
+  <h2>Konfidenz fürs richtige Wort</h2>
+  <div class="heatmap-legend">
+    <span>0%</span>
+    <div class="legend-bar"></div>
+    <span>100%</span>
+  </div>
+  <div class="heatmap-table" id="heatmap"></div>
+</section>
+
+<section class="wrap">
+  <p class="tag">testclips</p>
+  <main id="clips"></main>
+</section>
+
+<script src="app.js"></script>
+</body>
+</html>

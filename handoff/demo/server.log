@@ -1,0 +1,68 @@
+INFO: Created TensorFlow Lite XNNPACK delegate for CPU.
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+W0000 00:00:1786819140.932449   28356 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1786819140.937833   28356 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+C:\Users\pstay\code\BWKI\handoff\models\video_only\model.py:126: UserWarning: enable_nested_tensor is True, but self.use_nested_tensor is False because encoder_layer.norm_first was True
+  self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=2)
+C:\Users\pstay\code\BWKI\handoff\models\multimodal\model.py:233: UserWarning: enable_nested_tensor is True, but self.use_nested_tensor is False because encoder_layer.norm_first was True
+  self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=4)
+ffmpeg not on PATH — using bundled: C:\Users\pstay\code\BWKI\.venv\Lib\site-packages\imageio_ffmpeg\binaries\ffmpeg-win-x86_64-v7.1.exe
+ffmpeg not on PATH — using bundled: C:\Users\pstay\code\BWKI\.venv\Lib\site-packages\imageio_ffmpeg\binaries\ffmpeg-win-x86_64-v7.1.exe
+Loading Whisper base on cuda …
+live_infer: 500 classes, models loaded on cuda
+ * Serving Flask app 'server'
+ * Debug mode: off
+WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on http://127.0.0.1:8000
+Press CTRL+C to quit
+127.0.0.1 - - [15/Aug/2026 20:39:19] "GET /index.html HTTP/1.1" 200 -
+127.0.0.1 - - [15/Aug/2026 20:39:19] "GET /app.js HTTP/1.1" 200 -
+127.0.0.1 - - [15/Aug/2026 20:39:19] "GET /style.css HTTP/1.1" 200 -
+127.0.0.1 - - [15/Aug/2026 20:39:19] "GET /predictions.json HTTP/1.1" 200 -
+127.0.0.1 - - [15/Aug/2026 20:39:19] "GET /api/classes HTTP/1.1" 200 -
+127.0.0.1 - - [15/Aug/2026 20:40:39] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [15/Aug/2026 20:40:39] "GET /style.css HTTP/1.1" 200 -
+127.0.0.1 - - [15/Aug/2026 20:40:39] "GET /app.js HTTP/1.1" 200 -
+127.0.0.1 - - [15/Aug/2026 20:40:40] "GET /predictions.json HTTP/1.1" 200 -
+127.0.0.1 - - [15/Aug/2026 20:40:40] "GET /api/classes HTTP/1.1" 200 -
+127.0.0.1 - - [15/Aug/2026 20:41:01] "GET /favicon.ico HTTP/1.1" 404 -
+W0000 00:00:1786819263.716380   21216 landmark_projection_calculator.cc:186] Using NORM_RECT without IMAGE_DIMENSIONS is only supported for the square ROI. Provide IMAGE_DIMENSIONS or use PROJECTION_MATRIX.
+127.0.0.1 - - [15/Aug/2026 20:41:04] "POST /api/record HTTP/1.1" 200 -
+127.0.0.1 - - [15/Aug/2026 20:41:04] "GET /clips/recorded%2F4db2dbb47b0d.mp4 HTTP/1.1" 206 -
+127.0.0.1 - - [15/Aug/2026 20:41:17] "POST /api/record HTTP/1.1" 200 -
+127.0.0.1 - - [15/Aug/2026 20:41:18] "GET /clips/recorded%2F67969bcc6702.mp4 HTTP/1.1" 206 -
+127.0.0.1 - - [15/Aug/2026 20:46:01] "POST /api/record HTTP/1.1" 200 -
+127.0.0.1 - - [15/Aug/2026 20:46:01] "GET /clips/recorded%2Fd31f5329dd99.mp4 HTTP/1.1" 206 -
+127.0.0.1 - - [15/Aug/2026 20:46:11] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [15/Aug/2026 20:46:11] "GET /style.css HTTP/1.1" 200 -
+127.0.0.1 - - [15/Aug/2026 20:46:11] "GET /app.js HTTP/1.1" 200 -
+127.0.0.1 - - [15/Aug/2026 20:46:11] "GET /predictions.json HTTP/1.1" 200 -
+127.0.0.1 - - [15/Aug/2026 20:54:39] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [15/Aug/2026 20:54:39] "GET /style.css HTTP/1.1" 200 -
+127.0.0.1 - - [15/Aug/2026 20:54:39] "GET /app.js HTTP/1.1" 200 -
+127.0.0.1 - - [15/Aug/2026 20:54:39] "GET /predictions.json HTTP/1.1" 200 -
+127.0.0.1 - - [15/Aug/2026 20:54:39] "GET /api/classes HTTP/1.1" 200 -
+127.0.0.1 - - [15/Aug/2026 20:55:05] "GET /clips/00_gehört_white_5db.mp4 HTTP/1.1" 206 -
+127.0.0.1 - - [15/Aug/2026 20:55:05] "GET /favicon.ico HTTP/1.1" 404 -
+127.0.0.1 - - [15/Aug/2026 20:55:11] "GET /clips/00_gehört_babble_10db.mp4 HTTP/1.1" 206 -
+127.0.0.1 - - [15/Aug/2026 20:56:00] "POST /api/record HTTP/1.1" 200 -
+127.0.0.1 - - [15/Aug/2026 20:56:00] "GET /clips/recorded%2F55945cc8f3cd.mp4 HTTP/1.1" 206 -
+127.0.0.1 - - [15/Aug/2026 20:56:21] "POST /api/record HTTP/1.1" 200 -
+127.0.0.1 - - [15/Aug/2026 20:56:21] "GET /clips/recorded%2F17de7fbcb61f.mp4 HTTP/1.1" 206 -
+127.0.0.1 - - [15/Aug/2026 20:56:33] "GET /clips/00_gehört.mp4 HTTP/1.1" 206 -
+127.0.0.1 - - [15/Aug/2026 21:13:49] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [15/Aug/2026 21:13:49] "GET /style.css HTTP/1.1" 200 -
+127.0.0.1 - - [15/Aug/2026 21:13:49] "GET /app.js HTTP/1.1" 200 -
+127.0.0.1 - - [15/Aug/2026 21:13:49] "GET /predictions.json HTTP/1.1" 200 -
+127.0.0.1 - - [15/Aug/2026 21:13:50] "GET /api/classes HTTP/1.1" 200 -
+127.0.0.1 - - [15/Aug/2026 22:31:07] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [15/Aug/2026 22:31:07] "GET /style.css HTTP/1.1" 200 -
+127.0.0.1 - - [15/Aug/2026 22:31:08] "GET /app.js HTTP/1.1" 200 -
+127.0.0.1 - - [15/Aug/2026 22:31:08] "GET /predictions.json HTTP/1.1" 200 -
+127.0.0.1 - - [15/Aug/2026 22:31:08] "GET /api/classes HTTP/1.1" 200 -
+forrtl: error (200): program aborting due to window-CLOSE event
+Image              PC                Routine            Line        Source             
+KERNELBASE.dll     00007FFB7A7E3E3D  Unknown               Unknown  Unknown
+KERNEL32.DLL       00007FFB7C3EE957  Unknown               Unknown  Unknown
+ntdll.dll          00007FFB7CF8AD6C  Unknown               Unknown  Unknown
+^C

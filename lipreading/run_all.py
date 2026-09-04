@@ -24,8 +24,8 @@ LOG_DIR = os.path.join(LIP, 'logs')
 
 # (script, save_dir) in execution order. save_dir/final_model.pth => already done.
 QUEUE = [
-    ('Transformer_based/train.py',              'Transformer_based/checkpoints'),
-    ('mstcn_baseline/train.py',                 'mstcn_baseline/checkpoints'),
+    ('Transformer_based/train.py',              'Transformer_based/checkpoints_500'),
+    ('mstcn_baseline/train.py',                 'mstcn_baseline/checkpoints_500'),
     ('Transformer_based/train_15.py',           'Transformer_based/checkpoints_15'),
     ('mstcn_baseline/train_15.py',              'mstcn_baseline/checkpoints_15'),
     # Ameer-matched 15-word runs (uncropped 128x128, 16 frames, min-max, flip-only,

@@ -1,9 +1,4 @@
-"""Train one fusion head on cached visual tokens + live Whisper audio.
-
-Because the visual trunk is frozen and its tokens are cached, and audio is encoded
-from the cached waveform (no video decode), an epoch is ~3-4 min. Every variant
-trains under identical conditions, so the resulting numbers compare fusion
-mechanisms directly.
+"""Train one fusion head on cached visual tokens + live Whisper audio; every variant trains under identical conditions.
 
     python train_fusion.py <variant>      # variant in fusion_heads.HEADS
 
@@ -50,8 +45,7 @@ def load_split(split):
         aidx = json.load(f)
     wav = np.memmap(os.path.join(AUD_CACHE, 'waveforms.dat'), dtype=np.float16,
                     mode='r', shape=(aidx['n'], aidx['audio_samples']))
-    # map each visual row -> audio row via the shared clip key
-    arows = np.empty(n, dtype=np.int64)
+    arows = np.empty(n, dtype=np.int64)  # visual row -> audio row via the shared clip key
     miss = 0
     inv = {r: k for k, r in vidx['rows'].items()}
     for vr in range(n):
@@ -81,9 +75,7 @@ def main():
     n_tr, n_va = len(y_tr), len(y_va)
     print(f'train {n_tr} | val {n_va} | classes {len(classes)}')
 
-    # hold visual tokens in RAM as fp16 (~2.5GB train); cast per batch. waveforms
-    # stay on disk (memmap) and are encoded live.
-    Vtr = torch.from_numpy(np.asarray(vtok_tr))   # fp16
+    Vtr = torch.from_numpy(np.asarray(vtok_tr))   # fp16, held in RAM; waveforms stay memmapped and encoded live
     Vva = torch.from_numpy(np.asarray(vtok_va))
     ytr = torch.from_numpy(y_tr).long()
     yva = torch.from_numpy(y_va).long()
@@ -105,12 +97,23 @@ def main():
         return extractor.encode(wt)
 
     metrics_path = os.path.join(out_dir, 'metrics.csv')
-    with open(metrics_path, 'w', newline='') as f:
-        csv.writer(f).writerow(['epoch', 'train_acc', 'val_top1', 'val_top5', 'lr'])
+    latest_path = os.path.join(out_dir, 'checkpoint_latest.pth')
 
-    best = 0.0
-    since = 0
-    for ep in range(EPOCHS):
+    # every epoch boundary is a full checkpoint (model + optimizer + scheduler + early-stop state) so a rerun resumes cleanly
+    start_ep, best, since = 0, 0.0, 0
+    if os.path.exists(latest_path):
+        ck = torch.load(latest_path, map_location=device)
+        model.load_state_dict(ck['model'])
+        opt.load_state_dict(ck['optimizer'])
+        sched.load_state_dict(ck['scheduler'])
+        start_ep, best, since = ck['epoch'], ck['best'], ck['since']
+        print(f'[{variant}] resumed at epoch {start_ep}/{EPOCHS} (best={best:.4f})')
+
+    if start_ep == 0:
+        with open(metrics_path, 'w', newline='') as f:
+            csv.writer(f).writerow(['epoch', 'train_acc', 'val_top1', 'val_top5', 'lr'])
+
+    for ep in range(start_ep, EPOCHS):
         model.train()
         perm = torch.randperm(n_tr)
         corr = tot = 0
@@ -154,11 +157,17 @@ def main():
                        os.path.join(out_dir, 'best.pth'))
         else:
             since += 1
+
+        torch.save({'epoch': ep + 1, 'best': best, 'since': since,
+                    'model': model.state_dict(), 'optimizer': opt.state_dict(),
+                    'scheduler': sched.state_dict()}, latest_path)
+
         if since >= PATIENCE:
             print(f'[{variant}] early stop (no val gain for {since} epochs)')
             break
 
     print(f'[{variant}] BEST val_top1={best:.4f}  -> {out_dir}/best.pth')
+    print(f'[{variant}] DONE')
 
 
 if __name__ == '__main__':

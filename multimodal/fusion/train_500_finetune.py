@@ -1,19 +1,5 @@
-"""Warm-start the multimodal fusion model on the now-complete 500-class GLips set
-from the old 498-class shipped checkpoint (models/checkpoints_reg/best_model.pth),
-instead of retraining audio+visual+cross-attn from scratch.
-
-'hier' and 'soll' were previously excluded outright (train.py's EXCLUDED_CLASSES)
-because their mouth-ROI tree was missing val/test clips. That's now fixed
-(preprocess_mouth_roi.py rerun for those two classes), so this script derives the
-class list dynamically (500 classes) instead of hardcoding the 498-class exclusion.
-
-Every tensor in the shipped checkpoint except the final `classifier` (498 -> 500
-rows) is class-count agnostic — visual trunk, MS-TCN, Transformer, and the trained
-cross-attention/audio_proj all carry over by name+shape via load_visual_weights
-(despite the name, it loads ANY matching-shaped tensor, so pointing it at the full
-fused checkpoint instead of a visual-only one warm-starts the whole model). Only the
-500-way classifier starts fresh, so this needs far fewer epochs than the original
-15-epoch run: the backbone is frozen for 1 epoch just to let the new head settle.
+"""Warm-start the fusion model on the full 500-class GLips set from the old 498-class checkpoint,
+carrying over every matching-shaped tensor (load_visual_weights) except the final classifier.
 
 Run from multimodal/fusion/:
     python train_500_finetune.py
@@ -21,6 +7,7 @@ Run from multimodal/fusion/:
 import os
 import sys
 import csv
+import time
 
 import torch
 import torch.nn as nn
@@ -46,13 +33,16 @@ WARMUP_EPOCHS = 1
 EARLY_STOP_PATIENCE = 3
 FREEZE_BACKBONE_EPOCHS = 1
 CHECKPOINT_EVERY = 5
+# saves a mid-epoch checkpoint and exits cleanly every TIME_BUDGET_SEC; rerun to resume same epoch
+TIME_BUDGET_SEC = int(os.environ.get('TIME_BUDGET_SEC', '900'))
 
 
 def main():
     torch.backends.cudnn.benchmark = True
     torch.set_float32_matmul_precision('high')
 
-    if not os.path.exists(PRETRAIN_CKPT):
+    latest_path_check = os.path.join(SAVE_DIR, 'checkpoint_latest.pth')
+    if not os.path.exists(latest_path_check) and not os.path.exists(PRETRAIN_CKPT):
         raise SystemExit(f"498-class fused checkpoint not found at {PRETRAIN_CKPT}.")
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -82,10 +72,22 @@ def main():
     print(f"train={len(train_ds)}  val={len(val_ds)}")
 
     NUM_WORKERS = 4
-    train_loader = DataLoader(train_ds, batch_size=16, shuffle=True,
-                              num_workers=NUM_WORKERS, pin_memory=True,
-                              persistent_workers=NUM_WORKERS > 0,
-                              drop_last=True, collate_fn=collate_fn)
+    TRAIN_BATCH = 16
+
+    def make_train_loader(epoch, skip_batches=0):
+        """Deterministic per-epoch shuffle via randperm (not shuffle=True) so a mid-epoch resume can jump straight to the right indices."""
+        g = torch.Generator()
+        g.manual_seed(20260815 + epoch)
+        perm = torch.randperm(len(train_ds), generator=g).tolist()
+        n_batches_total = len(perm) // TRAIN_BATCH
+        usable = perm[:n_batches_total * TRAIN_BATCH]
+        remaining = usable[skip_batches * TRAIN_BATCH:]
+        loader = DataLoader(train_ds, batch_size=TRAIN_BATCH, sampler=remaining,
+                            num_workers=NUM_WORKERS, pin_memory=True,
+                            persistent_workers=False,
+                            drop_last=True, collate_fn=collate_fn)
+        return loader, n_batches_total
+
     val_loader = DataLoader(val_ds, batch_size=16, shuffle=False,
                             num_workers=NUM_WORKERS, pin_memory=True,
                             persistent_workers=NUM_WORKERS > 0,
@@ -98,9 +100,7 @@ def main():
     best_path = os.path.join(SAVE_DIR, 'best_model.pth')
     metrics_path = os.path.join(SAVE_DIR, 'metrics.csv')
 
-    # Only warm-start when starting fresh; an exact resume would otherwise be
-    # overwritten by the 498-class weights. load_visual_weights loads any
-    # name+shape match, so the 498-row classifier is skipped automatically.
+    # only warm-start when starting fresh, so a resume isn't overwritten by the 498-class weights
     if not os.path.exists(latest_path):
         load_visual_weights(model, PRETRAIN_CKPT, device)
 
@@ -130,6 +130,19 @@ def main():
             latest_path, model, optimizer, scheduler, scaler, device, NUM_EPOCHS)
         print(f"Resumed at epoch {start_epoch}/{NUM_EPOCHS}, best={best_val_acc:.4f}")
 
+    midepoch_path = os.path.join(SAVE_DIR, 'checkpoint_midepoch.pth')
+    batch_skip = 0
+    if os.path.exists(midepoch_path):
+        mck = torch.load(midepoch_path, map_location=device)
+        if mck['epoch'] == start_epoch:
+            getattr(model, '_orig_mod', model).load_state_dict(_strip_orig_mod(mck['model']))
+            optimizer.load_state_dict(mck['optimizer'])
+            scaler.load_state_dict(mck['scaler'])
+            batch_skip = mck['batch_idx']
+            print(f"Resuming mid-epoch {start_epoch}: skipping {batch_skip} already-done batches")
+        else:
+            os.remove(midepoch_path)
+
     if start_epoch == 0 or not os.path.exists(metrics_path):
         with open(metrics_path, 'w', newline='') as f:
             csv.writer(f).writerow(['epoch', 'train_loss', 'train_acc', 'val_loss',
@@ -145,8 +158,15 @@ def main():
         if backbone_frozen:
             model.cnn.resnet.eval()
 
+        skip = batch_skip if epoch == start_epoch else 0
+        batch_skip = 0  # only the very first epoch resumed into can have a mid-epoch skip
+        train_loader, n_batches = make_train_loader(epoch, skip_batches=skip)
+
         running_loss = correct_train = num_samples = 0
+        t0 = time.time()
+        bi = skip
         for video, wav, target in tqdm(train_loader, desc=f'Train {epoch+1}/{NUM_EPOCHS}',
+                                       initial=skip, total=n_batches,
                                        leave=False, dynamic_ncols=True):
             video = video.to(device, non_blocking=True)
             wav = wav.to(device, non_blocking=True)
@@ -165,7 +185,18 @@ def main():
             running_loss += loss.item() * video.size(0)
             correct_train += (logits.detach().argmax(1) == target).sum().item()
             num_samples += video.size(0)
+            bi += 1
 
+            if TIME_BUDGET_SEC and (time.time() - t0) > TIME_BUDGET_SEC and bi < n_batches:
+                torch.save({'epoch': epoch, 'batch_idx': bi, 'model': _model_state(model),
+                           'optimizer': optimizer.state_dict(), 'scaler': scaler.state_dict()},
+                          midepoch_path)
+                tqdm.write(f"Time budget reached mid-epoch {epoch+1} at batch {bi}/{n_batches} "
+                          f"— checkpointed and exiting cleanly. Re-run to continue.")
+                return
+
+        if os.path.exists(midepoch_path):
+            os.remove(midepoch_path)
         train_loss = running_loss / num_samples if num_samples else 0.0
         train_acc = correct_train / num_samples if num_samples else 0.0
 

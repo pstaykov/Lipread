@@ -1,9 +1,4 @@
-"""Audio-only baseline: a classifier head on frozen Whisper encoder features.
-
-The cross-attention model has no audio-only mode -- audio enters solely as a gated
-residual on a visual trunk -- so an honest audio-only curve needs its own model.
-This trains one, reading waveforms straight from the audio_cache memmap (no video
-decode), which is why it costs minutes rather than the ~75 min a training epoch takes.
+"""Audio-only baseline: a classifier head on frozen Whisper encoder features (cached waveforms, no video decode).
 
 Usage:  python train_audio_probe.py
 Writes: audio_probe/probe.pth  (+ cached train/val features)
@@ -19,9 +14,6 @@ import torch.nn as nn
 from tqdm import tqdm
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-# Shared with snr_eval.py: register before executing so spawned DataLoader workers can
-# resolve classes that report 'mmtrain' as their module, and so importing this file
-# after train.py is already loaded does not execute it a second time.
 if 'mmtrain' in sys.modules:
     m = sys.modules['mmtrain']
 else:
@@ -40,8 +32,7 @@ PROBE_BATCH = 1024
 
 
 def build_split_index(rows, classes, split):
-    """Cache keys look like 'class/split/name'. Keep the ones for this split whose
-    class survived the 498-class filter, and pair each with its label index."""
+    """Keep cache keys ('class/split/name') for this split whose class is in `classes`, paired with its label."""
     cls_to_idx = {c: i for i, c in enumerate(classes)}
     items = []
     for key, row in rows.items():
@@ -66,8 +57,7 @@ def encode_split(extractor, wave_mm, rows_idx, device, desc):
 
 
 class AudioProbe(nn.Module):
-    """Deliberately small: the point is to measure what the frozen Whisper features
-    already carry, not to train a competitive audio recogniser."""
+    """Deliberately small — measures what the frozen Whisper features carry, not a competitive recognizer."""
 
     def __init__(self, in_dim=m.AUDIO_DIM, num_classes=498, hidden=1024, dropout=0.3):
         super().__init__()
@@ -102,7 +92,6 @@ def main():
         Xtr, ytr, Xva, yva = d['Xtr'], d['ytr'], d['Xva'], d['yva']
     else:
         extractor = m.WhisperExtractor(m.WHISPER_MODEL_NAME, device=device)
-        # cache keys use the on-disk split dir names: train / val / test
         tr_rows, ytr = build_split_index(index['rows'], classes, 'train')
         va_rows, yva = build_split_index(index['rows'], classes, 'val')
         print(f'train {len(tr_rows)} clips | val {len(va_rows)} clips')

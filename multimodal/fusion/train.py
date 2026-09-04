@@ -1,8 +1,4 @@
-"""
-Multimodal lip reading: visual GLipsNet + Whisper audio cross-attention.
-
-Loads pretrained visual weights from ../lipreading/checkpoints/best_model.pth
-and fine-tunes with audio features extracted by the Whisper large encoder.
+"""Multimodal lip reading: visual GLipsNet + Whisper audio cross-attention, fine-tuned from a visual checkpoint.
 
 Install:  pip install openai-whisper
 """
@@ -38,8 +34,7 @@ def _ensure_ffmpeg():
         import imageio_ffmpeg
         ffmpeg_dir = os.path.dirname(imageio_ffmpeg.get_ffmpeg_exe())
         ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
-        # whisper calls 'ffmpeg' by name; symlink/rename won't work on Windows,
-        # so we monkey-patch whisper.audio to use the full path instead.
+        # whisper calls 'ffmpeg' by name; monkey-patch it to use the full path (no symlinks on Windows)
         import subprocess, numpy as np
         import whisper as _whisper
         import whisper.audio as _wa
@@ -51,7 +46,6 @@ def _ensure_ffmpeg():
             out = subprocess.run(cmd, capture_output=True, check=True).stdout
             return np.frombuffer(out, np.int16).flatten().astype(np.float32) / 32768.0
 
-        # patch both the submodule reference and the package-level re-export
         _wa.load_audio = _patched_load_audio
         _whisper.load_audio = _patched_load_audio
         print(f"ffmpeg not on PATH — using bundled: {ffmpeg_exe}")
@@ -156,8 +150,7 @@ class CNN3D(nn.Module):
 class MSTemporalBlock(nn.Module):
     def __init__(self, d_model, dropout=0.2):
         super().__init__()
-        # three parallel depthwise branches: short (k=3), mid (k=5), broad (k=7)
-        self.branches = nn.ModuleList([
+        self.branches = nn.ModuleList([  # depthwise branches: short (k=3), mid (k=5), broad (k=7)
             nn.Sequential(
                 nn.Conv1d(d_model, d_model, k, padding=k // 2, groups=d_model),
                 nn.Conv1d(d_model, d_model, 1),
@@ -181,10 +174,7 @@ class MSTemporalBlock(nn.Module):
 
 WHISPER_MODEL_NAME = 'base'
 AUDIO_DIM = 512          # Whisper base encoder hidden dim
-# GLips clips are ~1.2 s, but Whisper normally pads to 30 s (3000 mel frames ->
-# 1500 tokens), so ~96% of every encoder forward is silence. Trim the mel to a
-# fixed 2 s window instead: far cheaper, and cross-attn no longer looks at padding.
-AUDIO_SAMPLES = 32000    # 2 s @ 16 kHz
+AUDIO_SAMPLES = 32000    # 2 s @ 16 kHz; trimmed from Whisper's 30 s default (mostly silence for these clips)
 N_MEL_FRAMES = 200       # 2 s at 100 mel-frames/s
 AUDIO_T = N_MEL_FRAMES // 2   # 100 encoder tokens (conv2 has stride 2)
 
@@ -195,9 +185,7 @@ class CrossAttention(nn.Module):
         self.audio_proj = nn.Linear(audio_dim, d_model)
         self.cross_attn = nn.MultiheadAttention(d_model, n_heads, batch_first=True)
         self.norm = nn.LayerNorm(d_model)
-        # learned residual gate, starts closed so fusion is initially a no-op and
-        # the random cross-attn can't corrupt the pretrained visual encoder
-        self.gate = nn.Parameter(torch.zeros(1))
+        self.gate = nn.Parameter(torch.zeros(1))  # starts closed so fusion is initially a no-op
 
     def forward(self, visual_tokens, audio_features, keep_mask=None):
         audio_proj = self.audio_proj(audio_features)
@@ -208,9 +196,7 @@ class CrossAttention(nn.Module):
         )
         contribution = self.gate.tanh() * attended
         if keep_mask is not None:
-            # modality dropout: zeroing the residual (rather than the audio tensor)
-            # makes fusion an exact no-op for dropped samples, so they backprop as a
-            # visual-only forward instead of attending over a zero sequence.
+            # zero the residual (not the audio) so dropped samples backprop as a clean visual-only forward
             contribution = contribution * keep_mask
         return self.norm(visual_tokens + contribution), weights
 
@@ -278,20 +264,12 @@ def save_checkpoint(path, model, optimizer, scheduler, scaler, epoch, best_val_a
         'scheduler': scheduler.state_dict(),
         'scaler': scaler.state_dict(),
         'best_val_acc': best_val_acc,
-        # the cosine schedule is shaped by NUM_EPOCHS, so a checkpoint's scheduler
-        # state is only meaningful under the same total; see load_checkpoint.
-        'num_epochs': num_epochs,
+        'num_epochs': num_epochs,  # scheduler state is only valid under the same total; see load_checkpoint
     }, path)
 
 
 def load_checkpoint(path, model, optimizer, scheduler, scaler, device, num_epochs):
-    """Full resume: model + optimizer + scheduler + scaler.
-
-    The scheduler is only restored when the checkpoint was written under the same
-    NUM_EPOCHS. Restoring a 100-epoch cosine curve into a 40-epoch run would resume
-    at the wrong point on the wrong curve, so in that case the schedule is rebuilt
-    from the epoch count instead by fast-forwarding it.
-    """
+    """Full resume: model + optimizer + scaler, plus scheduler if NUM_EPOCHS matches (else rebuilt by fast-forwarding)."""
     ckpt = torch.load(path, map_location=device)
     getattr(model, '_orig_mod', model).load_state_dict(_strip_orig_mod(ckpt['model']))
     optimizer.load_state_dict(ckpt['optimizer'])
@@ -347,12 +325,7 @@ class WhisperExtractor:
 
     @torch.no_grad()
     def encode(self, wav):
-        """Batched, frozen audio encoder.
-
-        wav: (B, AUDIO_SAMPLES) float32 on GPU  ->  (B, AUDIO_T, AUDIO_DIM).
-        Mel is trimmed to N_MEL_FRAMES and the positional embedding sliced to
-        match, so the encoder never processes the 30-second silence padding.
-        """
+        """Batched, frozen audio encoder: (B, AUDIO_SAMPLES) -> (B, AUDIO_T, AUDIO_DIM), mel trimmed to N_MEL_FRAMES."""
         mel = whisper.log_mel_spectrogram(wav, n_mels=self.n_mels)   # (B, n_mels, T)
         if mel.shape[-1] < N_MEL_FRAMES:
             mel = F.pad(mel, (0, N_MEL_FRAMES - mel.shape[-1]))
@@ -390,15 +363,7 @@ def _audio_key(video_path, video_root):
 
 
 class MultimodalGLipsDataset(GLipsFullClipDataset):
-    """Returns (video, wav, label), both tensors CPU-only so DataLoader workers
-    (num_workers>0) decode in parallel; Whisper runs batched on the GPU in-loop.
-
-    Video comes from the mouth-crop mp4. The mouth crops carry no audio track, so
-    audio is read from the sibling .m4a in the original (uncropped) GLips tree,
-    matched by identical class/split/filename structure. If `cache_dir` is given,
-    waveforms are read from a prebuilt memmap (see build_audio_cache.py) instead of
-    spawning an ffmpeg decode per clip; missing keys fall back to ffmpeg.
-    """
+    """Returns (video, wav, label) CPU tensors; video is the mouth crop, audio from the sibling .m4a (or the waveform cache if given)."""
     def __init__(self, root_dir, *args, audio_root, cache_dir=None, **kwargs):
         super().__init__(root_dir, *args, **kwargs)
         self.video_root = os.path.normpath(root_dir)
@@ -454,13 +419,8 @@ if __name__ == '__main__':
     torch.set_float32_matmul_precision('high')
 
     CHECKPOINT_EVERY = 5
-    # Regularization run: start from the epoch-6 multimodal best (val_top1 0.7088) of
-    # the ./checkpoints run, which peaked there and then memorised (train 0.932 /
-    # val 0.676 by epoch 17, val_loss rising for 11 straight epochs). Writing to a new
-    # SAVE_DIR keeps that result intact and avoids auto-resuming its overfit
-    # checkpoint_latest.pth.
-    VISUAL_CKPT = './models/checkpoints/best_model.pth'
-    SAVE_DIR = './models/checkpoints_reg'
+    VISUAL_CKPT = '../../lipreading/Transformer_based/checkpoints_500/best_model.pth'
+    SAVE_DIR = './models/checkpoints_500_full'
     ROOT_DIR = '../../lipreading/GLips_mouth/lipread_files'   # video (mouth crops)
     AUDIO_ROOT = '../../lipreading/GLips/lipread_files'       # sibling .m4a audio
     AUDIO_CACHE_DIR = './cache/audio_cache'                         # prebuilt waveform memmap
@@ -468,18 +428,10 @@ if __name__ == '__main__':
         AUDIO_CACHE_DIR = None
         print("No audio cache found — decoding .m4a on the fly (run build_audio_cache.py to speed up).")
     NUM_FRAMES = 25
-    # The 40 -> 20 cut (at epoch 9) did not help: annealing to 5e-5 made the model fit
-    # train *faster* (0.80 -> 0.93) while val fell every epoch, so the divergence was
-    # capacity-driven, not LR-driven. Hence this shorter schedule plus the dropout /
-    # weight-decay / augmentation changes above, and early stopping so a run can no
-    # longer burn 11 epochs past its peak.
     NUM_EPOCHS = 15
     WARMUP_EPOCHS = 3
     EARLY_STOP_PATIENCE = 4
-    # Keep the pretrained visual backbone frozen for the first few epochs so the
-    # randomly-initialised cross-attention + head train against a stable visual
-    # representation before any gradients reach the transferred ResNet weights.
-    FREEZE_BACKBONE_EPOCHS = 3
+    FREEZE_BACKBONE_EPOCHS = 3  # let cross-attn + head stabilize before backbone gradients kick in
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     assert device.type == 'cuda', f"CUDA not available — got '{device}'"
@@ -490,17 +442,10 @@ if __name__ == '__main__':
     train_tf = VideoAugment(crop_size=88, resize_size=96, is_train=True, time_mask_max=5)
     val_tf = VideoAugment(crop_size=88, resize_size=96, is_train=False)
 
-    # 'hier' and 'soll' lost their val (and, for 'soll', test) clips somewhere in
-    # preprocessing, so they are excluded outright rather than carried as classes with
-    # an empty val split. All reported results are 498-class.
-    EXCLUDED_CLASSES = ('hier', 'soll')
-    CLASSES = sorted(d for d in os.listdir(ROOT_DIR)
-                     if os.path.isdir(os.path.join(ROOT_DIR, d))
-                     and d not in EXCLUDED_CLASSES)
-    assert len(CLASSES) == 498, f"expected 498 classes, got {len(CLASSES)}"
+    CLASSES = sorted(d for d in os.listdir(ROOT_DIR) if os.path.isdir(os.path.join(ROOT_DIR, d)))
+    assert len(CLASSES) == 500, f"expected 500 classes, got {len(CLASSES)}"
 
-    # group_split=False -> stock on-disk train/val/test folders, matching the GLips
-    # paper's split (which likewise did not do source-disjoint grouping).
+    # group_split=False: stock on-disk train/val/test folders, matching the GLips paper's split
     train_ds = MultimodalGLipsDataset(ROOT_DIR, split='train', num_frames=NUM_FRAMES,
                                       transform=train_tf, audio_root=AUDIO_ROOT,
                                       cache_dir=AUDIO_CACHE_DIR, group_split=False,
@@ -510,9 +455,7 @@ if __name__ == '__main__':
                                     cache_dir=AUDIO_CACHE_DIR, group_split=False,
                                     classes=CLASSES)
 
-    # Workers only decode video + waveform on CPU now, so num_workers>0 is safe;
-    # Whisper runs batched on the GPU inside the loop.
-    NUM_WORKERS = 4
+    NUM_WORKERS = 4  # workers only decode video/waveform on CPU; Whisper runs batched on GPU in-loop
     train_loader = DataLoader(train_ds, batch_size=16, shuffle=True,
                               num_workers=NUM_WORKERS, pin_memory=True,
                               persistent_workers=NUM_WORKERS > 0,
@@ -535,9 +478,6 @@ if __name__ == '__main__':
     model.to(device)
 
     backbone_ids = {id(p) for p in model.cnn.resnet.parameters()}
-    # Peak LRs lowered from 1e-3/1e-4: the original schedule peaked val_top1 at epoch 3
-    # (lr 4.6e-4) and then degraded train AND val together as warmup pushed toward 1e-3,
-    # i.e. the high LR was unlearning the transferred visual features.
     param_groups = [
         {'params': [p for p in model.parameters() if id(p) not in backbone_ids], 'lr': 3e-4},
         {'params': list(model.cnn.resnet.parameters()), 'lr': 3e-5},
@@ -586,9 +526,7 @@ if __name__ == '__main__':
         with open(metrics_path, 'w', newline='') as f:
             csv.writer(f).writerow(METRICS_HEADER)
     else:
-        # A run can die after a metrics row is appended but before the checkpoint is
-        # written, and resuming from a periodic checkpoint rewinds further still. Drop
-        # any row past the resume point so the CSV matches the weights we just loaded.
+        # drop rows past the resume point so the CSV matches the checkpoint just loaded
         with open(metrics_path, newline='') as f:
             rows = [r for r in csv.reader(f) if r]
         kept = [r for r in rows[1:] if r[0].isdigit() and int(r[0]) <= start_epoch]
@@ -617,10 +555,7 @@ if __name__ == '__main__':
     for epoch in epoch_bar:
         model.train()
 
-        # Freeze the visual backbone for the first FREEZE_BACKBONE_EPOCHS. Toggled
-        # every epoch (not once) so a resume lands in the correct frozen/unfrozen
-        # state. eval() also holds the backbone's BatchNorm running stats fixed while
-        # frozen; requires_grad=False means AdamW skips those params entirely.
+        # toggled every epoch (not once) so a resume lands in the correct frozen/unfrozen state
         backbone_frozen = epoch < FREEZE_BACKBONE_EPOCHS
         for p in model.cnn.resnet.parameters():
             p.requires_grad_(not backbone_frozen)
