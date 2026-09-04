@@ -1,26 +1,5 @@
-"""Single shared training loop for every GLips classifier in this project.
-
-Before this module the training loop was copy-pasted across six entrypoints
-(Transformer/MS-TCN x 500-class/15-scratch/15-transfer), which is why the
-reviewer's cross-cutting asks — validation-plateau early stopping and a
-top-5-selected checkpoint — could not be applied consistently. ``run_training``
-is now the one place that owns:
-
-  * differential LR (pretrained ResNet backbone slow, fresh head fast),
-  * linear-warmup -> cosine schedule, AMP (bf16 where available), grad clipping,
-  * optional weight-EMA and Mixup/CutMix (the 15-class recipe; off for the plain
-    500-class runs),
-  * **early stopping** on val top-1 with ``patience`` (never trains dozens of
-    epochs past the validation peak just to discover it later),
-  * **two separate best checkpoints** — ``best_model.pth`` (best val top-1) and
-    ``best_top5_model.pth`` (best val top-5) — so a top-5 reversal has an actual
-    best-by-top-5 checkpoint to inspect rather than a number inferred off the
-    top-1-selected curve,
-  * exact resume from ``checkpoint_latest.pth``.
-
-Model, loaders and hyper-parameters are passed in, so the entrypoint scripts are
-thin configs. Both TCNLipNet and GLipsNet expose ``cnn.resnet`` (the shared
-frontend), which is all this loop needs to build the differential-LR groups.
+"""
+shared training loop for every GLips classifier in this project.
 """
 import os
 import csv
@@ -52,7 +31,8 @@ class EMA:
 
 
 def mixup_cutmix(x, y, alpha=0.2, cutmix_alpha=1.0, prob=0.6, switch_prob=0.5):
-    """Per-batch Mixup or CutMix on a video tensor (B, C, T, H, W).
+    """
+    Per-batch Mixup or CutMix on a video tensor (B, C, T, H, W).
 
     Returns (x, y_a, y_b, lam); loss = lam*CE(.,y_a) + (1-lam)*CE(.,y_b).
     """
@@ -121,10 +101,8 @@ def _strip_orig_mod(state_dict):
 
 
 def macro_f1_from_confusion(conf):
-    """Macro-averaged F1 from an integer confusion matrix ``conf[true, pred]``.
-
-    Classes absent from both predictions and targets contribute F1=0. Returns a
-    plain float; no sklearn dependency so it runs in the training loop.
+    """
+    Macro-averaged F1 from an integer confusion matrix
     """
     conf = conf.double()
     tp = conf.diag()
@@ -166,13 +144,8 @@ def run_training(model, train_loader, val_loader, *, num_classes, device, save_d
                  weight_decay=0.05, label_smoothing=0.1, ema_decay=0.999,
                  use_ema=True, use_mixup=True, mix_fn=None, patience=None, resume=True,
                  grad_clip=1.0):
-    """Train ``model``, early-stop on val top-1 plateau, checkpoint best top-1 AND
+    """Train model, early-stop on val top-1 plateau, checkpoint best top-1 AND
     best top-5 separately. Returns (best_top1, best_top5).
-
-    patience=None disables early stopping (runs the full ``num_epochs``). When set,
-    training stops once val top-1 has not improved for ``patience`` consecutive
-    epochs. The cosine schedule is still sized to the full ``num_epochs`` budget, so
-    an early stop simply cuts the tail rather than reshaping the LR curve.
     """
     os.makedirs(save_dir, exist_ok=True)
     latest_path = os.path.join(save_dir, 'checkpoint_latest.pth')

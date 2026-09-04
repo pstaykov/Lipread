@@ -14,7 +14,7 @@ from model import GLipsNet, _strip_orig_mod  # noqa: E402
 from dataset import GLipsFullClipDataset, VideoAugment  # noqa: E402
 
 ROOT_DIR = os.path.join(_LIPREAD, 'GLips', 'lipread_files')
-CHECKPOINT = os.path.join(_LIPREAD, 'Transformer_based', 'checkpoints', 'best_model.pth')
+CHECKPOINT = os.path.join(_LIPREAD, 'Transformer_based', 'checkpoints_500', 'best_model.pth')
 NUM_SAMPLES = 5
 NUM_FRAMES = 25
 
@@ -46,7 +46,7 @@ def main():
     classes = dataset.classes
     print(f"Loaded {len(dataset)} samples, {len(classes)} classes. Using device: {device}")
 
-    model = GLipsNet(num_classes=len(classes))
+    model = GLipsNet(num_classes=len(classes), pool='attn')
     state = torch.load(CHECKPOINT, map_location=device)
     model.load_state_dict(_strip_orig_mod(state))
     model.to(device)

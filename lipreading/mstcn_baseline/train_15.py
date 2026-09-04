@@ -1,10 +1,5 @@
-"""Train the MS-TCN baseline (TCNLipNet, width 384) from scratch on GLips15.
-
-Mirrors Transformer_based/train_15.py EXACTLY — Ameer's 15 classes, mouth-ROI
-data, stock split, same recipe (Mixup/CutMix, weight-EMA, grayscale+erasing,
-temporal speed-perturb, LR schedule, early stopping) — so the ONLY difference vs
-GLipsNet is the temporal back-end (multi-scale TCN here, Transformer + attentive
-pool there). Checkpoints/metrics: mstcn_baseline/checkpoints_15/.
+"""
+Train the MS-TCN baseline (TCNLipNet, width 384) from scratch on GLips15.
 """
 import os
 import sys
@@ -13,12 +8,12 @@ import torch
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 LIPREAD_DIR = os.path.dirname(SCRIPT_DIR)
-sys.path.insert(0, LIPREAD_DIR)   # glips15, train_loop, dataset
-sys.path.insert(0, SCRIPT_DIR)    # this package's model.py (must win the `model` name)
+sys.path.insert(0, LIPREAD_DIR)
+sys.path.insert(0, SCRIPT_DIR)
 
-from model import TCNLipNet  # noqa: E402
-from dataset15 import CLASSES, make_15_datasets  # noqa: E402
-from train_loop import make_loaders, run_training  # noqa: E402
+from model import TCNLipNet
+from dataset15 import CLASSES, make_15_datasets
+from train_loop import make_loaders, run_training
 
 NUM_EPOCHS = 80
 PATIENCE = 15

@@ -10,7 +10,8 @@ Whole-backbone warm start: the source is the same architecture (TCNLipNet, 500-c
 so the 3D-conv + ResNet frontend and the entire MS-TCN transfer by name+shape; only
 the 15-way classifier is fresh.
 
-Run AFTER mstcn_baseline/train.py has produced checkpoints/best_model.pth:
+Run AFTER mstcn_baseline/train.py (+ train_500_finetune.py) has produced
+checkpoints_500/best_model.pth:
     python mstcn_baseline/train.py
     python mstcn_baseline/train_15_transfer.py
 """
@@ -28,7 +29,7 @@ from model import TCNLipNet, load_transfer_weights  # noqa: E402
 from dataset15 import CLASSES, make_15_datasets  # noqa: E402
 from train_loop import make_loaders, run_training  # noqa: E402
 
-PRETRAIN_CKPT = os.path.join(SCRIPT_DIR, 'checkpoints', 'best_model.pth')
+PRETRAIN_CKPT = os.path.join(SCRIPT_DIR, 'checkpoints_500', 'best_model.pth')
 # Both transfer runs plateau within ~12 epochs and early-stopped at different points
 # (MS-TCN at 25, GLipsNet at 27). Capped at 27 with early stopping off so the two
 # transfer curves span an identical 27 epochs. The LR schedule is unchanged: it was

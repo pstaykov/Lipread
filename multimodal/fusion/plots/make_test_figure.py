@@ -1,26 +1,16 @@
-"""Complete test-split figure: every architecture across every noise scenario.
-
-Two panels (white noise | babble noise), x = SNR from clean -> 5 dB, one line per
-system. Shows the full story: attention fusion (joint_tf, cross_attn) on top and
-robust; naive fusion (concat, late) ties audio at clean but stays well above it under
-noise via the visual fallback; audio-only collapses below the flat visual-only floor.
-
-Reads master_scenarios.csv. cross_attn (finetuned) is omitted from the plot (it
-overlaps the frozen head); it remains in the CSV.
-"""
+"""Test-split figure: every architecture's top-1 across every noise scenario, from master_scenarios.csv."""
 import os
 import csv
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
-HERE = os.path.dirname(os.path.abspath(__file__))   # this plots/ folder
-ROOT = os.path.dirname(HERE)                          # fusion/ project root
+HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(HERE)
 OUT = os.path.join(HERE, 'test_scenarios.png')
 
 INK, MUTED, GRID = '#0b0b0b', '#52514e', '#e7e6e2'
-# system -> (color, linestyle, marker, label, zorder)
-STYLE = {
+STYLE = {  # system -> (color, linestyle, marker, label, zorder)
     'joint_tf (AV-HuBERT-style)': ('#2a78d6', '-', 'o', 'joint_tf (AV-HuBERT-style)', 6),
     'cross_attn (frozen)':        ('#eb6834', '-', 's', 'cross_attn', 6),
     'concat':                     ('#1baf7a', '-', '^', 'concat', 5),
@@ -31,9 +21,8 @@ STYLE = {
 PLOT_ORDER = ['joint_tf (AV-HuBERT-style)', 'cross_attn (frozen)', 'concat', 'late',
               'audio_only', 'visual_only']
 
-# --- read matrix ---
 data = {}
-with open(os.path.join(ROOT, 'results', 'master_scenarios.csv')) as f:
+with open(os.path.join(ROOT, 'results', 'master_scenarios_500.csv')) as f:
     for r in csv.DictReader(f):
         data[r['system']] = {k: (float(v) if v else None) for k, v in r.items() if k != 'system'}
 
@@ -64,12 +53,11 @@ for ax, cols, title in [(axW, WHITE, 'White noise'), (axB, BABBLE, 'Babble noise
     ax.tick_params(length=0)
 axW.set_ylabel('test top-1 accuracy')
 
-# shared legend below, in plot order (identity never color-alone: legend + distinct markers)
 handles, labels = axW.get_legend_handles_labels()
 fig.legend(handles, labels, ncol=6, loc='lower center', bbox_to_anchor=(0.5, -0.02),
            frameon=False, fontsize=10, columnspacing=1.4, handletextpad=0.5)
 
-fig.suptitle('GLips multimodal — architecture robustness across noise (test split, 498-class)',
+fig.suptitle('GLips multimodal — architecture robustness across noise (test split, 500-class)',
              fontsize=13.5, weight='bold', x=0.02, ha='left')
 fig.text(0.02, 0.045, 'concat/late tie audio-only at clean but stay far above it under noise '
          '(visual fallback); audio-only collapses toward the visual-only floor.',

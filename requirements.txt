@@ -1,22 +1,9 @@
-# --- Datenbeschaffung ---
 yt-dlp>=2024.8.6
-
-# --- Numerik & Datenverarbeitung ---
-# mediapipe 0.10.21 verlangt numpy<2, daher hier auf 1.26.4 festgelegt
-# (opencv-python warnt zwar numpy>=2, funktioniert aber mit 1.26.4).
 numpy==1.26.4
 pandas==3.0.2
-
-# --- Bild-/Videoverarbeitung ---
 opencv-python==4.13.0.92
 mediapipe==0.10.21
 imageio-ffmpeg==0.6.0
 Pillow==12.1.1
-
-# --- Training: Fortschritt & Visualisierung ---
 tqdm==4.67.3
 matplotlib==3.10.8
-
-# HINWEIS: torch und torchvision werden NICHT hier installiert,
-# sondern ueber das Setup-Skript mit dem passenden CUDA-Index (cu128).
-# Siehe setup.ps1 / setup.sh.

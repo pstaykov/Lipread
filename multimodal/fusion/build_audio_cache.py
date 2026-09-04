@@ -1,12 +1,4 @@
-"""One-time audio cache builder for the multimodal trainer.
-
-Decodes every train+validation clip's sibling .m4a into a fixed 2 s, 16 kHz fp16
-waveform and stores them in a single memmap (`audio_cache/waveforms.dat`) plus a
-key->row index (`audio_cache/index.json`). At ~13.7 GB this replaces a per-step
-ffmpeg subprocess with a cheap memmap read, so training stops being audio-decode
-bound. Safe to delete the audio_cache/ dir anytime; the trainer falls back to
-on-the-fly ffmpeg decode when the cache is absent.
-"""
+"""Decode every clip's .m4a into a fixed-length waveform memmap cache for the trainer."""
 import os
 import glob
 import json
@@ -17,7 +9,6 @@ import av
 import numpy as np
 from tqdm import tqdm
 
-# import the trainer module for its dataset, constants, and the ffmpeg-patched whisper
 _spec = importlib.util.spec_from_file_location(
     "mmtrain", os.path.join(os.path.dirname(os.path.abspath(__file__)), "train.py"))
 m = importlib.util.module_from_spec(_spec)
@@ -31,8 +22,7 @@ NUM_THREADS = 12   # pyav decodes in-process and releases the GIL, so threads sc
 
 
 def load_audio_pyav(path, sr=16000):
-    """In-process 16 kHz mono float32 decode — ~4x faster than an ffmpeg subprocess.
-    Verified bit-identical (corr 1.0) to whisper.load_audio on GLips .m4a."""
+    """Decode to 16 kHz mono float32 in-process (bit-identical to whisper.load_audio, ~4x faster)."""
     container = av.open(path)
     resampler = av.AudioResampler(format='s16', layout='mono', rate=sr)
     chunks = []
@@ -48,8 +38,7 @@ def load_audio_pyav(path, sr=16000):
 
 
 def gather_items():
-    """Unique {key: audio_path} for every clip on disk (all class/split folders),
-    so the cache is complete regardless of which split config training uses."""
+    """Unique {key: audio_path} for every clip across all class/split folders."""
     root_norm = os.path.normpath(ROOT_DIR)
     items = {}
     for video_path in glob.glob(os.path.join(ROOT_DIR, '*', '*', '*.mp4')):

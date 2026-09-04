@@ -1,12 +1,4 @@
-"""Final comparison table across fusion approaches, on cached val features.
-
-Every trained fusion head (late / concat / cross_attn / joint_tf) shares identical
-frozen visual tokens + Whisper audio, so the numbers compare the fusion mechanism
-directly. The audio-only probe is reported as a single-modality reference; visual-only
-comes from eval_visual_baseline.py. The shipped end-to-end cross-attention model
-(0.7163 val, backbone fine-tuned) is a separate, higher operating point cited from its
-own run, not recomputed here.
-"""
+"""Comparison table across trained fusion heads + audio-only probe, on cached val features."""
 import os
 import sys
 import csv
@@ -28,11 +20,11 @@ else:
 from fusion_heads import HEADS                     # noqa: E402
 from train_audio_probe import AudioProbe           # noqa: E402
 
-VIS_CACHE = os.path.join(HERE, 'cache', 'visual_token_cache')
+VIS_CACHE = os.path.join(HERE, 'cache', 'visual_token_cache_500')
 AUD_CACHE = os.path.join(HERE, 'cache', 'audio_cache')
-RUNS = os.path.join(HERE, 'models', 'fusion_runs')
-PROBE_CKPT = os.path.join(HERE, 'models', 'audio_probe', 'probe.pth')
-OUT_CSV = os.path.join(HERE, 'results', 'fusion_comparison.csv')
+RUNS = os.path.join(HERE, 'models', 'fusion_runs_500')
+PROBE_CKPT = os.path.join(HERE, 'models', 'audio_probe_500', 'probe.pth')
+OUT_CSV = os.path.join(HERE, 'results', 'fusion_comparison_500.csv')
 BATCH = 160
 
 

@@ -1,10 +1,4 @@
-"""Noise-robustness sweep for a trained fusion head (default joint_tf) on cached
-visual tokens + noisy Whisper audio.
-
-Mirrors snr_eval.py (white + babble at 15/10/5 dB, per-clip SNR, corpus babble) but
-drives a fusion head on cached visual tokens rather than the full shipped model, so
-it can score joint_tf / cross_attn / etc. Visual-only is the head run with audio
-forced off (drop_audio=True); audio-only is the Whisper-feature probe.
+"""Noise-robustness sweep (like snr_eval.py) for a trained fusion head on cached visual tokens.
 
     python snr_fusion.py [variant]      SPLIT=test (default)
 
@@ -32,10 +26,10 @@ else:
 from fusion_heads import HEADS               # noqa: E402
 from train_audio_probe import AudioProbe     # noqa: E402
 
-VIS_CACHE = os.environ.get('VIS_CACHE', os.path.join(HERE, 'cache', 'visual_token_cache'))
+VIS_CACHE = os.environ.get('VIS_CACHE', os.path.join(HERE, 'cache', 'visual_token_cache_500'))
 AUD_CACHE = os.path.join(HERE, 'cache', 'audio_cache')
-RUNS = os.path.join(HERE, 'models', 'fusion_runs')
-PROBE_CKPT = os.path.join(HERE, 'models', 'audio_probe', 'probe.pth')
+RUNS = os.environ.get('RUNS', os.path.join(HERE, 'models', 'fusion_runs_500'))
+PROBE_CKPT = os.environ.get('PROBE_CKPT', os.path.join(HERE, 'models', 'audio_probe_500', 'probe.pth'))
 SPLIT = os.environ.get('SPLIT', 'test')
 SNRS = [None, 15, 10, 5]
 NOISES = ['white', 'babble']
@@ -115,7 +109,7 @@ def main():
 
     conditions = [('clean', None)] + [(k, s) for k in NOISES for s in SNRS if s is not None]
     out = []
-    out_csv = os.path.join(HERE, 'results', f'snr_fusion_{variant}_{SPLIT}.csv')
+    out_csv = os.path.join(HERE, 'results', f'snr_fusion_{variant}_{SPLIT}_500.csv')
 
     for ci, (kind, snr) in enumerate(conditions):
         acc = {variant: [0, 0], 'audio_only': [0, 0]}

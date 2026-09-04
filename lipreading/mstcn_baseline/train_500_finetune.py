@@ -1,13 +1,7 @@
-"""Warm-start TCNLipNet on the now-complete 500-class GLips set from the old
+"""
+Due to unknown issues the original dataset was missing 2 word classes.
+Warm-start MSTCN net on the now-complete 500-class GLips set from the old
 498-class backbone (checkpoints/best_model.pth), instead of training from scratch.
-
-MS-TCN counterpart of Transformer_based/train_500_finetune.py: same warm-start
-pattern (load_transfer_weights, skip only `classifier`), same stock-split data,
-same plain recipe, so the two backbones stay directly comparable on the
-corrected 500-class split.
-
-Run AFTER mstcn_baseline/train.py has produced checkpoints/best_model.pth:
-    python mstcn_baseline/train_500_finetune.py
 """
 import os
 import sys
@@ -19,10 +13,10 @@ LIPREAD_DIR = os.path.dirname(SCRIPT_DIR)
 sys.path.insert(0, LIPREAD_DIR)
 sys.path.insert(0, SCRIPT_DIR)
 
-from dataset import GLipsFullClipDataset, VideoAugment  # noqa: E402
-from model import TCNLipNet, load_transfer_weights  # noqa: E402
-from train_loop import make_loaders, run_training  # noqa: E402
-from dataset15 import stock_complete_classes  # noqa: E402
+from dataset import GLipsFullClipDataset, VideoAugment
+from model import TCNLipNet, load_transfer_weights
+from train_loop import make_loaders, run_training
+from dataset15 import stock_complete_classes
 
 ROOT_DIR = os.path.join(LIPREAD_DIR, 'GLips_mouth', 'lipread_files')
 PRETRAIN_CKPT = os.path.join(SCRIPT_DIR, 'checkpoints', 'best_model.pth')

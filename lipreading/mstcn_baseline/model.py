@@ -1,13 +1,5 @@
-"""Traditional lip-reading baseline: 3D-Conv frontend -> 2D ResNet-18 -> MS-TCN.
-
-This is the canonical multi-scale, multi-branch Temporal Convolutional Network from
-Martinez et al., "Lipreading using Temporal Convolutional Networks" (ICASSP 2020),
-provided as a comparison point for the Transformer-based ``GLipsNet`` in ``../train.py``.
-
-It deliberately reuses the exact same 3D-conv + ResNet-18 visual frontend (``CNN3D``)
-so that the *only* difference from ``GLipsNet`` is the temporal backend: a stack of
-dilated multi-branch temporal convolutions with residual connections, followed by
-temporal average pooling and a linear classifier (no Transformer, no positional embed).
+"""
+Traditional lip-reading baseline: 3D-Conv frontend -> 2D ResNet-18 -> MS-TCN.
 """
 import os
 import importlib.util
@@ -15,10 +7,7 @@ import importlib.util
 import torch
 import torch.nn as nn
 
-# Reuse the shared visual frontend, feature dim, and checkpoint helpers from the
-# Transformer model so the two architectures are directly comparable (identical
-# 3D-conv + ResNet-18 stack). Both folders have a ``model.py``, so we load the
-# Transformer's by explicit file path under a unique name to avoid the collision.
+# Reuse the shared visual frontend, feature dim, and checkpoint helpers from the Transformer model so the two architectures are directly comparable
 _TM_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                         'Transformer_based', 'model.py')
 _spec = importlib.util.spec_from_file_location('transformer_model', _TM_PATH)
@@ -37,10 +26,8 @@ prune_periodic_checkpoints = transformer_model.prune_periodic_checkpoints
 
 
 class TemporalBranch(nn.Module):
-    """One dilated temporal-conv unit: Conv1d -> BatchNorm -> ReLU -> Dropout.
-
-    Symmetric ('same') padding keeps the temporal length unchanged: for odd kernel k,
-    (k-1) is even, so padding=(k-1)*dilation//2 preserves T exactly for any dilation.
+    """
+    One dilated temporal-conv unit: Conv1d -> BatchNorm -> ReLU -> Dropout.
     """
     def __init__(self, in_ch, out_ch, kernel_size, dilation, dropout):
         super().__init__()
@@ -57,11 +44,8 @@ class TemporalBranch(nn.Module):
 
 
 class MultibranchTCNBlock(nn.Module):
-    """Residual block of two multi-branch temporal-conv layers.
-
-    Each layer runs ``len(kernel_sizes)`` parallel branches (different temporal
-    receptive fields) whose outputs are concatenated back to ``out_ch`` channels.
-    A 1x1 conv adapts the residual path when the channel count changes.
+    """
+    Residual block of two multi-branch temporal-conv layers.
     """
     def __init__(self, in_ch, out_ch, kernel_sizes, dilation, dropout):
         super().__init__()
@@ -86,7 +70,9 @@ class MultibranchTCNBlock(nn.Module):
 
 
 class MultiscaleMultibranchTCN(nn.Module):
-    """Stack of multi-branch TCN blocks with exponentially growing dilation (1,2,4,...)."""
+    """
+    Stack of multi-branch TCN blocks with exponentially growing dilation (1,2,4,...).
+    """
     def __init__(self, in_ch, num_channels, kernel_sizes, dropout):
         super().__init__()
         layers = []
@@ -103,13 +89,8 @@ class MultiscaleMultibranchTCN(nn.Module):
 
 
 class TCNLipNet(nn.Module):
-    """3D-Conv -> ResNet-18 -> MS-TCN -> temporal mean-pool -> linear classifier.
-
-    ``width`` defaults to 384 (down from the original 768): at GLips data volumes a
-    768-wide MS-TCN has ~2.6x GLipsNet's parameters and overfits (large train/val
-    gap, train accuracy still climbing long past the validation peak). 384 makes the
-    baseline capacity-comparable to GLipsNet, so the head-to-head measures the
-    temporal back-end rather than raw parameter count.
+    """
+    3D-Conv -> ResNet-18 -> MS-TCN -> temporal mean-pool -> linear classifier.
     """
     def __init__(self, num_classes=500, width=384, num_layers=4,
                  kernel_sizes=(3, 5, 7), dropout=0.2):

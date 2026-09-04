@@ -24,8 +24,8 @@ where EMA is used), `best_top5_model.pth`, `final_model.pth` (last epoch), and
 
 | Script | Trains | Why | Checkpoint dir | CSV |
 |---|---|---|---|---|
-| `Transformer_based/train.py` | GLipsNet (3D-conv+ResNet18 → MS-TCN stem → Transformer → attentive pool) on all **500** GLips classes, stock split, plain recipe (no EMA/Mixup). | The Transformer backbone that the 15-class transfer runs warm-start from; plain recipe makes it directly comparable to the MS-TCN 500 baseline. | `Transformer_based/checkpoints/` | `Transformer_based/checkpoints/metrics.csv` |
-| `mstcn_baseline/train.py` | MS-TCN baseline (TCNLipNet, width 384) on all **500** classes, identical frontend/data/recipe. | MS-TCN counterpart of the above; the only difference is the temporal back-end. Transfer source for the MS-TCN 15-class run. | `mstcn_baseline/checkpoints/` | `mstcn_baseline/checkpoints/metrics.csv` |
+| `Transformer_based/train.py` (+ `train_500_finetune.py`) | GLipsNet (3D-conv+ResNet18 → MS-TCN stem → Transformer → attentive pool) on all **500** GLips classes, stock split, plain recipe (no EMA/Mixup). | The Transformer backbone that the 15-class transfer runs warm-start from; plain recipe makes it directly comparable to the MS-TCN 500 baseline. | `Transformer_based/checkpoints_500/` | `Transformer_based/checkpoints_500/metrics.csv` |
+| `mstcn_baseline/train.py` (+ `train_500_finetune.py`) | MS-TCN baseline (TCNLipNet, width 384) on all **500** classes, identical frontend/data/recipe. | MS-TCN counterpart of the above; the only difference is the temporal back-end. Transfer source for the MS-TCN 15-class run. | `mstcn_baseline/checkpoints_500/` | `mstcn_baseline/checkpoints_500/metrics.csv` |
 
 ## 2. 15-class from-scratch (our full-augmentation recipe)
 
@@ -85,8 +85,8 @@ LIP = Path(__file__).resolve().parent  # or Path("lipreading")
 # --- Canonical runs only (skips *_bak_* and *__pre_ameer backups) --------------
 RUNS = {
     # 500-class backbones
-    "tf_500":            "Transformer_based/checkpoints/metrics.csv",
-    "mstcn_500":         "mstcn_baseline/checkpoints/metrics.csv",
+    "tf_500":            "Transformer_based/checkpoints_500/metrics.csv",
+    "mstcn_500":         "mstcn_baseline/checkpoints_500/metrics.csv",
     # 15-class from scratch
     "tf_15":             "Transformer_based/checkpoints_15/metrics.csv",
     "mstcn_15":          "mstcn_baseline/checkpoints_15/metrics.csv",

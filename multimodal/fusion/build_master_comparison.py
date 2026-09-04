@@ -1,13 +1,4 @@
-"""Assemble one master comparison table: every architecture on the same val set.
-
-Rows: visual-only (standalone model), audio-only (Whisper probe), the four frozen
-fusion heads (late/concat/cross_attn/joint_tf), and the shipped fine-tuned cross_attn.
-All on the same 24900-clip 498-class val set, so top1/top5 are directly comparable.
-
-visual-only is recomputed from the cached val tokens through the standalone model's
-own attentive-pool + classifier, so it lands on the identical clip set as the fusion
-heads (not the 29322-clip set eval_visual_baseline used).
-"""
+"""Assemble one master comparison table: every architecture on the same val set."""
 import os
 import sys
 import csv
@@ -21,15 +12,15 @@ LIPREAD = os.path.abspath(os.path.join(HERE, '..', '..', 'lipreading'))
 sys.path.insert(0, os.path.join(LIPREAD, 'Transformer_based'))
 from model import GLipsNet, _strip_orig_mod   # noqa: E402
 
-VIS_CACHE = os.path.join(HERE, 'cache', 'visual_token_cache')
-CKPT = os.path.join(LIPREAD, 'Transformer_based', 'checkpoints', 'best_model.pth')
-REG_METRICS = os.path.join(HERE, 'models', 'checkpoints_reg', 'metrics.csv')
-FUSION_CSV = os.path.join(HERE, 'results', 'fusion_comparison.csv')
-OUT = os.path.join(HERE, 'results', 'master_comparison.csv')
+VIS_CACHE = os.path.join(HERE, 'cache', 'visual_token_cache_500')
+CKPT = os.path.join(LIPREAD, 'Transformer_based', 'checkpoints_500', 'best_model.pth')
+REG_METRICS = os.path.join(HERE, 'models', 'checkpoints_500_full', 'metrics.csv')
+FUSION_CSV = os.path.join(HERE, 'results', 'fusion_comparison_500.csv')
+OUT = os.path.join(HERE, 'results', 'master_comparison_500.csv')
 
 
 def visual_only_on_cache():
-    """Standalone visual model's attn-pool + classifier over cached val tokens."""
+    """Run the standalone visual model's attn-pool + classifier over cached val tokens."""
     device = torch.device('cuda')
     with open(os.path.join(VIS_CACHE, 'val_index.json')) as f:
         vidx = json.load(f)
@@ -93,7 +84,7 @@ def main():
         for name, t1, t5, reg, p in table:
             w.writerow([name, f'{t1:.4f}', f'{t5:.4f}', reg, p])
 
-    print(f'\nmaster_comparison.csv (val, {n} clips, 498-class):')
+    print(f'\nmaster_comparison_500.csv (val, {n} clips, 500-class):')
     print(f'{"system":34s}{"top1":>8}{"top5":>8}   regime')
     for name, t1, t5, reg, p in table:
         print(f'{name:34s}{t1:>8.4f}{t5:>8.4f}   {reg}')

@@ -25,11 +25,11 @@ import seaborn as sns
 # ---------------------------------------------------------------------------
 CSV_PATHS = {
     "mstcn_15":            r"C:\Users\pstay\code\BWKI\lipreading\mstcn_baseline\checkpoints_15\metrics.csv",
-    "transformer_15":      r"C:\Users\pstay\code\BWKI\lipreading\transformer_based\checkpoints_15\metrics.csv",
-    "mstcn_500":           r"C:\Users\pstay\code\BWKI\lipreading\mstcn_baseline\checkpoints\metrics.csv",
-    "transformer_500":     r"C:\Users\pstay\code\BWKI\lipreading\transformer_based\checkpoints\metrics.csv",
+    "transformer_15":      r"C:\Users\pstay\code\BWKI\lipreading\Transformer_based\checkpoints_15\metrics.csv",
+    "mstcn_500":           r"C:\Users\pstay\code\BWKI\lipreading\mstcn_baseline\checkpoints_500\metrics.csv",
+    "transformer_500":     r"C:\Users\pstay\code\BWKI\lipreading\Transformer_based\checkpoints_500\metrics.csv",
     "mstcn_transfer":      r"C:\Users\pstay\code\BWKI\lipreading\mstcn_baseline\checkpoints_15_transfer\metrics.csv",
-    "transformer_transfer": r"C:\Users\pstay\code\BWKI\lipreading\transformer_based\checkpoints_15_transfer\metrics.csv",
+    "transformer_transfer": r"C:\Users\pstay\code\BWKI\lipreading\Transformer_based\checkpoints_15_transfer\metrics.csv",
 }
 
 OUTDIR = "figures"  # where PNGs get saved
@@ -42,7 +42,7 @@ sns.set_theme(style="whitegrid")
 MSTCN_COLOR = "C0"
 TRANSFORMER_COLOR = "C1"
 MSTCN_LABEL = "MS-TCN"
-TRANSFORMER_LABEL = "GLipsNet (Transformer)"
+TRANSFORMER_LABEL = "GNet"
 
 ANNOT_KW = dict(
     textcoords="offset points",

@@ -1,14 +1,4 @@
-"""Noise-robustness sweep: multimodal vs visual-only vs audio-only across SNRs.
-
-Evaluates all three systems on the same GLips validation clips under additive noise
-at a set of SNRs, for two noise types:
-
-  white   -- additive white Gaussian noise
-  babble  -- a mix of other GLips waveforms, i.e. real German speech-shaped babble
-             drawn from the same corpus
-
-Visual-only is audio-independent, so it is computed once and reported as a flat
-reference line.
+"""Noise-robustness sweep: multimodal vs visual-only vs audio-only across SNRs (white + babble noise).
 
 Usage:  python snr_eval.py
 Writes: snr_results.csv
@@ -25,9 +15,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-# Register under a real module name before executing: DataLoader workers spawn fresh
-# interpreters on Windows and unpickle the dataset, whose class identifies itself as
-# living in 'mmtrain'. Without the sys.modules entry the child cannot resolve it.
+# registered as 'mmtrain' so Windows DataLoader worker processes can unpickle the dataset class
 if 'mmtrain' in sys.modules:
     m = sys.modules['mmtrain']
 else:
@@ -41,11 +29,11 @@ from train_audio_probe import AudioProbe  # noqa: E402
 ROOT_DIR = '../../lipreading/GLips_mouth/lipread_files'
 AUDIO_ROOT = '../../lipreading/GLips/lipread_files'
 CACHE_DIR = './cache/audio_cache'
-FUSED_CKPT = './models/checkpoints_reg/best_model.pth'
-PROBE_CKPT = './models/audio_probe/probe.pth'
+FUSED_CKPT = './models/checkpoints_500_full/best_model.pth'
+PROBE_CKPT = './models/audio_probe_500/probe.pth'
 SPLIT = os.environ.get('SPLIT', 'validation')
-OUT_CSV = os.environ.get('OUT_CSV', './results/snr_results.csv')
-EXCLUDED = ('hier', 'soll')
+OUT_CSV = os.environ.get('OUT_CSV', './results/snr_results_500.csv')
+EXCLUDED = ()  # hier/soll mouth-ROI bug fixed upstream; full 500-class vocabulary now
 SNRS = [None, 15, 10, 5]        # None == clean
 NOISES = ['white', 'babble']
 BATCH = 16
@@ -55,11 +43,7 @@ LIMIT = int(os.environ.get('LIMIT', '0')) or None
 
 
 def add_noise(wav, noise, snr_db):
-    """Scale `noise` to hit `snr_db` against `wav`, per clip, then mix.
-
-    SNR = 10*log10(P_signal / P_noise), so the required noise gain is
-    sqrt(P_signal / (P_noise * 10^(snr/10))).
-    """
+    """Scale `noise` per-clip to hit `snr_db` against `wav`, then mix."""
     if snr_db is None:
         return wav
     p_sig = wav.pow(2).mean(dim=1, keepdim=True)
@@ -79,8 +63,7 @@ def make_noise(kind, wav, babble_pool, gen):
 
 
 def fused_logits(model, video, audio, drop_audio):
-    """Forward the cross-attention model, optionally masking the audio residual
-    (the same path modality dropout used during training)."""
+    """Forward the cross-attention model, optionally masking the audio residual."""
     x = model.cnn(video)
     B, T, C, H, W = x.size()
     x = model.avgpool(x.view(B * T, C, H, W)).flatten(1).view(B, T, m.FEAT_DIM)
@@ -99,7 +82,7 @@ def main():
 
     classes = sorted(d for d in os.listdir(ROOT_DIR)
                      if os.path.isdir(os.path.join(ROOT_DIR, d)) and d not in EXCLUDED)
-    assert len(classes) == 498
+    assert len(classes) == 500
 
     val_tf = m.VideoAugment(crop_size=88, resize_size=96, is_train=False)
     val_ds = m.MultimodalGLipsDataset(ROOT_DIR, split=SPLIT, num_frames=25,
@@ -112,12 +95,10 @@ def main():
                             collate_fn=m.collate_fn)
     print(f'val clips: {len(val_ds)}')
 
-    # Babble pool: a fixed sample of train waveforms, held on GPU for cheap mixing.
     with open(os.path.join(CACHE_DIR, 'index.json')) as f:
         index = json.load(f)
     wave_mm = np.memmap(os.path.join(CACHE_DIR, 'waveforms.dat'), dtype=np.float16,
                         mode='r', shape=(index['n'], index['audio_samples']))
-    # cache keys use the on-disk split dir names: train / val / test
     train_rows = sorted(r for k, r in index['rows'].items() if k.split('/')[1] == 'train')
     assert train_rows, 'empty train split — check cache key format'
     rng = np.random.default_rng(SEED)
@@ -172,8 +153,7 @@ def main():
                     acc['audio_only'][0] += (la.argmax(1) == target).sum().item()
                     acc['audio_only'][1] += (la.topk(5, 1).indices == target.unsqueeze(1)).any(1).sum().item()
 
-                    # visual-only is audio-independent: compute once, on the clean pass
-                    if cond_i == 0:
+                    if cond_i == 0:  # visual-only is audio-independent: compute once
                         lv = fused_logits(model, video, audio, drop_audio=True)
                         vis[0] += (lv.argmax(1) == target).sum().item()
                         vis[1] += (lv.topk(5, 1).indices == target.unsqueeze(1)).any(1).sum().item()

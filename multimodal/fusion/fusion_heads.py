@@ -1,25 +1,4 @@
-"""Fusion heads for the multimodal comparison.
-
-Every head consumes the SAME inputs so the comparison isolates the fusion
-mechanism, not the frontends:
-    v_tok: (B, Tv, Dv)  frozen visual token sequence (Dv=256, Tv=25)
-    a_tok: (B, Ta, Da)  Whisper audio token sequence (Da=512, Ta=100)
-
-Heads:
-  late            two independent classifiers (one per modality), logits summed.
-                  No cross-modal interaction before the decision -> "late fusion".
-  concat          mean-pool each modality, concatenate, MLP classifier.
-  cross_attn      visual queries audio via multi-head attention, gated residual
-                  (a frozen-backbone replica of the shipped 0.716 architecture).
-  joint_tf        AV-HuBERT-style: project both to a shared width, concatenate the
-                  token sequences with learned modality-type embeddings, run a
-                  shared multi-layer Transformer with full self-attention across
-                  modalities, pool, classify.
-
-Modality dropout (train only) zeroes a sample's audio contribution with prob
-`audio_dropout`, so every head retains a visual-only fallback and the noise-
-robustness comparison stays meaningful.
-"""
+"""Fusion heads (late/concat/cross_attn/joint_tf) sharing the same (v_tok, a_tok) inputs so only the fusion mechanism differs."""
 import torch
 import torch.nn as nn
 
@@ -78,8 +57,7 @@ class ConcatFusion(nn.Module):
 
 
 class CrossAttnFusion(nn.Module):
-    """Frozen-backbone replica of the shipped architecture: visual tokens attend
-    over audio tokens through a gated residual, then pool + classify."""
+    """Visual tokens attend over audio via a gated residual, then pool + classify."""
     def __init__(self, num_classes, d_v=256, d_a=512, n_heads=8, dropout=0.3, audio_dropout=0.2):
         super().__init__()
         self.audio_dropout = audio_dropout
@@ -101,9 +79,7 @@ class CrossAttnFusion(nn.Module):
 
 
 class JointTransformerFusion(nn.Module):
-    """AV-HuBERT-style joint encoder: concatenate visual+audio token sequences with
-    modality-type embeddings, apply a shared Transformer with full cross-modal
-    self-attention, pool, classify."""
+    """AV-HuBERT-style: concat visual+audio tokens with modality embeddings, run a shared Transformer, classify the CLS token."""
     def __init__(self, num_classes, d_v=256, d_a=512, d_model=256, n_layers=3,
                  n_heads=8, dropout=0.3, audio_dropout=0.2):
         super().__init__()
