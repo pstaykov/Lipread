@@ -1,6 +1,4 @@
-"""
-Train the MS-TCN baseline (TCNLipNet, width 384) on all 500 GLips classes.
-"""
+"""Train the MS-TCN baseline (TCNLipNet, width 384) on all 500 GLips classes."""
 import os
 import sys
 
@@ -29,7 +27,7 @@ def main():
 
     train_transform = VideoAugment(crop_size=88, resize_size=96, is_train=True)
     val_transform = VideoAugment(crop_size=88, resize_size=96, is_train=False)
-    classes = stock_complete_classes(ROOT_DIR)  # drop corpus-degenerate classes (no val)
+    classes = stock_complete_classes(ROOT_DIR)
     train_dataset = GLipsFullClipDataset(ROOT_DIR, split='train', num_frames=NUM_FRAMES,
                                          transform=train_transform, classes=classes,
                                          group_split=False)

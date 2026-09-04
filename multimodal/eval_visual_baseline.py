@@ -5,7 +5,7 @@ import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-LIPREAD = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'lipreading'))
+LIPREAD = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'lipreading'))
 sys.path.insert(0, os.path.join(LIPREAD, 'Transformer_based'))
 sys.path.insert(0, LIPREAD)
 from model import GLipsNet, _strip_orig_mod        # noqa: E402

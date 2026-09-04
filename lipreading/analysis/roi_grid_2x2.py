@@ -1,8 +1,4 @@
-"""Clean 2x2 lip-ROI check grid: no headings, no subheadings, no text.
-
-Two sample clips, each contributing one row:
-    left column  = raw frame + FaceMesh lip landmarks + the crop box they produce
-    right column = the actual mouth-ROI crop written by preprocess_mouth_roi.py
+"""2x2 lip-ROI check grid: left column raw frame + landmarks + crop box, right column the actual mouth-ROI crop.
 
 Run from the lipreading/ directory:
     python analysis/roi_grid_2x2.py

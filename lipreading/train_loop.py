@@ -1,6 +1,4 @@
-"""
-shared training loop for every GLips classifier in this project.
-"""
+"""Shared training loop for every GLips classifier in this project."""
 import os
 import csv
 import copy
@@ -31,11 +29,7 @@ class EMA:
 
 
 def mixup_cutmix(x, y, alpha=0.2, cutmix_alpha=1.0, prob=0.6, switch_prob=0.5):
-    """
-    Per-batch Mixup or CutMix on a video tensor (B, C, T, H, W).
-
-    Returns (x, y_a, y_b, lam); loss = lam*CE(.,y_a) + (1-lam)*CE(.,y_b).
-    """
+    """Per-batch Mixup or CutMix on a video tensor (B, C, T, H, W); returns (x, y_a, y_b, lam)."""
     if random.random() > prob:
         return x, y, y, 1.0
     perm = torch.randperm(x.size(0), device=x.device)
@@ -56,13 +50,7 @@ def mixup_cutmix(x, y, alpha=0.2, cutmix_alpha=1.0, prob=0.6, switch_prob=0.5):
 
 
 def same_class_interpolation(x, y, prob=0.5):
-    """Ameer et al.'s 'interpolation' augmentation: for two samples of the SAME
-    class, generate a new sample (x1 + x2)/2 with the label unchanged. Ameer apply
-    it to extracted features; here it is applied at the clip level (well-defined for
-    any backend, unlike their feature-noise which is calibrated to their NASNet
-    features). Returns (x, y_a, y_b, lam) = (x, y, y, 1.0) so the loss stays plain
-    cross-entropy on the (unchanged) label.
-    """
+    """Ameer et al.'s 'interpolation' augmentation: average two same-class clips, label unchanged (applied at clip level, not features)."""
     if random.random() > prob:
         return x, y, y, 1.0
     x = x.clone()
@@ -101,9 +89,7 @@ def _strip_orig_mod(state_dict):
 
 
 def macro_f1_from_confusion(conf):
-    """
-    Macro-averaged F1 from an integer confusion matrix
-    """
+    """Macro-averaged F1 from an integer confusion matrix."""
     conf = conf.double()
     tp = conf.diag()
     fp = conf.sum(0) - tp
@@ -115,8 +101,7 @@ def macro_f1_from_confusion(conf):
 
 @torch.no_grad()
 def _evaluate(eval_model, val_loader, criterion, device, amp_dtype, num_classes):
-    """Returns (val_loss, top1, top5, macro_f1). Also accumulates a confusion matrix
-    so macro-F1 is logged every epoch alongside accuracy."""
+    """Returns (val_loss, top1, top5, macro_f1)."""
     eval_model.eval()
     correct1, correct5, running_val_loss, total = 0, 0, 0.0, 0
     conf = torch.zeros(num_classes, num_classes, dtype=torch.long)
@@ -144,9 +129,7 @@ def run_training(model, train_loader, val_loader, *, num_classes, device, save_d
                  weight_decay=0.05, label_smoothing=0.1, ema_decay=0.999,
                  use_ema=True, use_mixup=True, mix_fn=None, patience=None, resume=True,
                  grad_clip=1.0):
-    """Train model, early-stop on val top-1 plateau, checkpoint best top-1 AND
-    best top-5 separately. Returns (best_top1, best_top5).
-    """
+    """Train model, early-stop on val top-1 plateau, checkpoint best top-1 and best top-5 separately."""
     os.makedirs(save_dir, exist_ok=True)
     latest_path = os.path.join(save_dir, 'checkpoint_latest.pth')
     best_path = os.path.join(save_dir, 'best_model.pth')            # EMA/plain weights @ best top-1
@@ -154,11 +137,7 @@ def run_training(model, train_loader, val_loader, *, num_classes, device, save_d
     final_path = os.path.join(save_dir, 'final_model.pth')          # weights, last epoch
     metrics_path = os.path.join(save_dir, 'metrics.csv')
 
-    # EMA infra (only when use_ema): a frozen clone is loaded with the shadow weights
-    # for validation and saved as the best checkpoint.
-    # mix_fn is the batch mixing augmentation. Back-compat: use_mixup=True with no
-    # explicit mix_fn keeps the original Mixup/CutMix; Ameer runs pass
-    # same_class_interpolation; the plain 500-class runs pass neither.
+    # use_mixup=True with no explicit mix_fn keeps the original Mixup/CutMix
     if mix_fn is None and use_mixup:
         mix_fn = mixup_cutmix
 

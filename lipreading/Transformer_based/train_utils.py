@@ -1,11 +1,4 @@
-"""Shared training loop for the GLipsNet classifiers.
-
-``train_15.py`` is the original, self-contained GLips15 trainer and is left
-untouched (it holds the known-good 0.5453 run). The LRW-15 pretrainer and the
-GLips15 transfer-learning trainer share the exact same loop, so it lives here as
-``train_classifier`` to avoid copy-pasting ~150 lines three times. EMA and
-mixup/cutmix are imported from ``train_15`` so there is a single definition.
-"""
+"""Shared training loop (train_classifier) for the LRW-15 pretrainer and GLips15 transfer trainer; train_15.py stays self-contained."""
 import os
 import csv
 
@@ -37,14 +30,7 @@ def train_classifier(model, train_loader, val_loader, *, num_classes, device,
                      backbone_lr=1e-4, head_lr=1e-3, weight_decay=0.05,
                      label_smoothing=0.1, ema_decay=0.999, use_mixup=True,
                      resume=True):
-    """Train ``model`` and checkpoint EMA weights. Returns best val top-1.
-
-    Mirrors ``train_15.py`` exactly: differential LR (the pretrained ResNet
-    backbone learns at ``backbone_lr``, everything else at ``head_lr``), weight
-    EMA used for both validation and the saved ``best_model.pth``, mixup/cutmix,
-    AMP, linear-warmup -> cosine schedule, and exact resume from
-    ``checkpoint_latest.pth``.
-    """
+    """Train `model` and checkpoint EMA weights (mirrors train_15.py's recipe exactly). Returns best val top-1."""
     import copy
 
     ema_model = copy.deepcopy(model).eval()

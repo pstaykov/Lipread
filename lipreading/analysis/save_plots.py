@@ -1,13 +1,4 @@
-"""
-Unified plotting for GLipsNet vs. MS-TCN comparisons.
-
-One shared style for every figure in the paper: the 15-class run, the
-500-class run, the transfer run, and the summary bar chart. Run this
-in place of the four separate notebook cells -- it reads the same
-metrics.csv files you already point to, but guarantees every figure
-uses identical colors, fonts, axis style, and annotation formatting,
-and prints the exact numeric values used in each plot so you can copy
-them straight into the paper's tables/text.
+"""Unified plotting for GLipsNet vs. MS-TCN comparisons: 15-class, 500-class, transfer, and summary bar, all in one shared style.
 
 Usage:
     python plot_results.py
@@ -20,10 +11,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 
-# ---------------------------------------------------------------------------
-# 1. Paths -- edit these to match your machine
-# ---------------------------------------------------------------------------
-CSV_PATHS = {
+CSV_PATHS = {  # edit these to match your machine
     "mstcn_15":            r"C:\Users\pstay\code\BWKI\lipreading\mstcn_baseline\checkpoints_15\metrics.csv",
     "transformer_15":      r"C:\Users\pstay\code\BWKI\lipreading\Transformer_based\checkpoints_15\metrics.csv",
     "mstcn_500":           r"C:\Users\pstay\code\BWKI\lipreading\mstcn_baseline\checkpoints_500\metrics.csv",
@@ -34,9 +22,6 @@ CSV_PATHS = {
 
 OUTDIR = "figures"  # where PNGs get saved
 
-# ---------------------------------------------------------------------------
-# 2. One shared style, used by every figure
-# ---------------------------------------------------------------------------
 sns.set_theme(style="whitegrid")
 
 MSTCN_COLOR = "C0"
@@ -78,16 +63,7 @@ def _annotate_max(ax, df, col, color, offset, fmt="max {v:.1f}% @ ep{e}"):
 
 
 def _align_epochs(df_mstcn, df_transformer, title_prefix):
-    """Trim both runs to the epoch budget they *both* completed.
-
-    The two models are compared head-to-head, so a panel where one curve
-    stops early is not a comparison -- it is two different experiments on
-    one axis. Early stopping (patience on the val plateau) ends each run
-    at its own peak + patience, so lengths drift apart unless the trainer
-    is told otherwise. The runs behind these figures were continued to a
-    common budget; this is the backstop that keeps a future ragged pair
-    from silently reaching the paper.
-    """
+    """Trim both runs to the epoch budget they both completed, so a head-to-head panel never compares mismatched run lengths."""
     last = int(min(df_mstcn["epoch"].max(), df_transformer["epoch"].max()))
     if df_mstcn["epoch"].max() != df_transformer["epoch"].max():
         print(f"  ! {title_prefix}: unequal run lengths "
@@ -108,27 +84,15 @@ def plot_run(
     xtick_step: int = None,
     save_path: str,
 ):
-    """
-    xlim/xtick_step are optional. If omitted, the axis runs edge to edge
-    over the epochs both models completed -- no dead strip on the right
-    where a shorter run ran out, and no curve clipped short of its own
-    last epoch.
-    """
+    """Render the standard two-panel (val/train) comparison figure for one run; returns the exact peak values used."""
     df_mstcn, df_transformer, last_epoch = _align_epochs(
         df_mstcn, df_transformer, title_prefix)
     if xlim is None:
         xlim = last_epoch
     if xtick_step is None:
         xtick_step = max(5, round(xlim / 10 / 5) * 5 or 5)
-    """
-    Render the standard two-panel (validation / train) comparison figure
-    for one run (15-class, 500-class, or transfer), in the single shared
-    style. Returns a dict of the exact peak values used, for copying into
-    tables.
-    """
     fig, (ax_val, ax_train) = plt.subplots(1, 2, figsize=FIGSIZE, sharey=True)
 
-    # --- left: validation top-1 / top-5 ---
     ax_val.plot(df_mstcn["epoch"], df_mstcn["val_top1"] * 100,
                 label=MSTCN_LABEL, color=MSTCN_COLOR)
     ax_val.plot(df_transformer["epoch"], df_transformer["val_top1"] * 100,
@@ -141,8 +105,7 @@ def plot_run(
     mstcn_val_e, mstcn_val_v = _annotate_max(ax_val, df_mstcn, "val_top1", MSTCN_COLOR, (10, -22))
     tf_val_e, tf_val_v = _annotate_max(ax_val, df_transformer, "val_top1", TRANSFORMER_COLOR, (10, 12))
 
-    # top-5 maxima, no marker -- numeric only, used for table reporting
-    mstcn_top5_v = df_mstcn["val_top5"].max() * 100
+    mstcn_top5_v = df_mstcn["val_top5"].max() * 100  # numeric only, no marker
     tf_top5_v = df_transformer["val_top5"].max() * 100
 
     ax_val.set_title(f"{title_prefix}: Validation Accuracy over Epochs", pad=TITLE_PAD)
@@ -151,7 +114,6 @@ def plot_run(
     ax_val.legend(loc="lower right", framealpha=0.9)
     ax_val.grid(True)
 
-    # --- right: train top-1 ---
     ax_train.plot(df_mstcn["epoch"], df_mstcn["train_acc"] * 100,
                   label=MSTCN_LABEL, color=MSTCN_COLOR)
     ax_train.plot(df_transformer["epoch"], df_transformer["train_acc"] * 100,
@@ -165,8 +127,6 @@ def plot_run(
     ax_train.legend(loc="lower right", framealpha=0.9)
     ax_train.grid(True)
 
-    # Ticks on the round multiples, plus the final epoch itself when it is far
-    # enough from the last multiple not to collide with its label.
     xticks = list(np.arange(0, xlim + 1, xtick_step))
     if xlim - xticks[-1] >= xtick_step / 2:
         xticks.append(xlim)

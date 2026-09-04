@@ -1,14 +1,4 @@
-"""Fine-tune the MS-TCN baseline on GLips15, warm-started from the 500-class MS-TCN.
-
-The MS-TCN counterpart of Transformer_based/train_15_transfer.py. Everything ---
-Ameer's 15 classes, mouth-ROI data, stock split, augmentation, EMA, Mixup/CutMix,
-schedule, early stopping --- is held IDENTICAL to mstcn_baseline/train_15.py and to
-the Transformer transfer run, so the only variables are (a) ImageNet vs GLips-500
-init and (b) Transformer vs MS-TCN back-end.
-
-Whole-backbone warm start: the source is the same architecture (TCNLipNet, 500-class),
-so the 3D-conv + ResNet frontend and the entire MS-TCN transfer by name+shape; only
-the 15-way classifier is fresh.
+"""Fine-tune the MS-TCN baseline on GLips15, warm-started from the 500-class MS-TCN (MS-TCN counterpart of Transformer_based/train_15_transfer.py).
 
 Run AFTER mstcn_baseline/train.py (+ train_500_finetune.py) has produced
 checkpoints_500/best_model.pth:
@@ -30,11 +20,7 @@ from dataset15 import CLASSES, make_15_datasets  # noqa: E402
 from train_loop import make_loaders, run_training  # noqa: E402
 
 PRETRAIN_CKPT = os.path.join(SCRIPT_DIR, 'checkpoints_500', 'best_model.pth')
-# Both transfer runs plateau within ~12 epochs and early-stopped at different points
-# (MS-TCN at 25, GLipsNet at 27). Capped at 27 with early stopping off so the two
-# transfer curves span an identical 27 epochs. The LR schedule is unchanged: it was
-# built for 80 epochs and is restored from checkpoint_latest.pth on resume.
-NUM_EPOCHS = 27
+NUM_EPOCHS = 27  # capped (early stopping off) so this matches the GLipsNet transfer run's span
 PATIENCE = None
 
 

@@ -1,20 +1,9 @@
-"""Canonical GLips-15 benchmark config: the 15 word classes and dataset builders.
-
-Single source of truth so the class list can never silently diverge between the
-Transformer and MS-TCN trainers (they previously each held their own copy).
-
-The 15 classes are **Ameer et al.'s** set, and we evaluate on the **stock GLips
-folder split** (the fixed 400 train / 50 val / 50 test clips the corpus ships
-with, ``group_split=False``) so our numbers are directly comparable to theirs.
-No source-disjoint re-partitioning is applied: the published train/val/test
-folders are treated as authoritative.
-"""
+"""Canonical GLips-15 benchmark config: Ameer et al.'s 15 word classes, evaluated on the stock (non-grouped) GLips split."""
 import os
 
 from dataset import GLipsFullClipDataset, VideoAugment
 
-# Ameer et al.'s 15 GLips word classes (as read off their confusion matrix).
-CLASSES = sorted([
+CLASSES = sorted([  # Ameer et al.'s 15 GLips word classes (read off their confusion matrix)
     'aber', 'aufgaben', 'bleibt', 'darüber', 'digitalisierung',
     'einmal', 'finden', 'gegen', 'geworden', 'herrn',
     'investitionen', 'kommunen', 'linke', 'möglichkeit', 'passiert',
@@ -25,24 +14,14 @@ ROI_ROOT = os.path.join(_LIPREAD_DIR, 'GLips_mouth', 'lipread_files')   # mouth-
 FULL_ROOT = os.path.join(_LIPREAD_DIR, 'GLips', 'lipread_files')        # uncropped full-face
 
 NUM_FRAMES = 25
-# Stock published split — compare head-to-head with Ameer et al.
-GROUP_SPLIT = False
+GROUP_SPLIT = False   # stock published split, for head-to-head comparison with Ameer et al.
 
-# Ameer et al.'s exact input pipeline (for the 15-word head-to-head runs).
 AMEER_FRAMES = 16     # they select 16 frames per clip
 AMEER_SIZE = 128      # resize to 128x128, no crop
 
 
 def stock_complete_classes(root_dir=ROI_ROOT):
-    """Sorted class names that have a complete stock split (>=1 clip in BOTH a train
-    and a val/validation folder).
-
-    A handful of GLips classes are degenerate in the corpus — e.g. ``soll`` has only
-    4 clips total and no val folder, ``hier`` has no val folder — so under the stock
-    split (group_split=False) they cannot supply a validation set. They are dropped
-    from the 500-class run (which is only a transfer feature-source; its classifier
-    is discarded), keeping train and val on an identical, aligned class set.
-    """
+    """Sorted class names with a complete stock split (>=1 clip in both a train and a val/validation folder)."""
     def _has_mp4(*parts):
         d = os.path.join(root_dir, *parts)
         return os.path.isdir(d) and any(f.endswith('.mp4') for f in os.listdir(d))
@@ -57,10 +36,7 @@ def stock_complete_classes(root_dir=ROI_ROOT):
 
 
 def make_15_datasets(root_dir=ROI_ROOT, num_frames=NUM_FRAMES, group_split=GROUP_SPLIT):
-    """(train_dataset, val_dataset) for the 15-class task under the standard recipe:
-    grayscale + random-erasing + temporal speed-perturbation on train, deterministic
-    resize/centre-crop on val. Point ``root_dir`` at FULL_ROOT for the no-mouth-ROI
-    ablation; everything else is held identical for a fair comparison."""
+    """(train_dataset, val_dataset) for the 15-class task: standard train augmentation, deterministic val."""
     train_transform = VideoAugment(crop_size=88, resize_size=96, is_train=True,
                                    grayscale_p=0.2, random_erase=0.25)
     val_transform = VideoAugment(crop_size=88, resize_size=96, is_train=False)
@@ -74,16 +50,7 @@ def make_15_datasets(root_dir=ROI_ROOT, num_frames=NUM_FRAMES, group_split=GROUP
 
 
 def make_15_datasets_ameer():
-    """Ameer et al.'s EXACT input pipeline for the 15-word head-to-head runs.
-
-    Uncropped full-face frames (FULL_ROOT, no face detection / no mouth-ROI crop),
-    resize 128x128 with NO random crop, 16 frames/clip, min-max [0,1] normalization,
-    and horizontal-flip-only image augmentation (no affine, photometric, grayscale,
-    random-erase, time-mask, or temporal jitter). The same-class interpolation and
-    the plain recipe (no EMA / no label smoothing) are applied by the trainer, not
-    here. Only the augmentation/preprocessing matches Ameer — the model stays ours
-    (GLipsNet / MS-TCN), which is the whole point of the comparison.
-    """
+    """Ameer et al.'s exact input pipeline (uncropped faces, 128x128 no-crop, minmax norm, flip-only aug); model stays ours."""
     train_transform = VideoAugment(
         crop_size=AMEER_SIZE, resize_size=AMEER_SIZE, is_train=True,
         brightness=0.0, contrast=0.0, grayscale_p=0.0, random_erase=0.0,

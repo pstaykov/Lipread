@@ -1,14 +1,4 @@
-"""GLipsNet on the 15-word task under Ameer et al.'s EXACT data + augmentation.
-
-Head-to-head with Ameer et al. (NASNetMobile, GLips 0.484 acc / 0.485 F1): same
-uncropped full-face input, resize 128x128, 16 frames, min-max normalization,
-horizontal-flip-only image augmentation, same-class interpolation, and a plain
-recipe (no EMA, no label smoothing, plain cross-entropy). Only the augmentation/
-preprocessing matches Ameer — the model is our GLipsNet, so the comparison
-isolates architecture under an identical data regime.
-
-Separate from train_15.py (which keeps our full augmentation); results go to
-checkpoints_15_ameer/ and do NOT overwrite the full-augmentation runs.
+"""GLipsNet on the 15-word task under Ameer et al.'s exact data + augmentation, to isolate architecture under an identical data regime.
 
     python Transformer_based/train_15_ameer.py
 """
@@ -43,7 +33,6 @@ def main():
     assert device.type == 'cuda', f"CUDA not available — got device '{device}'"
     print(f"Using device: {torch.cuda.get_device_name(device)}")
 
-    # Our model (attentive pool + conv stem); only the data/aug matches Ameer.
     model = GLipsNet(num_classes=len(CLASSES), dropout=0.3, pool='attn').to(device)
     best1, best5 = run_training(
         model, train_loader, val_loader, num_classes=len(CLASSES), device=device,

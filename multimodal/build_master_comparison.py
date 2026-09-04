@@ -8,7 +8,7 @@ import numpy as np
 import torch
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-LIPREAD = os.path.abspath(os.path.join(HERE, '..', '..', 'lipreading'))
+LIPREAD = os.path.abspath(os.path.join(HERE, '..', 'lipreading'))
 sys.path.insert(0, os.path.join(LIPREAD, 'Transformer_based'))
 from model import GLipsNet, _strip_orig_mod   # noqa: E402
 

@@ -1,11 +1,4 @@
-"""MS-TCN baseline on the 15-word task under Ameer et al.'s EXACT data + augmentation.
-
-The MS-TCN counterpart of Transformer_based/train_15_ameer.py: identical Ameer-matched
-input (uncropped full-face, 128x128, 16 frames, min-max), horizontal-flip-only image
-augmentation, same-class interpolation, and plain recipe (no EMA / no label smoothing).
-Only augmentation/preprocessing matches Ameer; the model is our TCNLipNet (width 384).
-
-Results go to checkpoints_15_ameer/ (separate from the full-augmentation runs).
+"""MS-TCN counterpart of Transformer_based/train_15_ameer.py: same Ameer-matched data/augmentation, model is our TCNLipNet (width 384).
 
     python mstcn_baseline/train_15_ameer.py
 """

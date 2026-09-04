@@ -24,7 +24,7 @@ else:
     m = sys.modules['mmtrain']
 
 AUD_CACHE = os.path.join(HERE, 'cache', 'audio_cache')
-ROOT = os.path.join(HERE, '..', '..', 'lipreading', 'GLips_mouth', 'lipread_files')
+ROOT = os.path.join(HERE, '..', 'lipreading', 'GLips_mouth', 'lipread_files')
 EXCLUDED = ('hier', 'soll')
 SPLITS = os.environ.get('SPLIT', 'val,test').split(',')
 LIMIT = int(os.environ.get('LIMIT', '0'))

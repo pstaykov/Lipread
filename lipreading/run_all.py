@@ -1,10 +1,4 @@
-"""Sequential, resumable run queue for the full GLips retraining sweep.
-
-Runs every trainer once, in dependency order (500-class backbones first, then the
-15-class from-scratch runs, then the transfer runs that warm-start from the 500
-backbones, then the GLipsNet ablations). Each trainer already resumes from its own
-``checkpoint_latest.pth`` and early-stops on the validation plateau, so this script
-only sequences them and skips any run whose ``final_model.pth`` already exists.
+"""Sequential, resumable run queue for the full GLips retraining sweep; skips any run whose final_model.pth already exists.
 
     python run_all.py            # run/continue the whole queue
     python run_all.py --force    # ignore final_model.pth, re-run everything
@@ -28,8 +22,6 @@ QUEUE = [
     ('mstcn_baseline/train.py',                 'mstcn_baseline/checkpoints_500'),
     ('Transformer_based/train_15.py',           'Transformer_based/checkpoints_15'),
     ('mstcn_baseline/train_15.py',              'mstcn_baseline/checkpoints_15'),
-    # Ameer-matched 15-word runs (uncropped 128x128, 16 frames, min-max, flip-only,
-    # same-class interpolation, plain recipe) — separate from the full-aug runs above.
     ('Transformer_based/train_15_ameer.py',     'Transformer_based/checkpoints_15_ameer'),
     ('mstcn_baseline/train_15_ameer.py',        'mstcn_baseline/checkpoints_15_ameer'),
     ('Transformer_based/train_15_transfer.py',  'Transformer_based/checkpoints_15_transfer'),

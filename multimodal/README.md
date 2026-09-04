@@ -5,12 +5,12 @@ encoder, fused into the visual token stream via gated cross-attention.
 
 ## Data layout (important)
 
-- **Video**: mouth-crop mp4s in `../../lipreading/GLips_mouth/lipread_files/<class>/<split>/<name>.mp4`.
+- **Video**: mouth-crop mp4s in `../lipreading/GLips_mouth/lipread_files/<class>/<split>/<name>.mp4`.
   These are **video-only** — the mouth-cropping step dropped the audio.
 - **Audio**: sibling `.m4a` files in the original tree
-  `../../lipreading/GLips/lipread_files/<class>/<split>/<name>.m4a` (same class/split/name).
+  `../lipreading/GLips/lipread_files/<class>/<split>/<name>.m4a` (same class/split/name).
   The dataset maps each clip to its `.m4a` automatically.
-- **Visual checkpoint** (required): `../../lipreading/Transformer_based/checkpoints_500/best_model.pth`.
+- **Visual checkpoint** (required): `../lipreading/Transformer_based/checkpoints_500/best_model.pth`.
   Training asserts on this at startup and partially loads it (visual tensors; the
   cross-attention keys start random).
 

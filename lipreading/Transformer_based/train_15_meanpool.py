@@ -1,9 +1,4 @@
-"""Ablation: GLipsNet with plain temporal MEAN pooling instead of attentive pooling.
-
-Everything else (classes, stock split, MS-TCN stem, Transformer, recipe, early
-stopping) is identical to the main from-scratch GLips15 run, so the delta isolates
-the contribution of the attentive-pool head. Run as its own experiment rather than
-bolted on afterwards.
+"""Ablation: GLipsNet with plain temporal mean pooling instead of attentive pooling; isolates the pool head's contribution.
 
     python Transformer_based/train_15_meanpool.py     -> checkpoints_15_meanpool/
 """

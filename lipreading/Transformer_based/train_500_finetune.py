@@ -1,13 +1,4 @@
-"""Warm-start GLipsNet on the now-complete 500-class GLips set from the old
-498-class backbone (checkpoints/best_model.pth), instead of training from scratch.
-
-'hier' and 'soll' were previously dropped by stock_complete_classes() because their
-mouth-ROI tree (GLips_mouth) was missing val/test clips (see preprocess_mouth_roi.py
-rerun for those two classes). The CNN/MS-TCN/Transformer backbone and attentive-pool
-head learned by the 498-class run are class-count agnostic — only the final
-`classifier` Linear layer depends on num_classes — so load_transfer_weights() carries
-every other tensor over by name+shape and only the classifier (498 -> 500 rows)
-starts fresh. This should converge far faster than a 30-epoch from-scratch run.
+"""Warm-start GLipsNet on the full 500-class GLips set from the old 498-class backbone, instead of training from scratch.
 
 Run AFTER Transformer_based/train.py has produced checkpoints/best_model.pth:
     python Transformer_based/train_500_finetune.py

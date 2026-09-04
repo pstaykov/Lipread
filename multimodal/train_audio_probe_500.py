@@ -1,7 +1,7 @@
-"""Audio-only baseline: a classifier head on frozen Whisper encoder features (cached waveforms, no video decode).
+"""Same recipe as train_audio_probe.py, but over the full 500-class vocabulary (no class exclusion).
 
-Usage:  python train_audio_probe.py
-Writes: audio_probe/probe.pth  (+ cached train/val features)
+Usage:  python train_audio_probe_500.py
+Writes: models/audio_probe_500/probe.pth  (+ cached train/val features)
 """
 import os
 import sys
@@ -22,17 +22,15 @@ else:
     sys.modules['mmtrain'] = m
     _spec.loader.exec_module(m)
 
-ROOT_DIR = '../../lipreading/GLips_mouth/lipread_files'
+ROOT_DIR = '../lipreading/GLips_mouth/lipread_files'
 CACHE_DIR = './cache/audio_cache'
-OUT_DIR = './models/audio_probe'
-EXCLUDED = ('hier', 'soll')
+OUT_DIR = './models/audio_probe_500'
 ENCODE_BATCH = 128
 PROBE_EPOCHS = 30
 PROBE_BATCH = 1024
 
 
 def build_split_index(rows, classes, split):
-    """Keep cache keys ('class/split/name') for this split whose class is in `classes`, paired with its label."""
     cls_to_idx = {c: i for i, c in enumerate(classes)}
     items = []
     for key, row in rows.items():
@@ -46,20 +44,17 @@ def build_split_index(rows, classes, split):
 
 @torch.no_grad()
 def encode_split(extractor, wave_mm, rows_idx, device, desc):
-    """Whisper-encode every clip in the split and mean-pool to one vector each."""
     feats = np.empty((len(rows_idx), m.AUDIO_DIM), dtype=np.float16)
     for i in tqdm(range(0, len(rows_idx), ENCODE_BATCH), desc=desc, unit='batch'):
         chunk = rows_idx[i:i + ENCODE_BATCH]
         wav = torch.from_numpy(np.asarray(wave_mm[chunk], dtype=np.float32)).to(device)
-        enc = extractor.encode(wav)          # (B, AUDIO_T, AUDIO_DIM)
+        enc = extractor.encode(wav)
         feats[i:i + len(chunk)] = enc.mean(dim=1).half().cpu().numpy()
     return feats
 
 
 class AudioProbe(nn.Module):
-    """Deliberately small — measures what the frozen Whisper features carry, not a competitive recognizer."""
-
-    def __init__(self, in_dim=m.AUDIO_DIM, num_classes=498, hidden=1024, dropout=0.3):
+    def __init__(self, in_dim=m.AUDIO_DIM, num_classes=500, hidden=1024, dropout=0.3):
         super().__init__()
         self.net = nn.Sequential(
             nn.LayerNorm(in_dim),
@@ -76,9 +71,8 @@ def main():
     device = torch.device('cuda')
     assert torch.cuda.is_available()
 
-    classes = sorted(d for d in os.listdir(ROOT_DIR)
-                     if os.path.isdir(os.path.join(ROOT_DIR, d)) and d not in EXCLUDED)
-    assert len(classes) == 498, f'expected 498 classes, got {len(classes)}'
+    classes = sorted(d for d in os.listdir(ROOT_DIR) if os.path.isdir(os.path.join(ROOT_DIR, d)))
+    assert len(classes) == 500, f'expected 500 classes, got {len(classes)}'
 
     with open(os.path.join(CACHE_DIR, 'index.json')) as f:
         index = json.load(f)
@@ -142,7 +136,7 @@ def main():
         print(f'[{ep+1:>2}/{PROBE_EPOCHS}] train={corr/tot:.4f} '
               f'val_top1={top1:.4f} val_top5={top5:.4f}')
 
-    print(f'\nBEST audio-only val_top1={best:.4f}  ->  {OUT_DIR}/probe.pth')
+    print(f'\nBEST audio-only (500-class) val_top1={best:.4f}  ->  {OUT_DIR}/probe.pth')
 
 
 if __name__ == '__main__':
