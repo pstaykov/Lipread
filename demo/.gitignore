@@ -1,0 +1,13 @@
+venv/
+server.log
+server.err.log
+.server.pid
+clips/recorded/*.mp4
+__pycache__/
+*.pyc
+
+# Checkpoints/babble pool are gitignored repo-wide (*.pth, *.npz in the root
+# .gitignore) so training runs elsewhere don't dump checkpoints into git. This
+# handoff folder must be self-contained though, so un-ignore its copies.
+!models/**/*.pth
+!babble_pool.npz
