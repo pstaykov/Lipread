@@ -14,12 +14,8 @@ except RuntimeError:
 
 
 class VideoAugment:
-    """Consistent spatial + temporal augmentation applied across all frames of a clip.
-
-    Every random parameter (affine, brightness/contrast, crop offset, flip, time mask) is
-    drawn once per clip and applied identically to all frames, so temporal coherence — the
-    only signal a lip-reader has — is preserved. With ``is_train=False`` all randomness is
-    off: just resize -> center-crop -> normalize, keeping val/test deterministic.
+    """
+    spatial + temporal augmentation applied across all frames of a clip.
     """
     def __init__(self, crop_size=88, resize_size=96, is_train=True, time_mask_max=4,
                  max_time_masks=2, rotation_deg=10.0, scale_jitter=0.1,
@@ -36,15 +32,9 @@ class VideoAugment:
         self.translate_frac = translate_frac
         self.brightness = brightness
         self.contrast = contrast
-        # grayscale_p: prob of dropping colour for the whole clip (lip-reading is shape,
-        # not colour — removes a skin-tone/lighting memorization shortcut).
-        # random_erase: prob of zeroing one rectangle (same box across all frames) —
-        # cutout-style occlusion robustness.
         self.grayscale_p = grayscale_p
         self.random_erase = random_erase
         self.erase_scale = erase_scale
-        # normalize: 'imagenet' -> subtract ImageNet mean/std (our default recipe);
-        # 'minmax' -> per-clip min-max to [0,1] ((x-min)/(max-min)), Ameer et al.'s scheme.
         self.normalize = normalize
         self.mean = torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1)
         self.std = torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1)
