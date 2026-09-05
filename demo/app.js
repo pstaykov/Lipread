@@ -64,7 +64,7 @@ function renderClip(clip) {
   return `
     <article class="clip-card">
       <div>
-        <video id="video-${clip.id}" controls preload="none" src="${clipSrc(clip)}"></video>
+        <video id="video-${clip.id}" controls autoplay muted loop playsinline preload="none" src="${clipSrc(clip)}"></video>
         <div class="clip-meta">
           <div class="truth">Wort: ${clip.ground_truth}</div>
           <div>${clip.source_file} <span class="audio-tag" id="audiotag-${clip.id}">${conditionLabel(currentCondition)}</span></div>
@@ -193,8 +193,10 @@ async function ensureCamera() {
 }
 
 function renderRecordResult(data) {
-  document.getElementById('record-result').hidden = false;
-  document.getElementById('result-preview').src = `clips/${encodeURIComponent(data.clip_file)}`;
+  document.getElementById('result-video-skeleton').style.display = 'none';
+  const preview = document.getElementById('result-preview');
+  preview.style.display = 'block';
+  preview.src = `clips/${encodeURIComponent(data.clip_file)}`;
   const cols = ['video_only', 'audio_only', 'multimodal']
     .map(k => `<div class="model-col ${MODEL_CHANNEL[k]}">${modelColHtml(k, data[k], data.target)}</div>`).join('');
   document.getElementById('record-cols').innerHTML = cols;
@@ -230,14 +232,27 @@ async function recordAndSend() {
   const chunks = [];
   recorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
 
+  const countdownEl = document.getElementById('record-countdown');
+  const viewfinder = document.querySelector('.viewfinder');
+  for (let i = 3; i > 0; i--) {
+    countdownEl.textContent = i;
+    countdownEl.classList.add('show');
+    status.textContent = `Start in ${i}…`;
+    await new Promise(r => setTimeout(r, 700));
+    countdownEl.classList.remove('show');
+  }
+
   const recDot = document.getElementById('rec-dot');
   const stopped = new Promise(resolve => { recorder.onstop = resolve; });
+
+  viewfinder.classList.add('recording');
   recorder.start();
   recDot.classList.add('rec');
   status.textContent = `Aufnahme läuft (${(RECORD_MS / 1000).toFixed(1)}s) — jetzt sprechen…`;
   setTimeout(() => recorder.stop(), RECORD_MS);
   await stopped;
   recDot.classList.remove('rec');
+  viewfinder.classList.remove('recording');
 
   status.textContent = 'Wird ausgewertet…';
   const blob = new Blob(chunks, { type: mimeType || 'video/webm' });
