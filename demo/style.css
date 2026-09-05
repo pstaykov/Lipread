@@ -54,7 +54,6 @@ body {
 .wrap {
   max-width: 1000px;
   margin-inline: auto;
-  padding-inline: 1.5rem;
 }
 
 code {
@@ -195,6 +194,7 @@ h1 {
 
 .control-strip {
   margin-top: 1.35rem;
+  margin-bottom: 1.5rem;
   padding: 0.7rem 0.9rem;
   display: flex;
   align-items: center;
@@ -370,6 +370,11 @@ button:disabled { opacity: 0.5; cursor: default; border-color: var(--hairline); 
 .btn-primary:disabled { background: var(--panel-2); color: var(--text-dim); border-color: var(--hairline); }
 
 /* record section */
+
+#record-section {
+  margin-bottom: 1.5rem;
+}
+
 .record-target {
   display: flex;
   align-items: center;
@@ -429,6 +434,45 @@ button:disabled { opacity: 0.5; cursor: default; border-color: var(--hairline); 
 .vf-corner.bl { bottom: -1px; left: -1px; border-right: none; border-top: none; }
 .vf-corner.br { bottom: -1px; right: -1px; border-left: none; border-top: none; }
 
+.viewfinder-countdown {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: var(--display);
+  font-size: 4rem;
+  font-weight: 700;
+  color: white;
+  text-shadow: 0 0 10px rgba(0,0,0,0.5);
+  pointer-events: none;
+  z-index: 10;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.viewfinder-countdown.show {
+  opacity: 1;
+}
+.viewfinder.recording {
+  outline: 4px solid var(--bad);
+  outline-offset: -4px;
+  border-radius: 6px;
+}
+
+.skeleton-box {
+  width: 100%;
+  max-width: 320px;
+  aspect-ratio: 1/1;
+  background: var(--panel-2);
+  border-radius: 6px;
+  margin-bottom: 1rem;
+}
+
+.model-col:empty {
+  min-height: 120px;
+  background: linear-gradient(to bottom, var(--panel-2), transparent);
+  border-radius: 0 0 6px 6px;
+}
+
 .record-panel { margin-top: 0.75rem; }
 .record-panel > button { margin-top: 0.7rem; }
 
@@ -440,6 +484,7 @@ button:disabled { opacity: 0.5; cursor: default; border-color: var(--hairline); 
   background: #000;
   display: block;
   object-fit: contain;
+  margin-bottom: 1rem;
 }
 
 .record-status {
@@ -599,6 +644,16 @@ button:disabled { opacity: 0.5; cursor: default; border-color: var(--hairline); 
 .model-col.ch-video h3 { color: var(--ch-video); }
 .model-col.ch-audio h3 { color: var(--ch-audio); }
 .model-col.ch-fusion h3 { color: var(--ch-fusion); }
+
+footer.wrap {
+  margin-top: 3rem;
+  padding-block: 2rem;
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  border-top: 1px solid var(--hairline);
+}
 
 .pred-top1 {
   font-family: var(--mono);
