@@ -1,0 +1,9 @@
+# install.sh is run by bash (git-bash/WSL/macOS/Linux) -- it must always be
+# checked out with LF endings, even on a Windows clone with autocrlf=true,
+# or bash chokes on the embedded \r.
+install.sh text eol=lf
+
+# Binary/data files: never touch line endings, never diff as text.
+*.pth binary
+*.npz binary
+*.mp4 binary

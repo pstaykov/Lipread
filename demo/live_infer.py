@@ -17,7 +17,6 @@ import torch.nn.functional as F
 import mediapipe as mp
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-HANDOFF = os.path.dirname(HERE)
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -144,9 +143,9 @@ def _load_module(name, path):
     return mod
 
 
-video_dir = os.path.join(HANDOFF, 'models', 'video_only')
-audio_dir = os.path.join(HANDOFF, 'models', 'audio_only')
-mm_dir = os.path.join(HANDOFF, 'models', 'multimodal')
+video_dir = os.path.join(HERE, 'models', 'video_only')
+audio_dir = os.path.join(HERE, 'models', 'audio_only')
+mm_dir = os.path.join(HERE, 'models', 'multimodal')
 
 vmod = _load_module('live_video_model', os.path.join(video_dir, 'model.py'))
 vdata = _load_module('live_video_dataset', os.path.join(video_dir, 'dataset.py'))

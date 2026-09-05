@@ -2,10 +2,9 @@
 endpoint that crops a freshly recorded webcam clip to the same mouth-ROI format
 the models were trained on, then runs all three models on it.
 
-Needs the full model code + checkpoints in ../models/ (already shipped in this
-handoff) plus mediapipe + flask (see ../requirements.txt). No GLips dataset
-access needed -- unlike build_demo_data.py, this runs standalone from inside the
-handoff folder.
+Needs the full model code + checkpoints in models/ (already shipped alongside
+this file) plus mediapipe + flask (see requirements.txt). No GLips dataset
+access needed -- this runs fully standalone from inside this folder.
 
 Usage:  python server.py [port]   (default 8000)
 """
