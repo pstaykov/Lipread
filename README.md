@@ -1,69 +1,165 @@
-# Lipread Deutsch - GLips Architektur
+# German LipNet — deutsche Multimodalität für Lippenlesen
 
-Dieses Projekt implementiert eine Lipreading-Pipeline basierend auf dem GLips-Datensatz. Das Modell nutzt eine Kombination aus räumlich-zeitlicher Merkmalsextraktion und Transformer-basierten Sequenz-Modellierung.
+Erkennung gesprochener deutscher Wörter aus der Lippenbewegung, optional
+kombiniert mit dem Ton. Trainiert auf dem GLips-Datensatz (500 Wörter) auf einer
+einzelnen Consumer-Grafikkarte.
 
-## Pflichinformationen zum Datensatz
-1. **Title of dataset:** GLips
-2. **Authors & paper:** [Visual Speech Recognition for German (2022)](http://arxiv.org/abs/2202.13403)
-3. **Source of dataset:** Hessian Parliament (https://hessischer-landtag.de)
-4. https://www.fdr.uni-hamburg.de/record/10048
+**Team lipreaders** — pstaykov1, robnok, doribenba1
 
 ---
 
-## Modellarchitektur
+## Demo starten
 
-### 1. Input & Augmentierung
-Die Eingabe besteht aus RGB-Videoframes, die auf die Lippenregion zugeschnitten sind.
-* **Format:** $(B, C, T, H, W)$
-    * $B$: Batch-Größe
-    * $C$: 3 (RGB-Kanäle)
-    * $T$: 25 Frames (gleichmäßig gesampelt oder gepaddet)
-    * $H, W$: 96 × 96 → zufälliger Crop auf 88 × 88 (Training), Center-Crop (Validierung)
-* **Augmentierung:** Horizontales Flipping (p=0.5), Time Masking (bis zu 3 aufeinanderfolgende Frames auf 0 gesetzt), ImageNet-Normalisierung
+**Windows:** `install.bat` im Ordner `demo/` doppelklicken
+**macOS / Linux:**
 
-### 2. Spatio-Temporal Front-End (3D CNN + ResNet-18)
-* **3D CNN:** Kernel $5 \times 7 \times 7$, Stride $(1, 2, 2)$ → BatchNorm → ReLU → MaxPool $(1 \times 3 \times 3)$; extrahiert kurzzeitige Bewegungsmerkmale über die Frame-Abfolge
-* **ResNet-18 Backbone:** Stages 3–5 (ab `layer1`) verarbeiten jeden Frame einzeln und extrahieren visuelle Merkmale der Dimension 512
-* **Adaptive Average Pooling** kollabiert die räumlichen Dimensionen auf $1 \times 1$
-* **Output:** Sequenz von Frame-Features $\in \mathbb{R}^{B \times T \times 512}$
+```bash
+cd demo
+./install.sh
+```
 
-### 3. Projektion
-Eine lineare Schicht mit LayerNorm projiziert die CNN-Features auf die Modell-Dimension:
-$$512 \rightarrow D_\text{model} = 256$$
+Das Skript legt eine isolierte Python-Umgebung an, installiert alles Nötige,
+startet den Server und öffnet die Demo im Browser (`http://localhost:8000`). Der
+erste Start dauert einige Minuten, weil PyTorch heruntergeladen wird; danach
+startet sie in Sekunden. Beenden mit Strg+C.
 
-### 4. Multi-Scale Temporal Convolutional Network (MS-TCN)
-Zwei aufeinanderfolgende MS-TCN-Blöcke erfassen lokale temporale Muster auf verschiedenen Skalen. Jeder Block besteht aus drei parallelen Depthwise-Separable-Konvolutionen mit Kernelgrößen $k \in \{3, 5, 7\}$, deren Ausgaben gemittelt werden:
-$$\text{MS-TCN}(x) = \text{LayerNorm}\!\left(x + \frac{1}{3}\sum_{k \in \{3,5,7\}} \text{DW-Conv}_k(x)\right)$$
-* **Output:** $\in \mathbb{R}^{B \times T \times 256}$
+Voraussetzung ist nur **Python 3.9+** ([python.org](https://www.python.org/downloads/),
+unter Windows im Installer "Add python.exe to PATH" ankreuzen). Alles Weitere
+landet in einem lokalen `venv/`-Ordner im `demo/`-Verzeichnis und berührt nichts
+anderes am System. Eine GPU wird nicht gebraucht, die Modelle laufen auf der CPU.
+Modellgewichte und Clips liegen bereits bei — es muss nichts nachgeladen werden.
 
-### 5. Transformer Encoder
-Einem erlernbaren Positions-Embedding folgen 4 Transformer-Encoder-Schichten (Pre-Norm):
-* **Heads:** 8, **FFN-Dim:** 1024, **Dropout:** 0.1, **Aktivierung:** GELU
-* Mean Pooling über die Zeitachse aggregiert die Sequenz zu einem fixen Vektor $\in \mathbb{R}^{B \times 256}$
+Manuell geht es auch: `pip install -r demo/requirements.txt`, dann
+`python server.py` (oder `python serve.py` ohne Webcam-Funktion). Die Seite muss
+über HTTP laufen, nicht als `file://` geöffnet werden.
 
-### 6. Classification Head
-Eine lineare Schicht projiziert auf die Zielklassen:
-* **Output:** $\in \mathbb{R}^{B \times 500}$ (Logits für 500 deutsche Wörter)
+### Was die Demo zeigt
+
+- **Vergleich der drei Modelle** (nur Video, nur Audio, multimodal) auf 16
+  Test-Clips: das echte Wort, die Top-1-Vorhersage jedes Modells mit Konfidenz
+  und die Top-5. Die 16 Clips sind eine Zufallsziehung mit festem Seed, nicht
+  handverlesen — einer davon (`haushalt`) wird von allen dreien falsch erkannt.
+- **Rausch-Auswahl:** ein Dropdown schaltet zwischen sauberem Audio und
+  zusätzlichem weißem bzw. Stimmengewirr-Rauschen (10 dB / 5 dB SNR). Hier zeigt
+  sich der Nutzen der Fusion am deutlichsten: das reine Audio-Modell bricht ein,
+  das multimodale hält sich.
+- **Selbst aufnehmen:** ein Wort in die Webcam sprechen. Die Mundregion wird mit
+  derselben MediaPipe-Pipeline zugeschnitten, durch die auch die Trainingsdaten
+  gelaufen sind, und zurückgezeigt — man sieht also, was die Modelle sehen.
+  Lässt sich `mediapipe` auf der Maschine nicht installieren, fällt das Skript
+  automatisch auf die statische Demo ohne diesen Teil zurück.
 
 ---
 
-## Pipeline Visualisierung
-```
-Video (B,3,T,96,96)
-  → 3D-CNN + ResNet-18          (B, T, 512)
-  → Linear + LayerNorm          (B, T, 256)
-  → MS-TCN × 2                  (B, T, 256)
-  → Positions-Embedding
-  → Transformer Encoder × 4    (B, T, 256)
-  → Mean Pooling                (B, 256)
-  → Classifier                  (B, 500)
-```
+## Ergebnisse
 
-## Ziel
-Folgende Pipeline:
-- [ ] Streaming von Video und Audio
-- [ ] Zuschnitt auf Mundbereich
-- [ ] Bestimmung von Wörtern mit Video und Audio
-- [ ] Klassifizierung mit Video und Audio Modell
-- [ ] orchestration
-- [ ] Captions
+Alle Werte auf dem vollen 500-Wort-Vokabular, identische Klassenordnung, also
+direkt vergleichbar:
+
+| Modell | Top-1 | Top-5 |
+|---|---|---|
+| nur Video (GNet) | 34,2 % | 53,9 % |
+| nur Audio (Whisper-Probe) | 61,2 % | 76,9 % |
+| **multimodal (Cross-Attention)** | **72,0 %** | **79,8 %** |
+
+Nur Video und multimodal sind auf dem zurückgehaltenen **Test**-Split gemessen,
+nur Audio auf **Val** (der Val/Test-Abstand lag beim Schwestermodell unter einem
+halben Punkt).
+
+Auf der 15-Wort-Teilmenge erreicht GNet **59,3 %** von Grund auf und **69,5 %**
+mit Transfer aus dem 500-Klassen-Modell — vor allen bisher veröffentlichten
+Ergebnissen auf diesem Korpus. Das multimodale Ergebnis ist das erste
+veröffentlichte audiovisuelle Resultat für GLips überhaupt.
+
+---
+
+## Das Modell
+
+**Visueller Zweig (GNet).** Ein 3D-CNN (Kernel 5×7×7) erfasst kurzfristige
+Mundbewegung über aufeinanderfolgende Frames, ein ResNet-18 verarbeitet
+anschließend jedes Frame einzeln zu visuellen Merkmalen. Zwei MS-TCN-Blöcke mit
+parallelen Kerneln (3, 5, 7) modellieren lokale Zeitmuster auf mehreren Skalen,
+ein Transformer-Encoder mit vier Lagen den Gesamtkontext. Nach Pooling über die
+Zeitachse gibt ein linearer Kopf die Logits über die 500 Wörter aus.
+
+**Audio-Zweig.** Der vortrainierte Whisper-`base`-Encoder liefert die
+Audio-Features und bleibt eingefroren und unangepasst.
+
+**Fusion.** Die Audio-Features werden per gated Cross-Attention in den visuellen
+Token-Strom eingebunden, danach wird end-to-end feinjustiert. Verglichen haben
+wir das gegen Late Fusion, Concatenation und einen gemeinsamen Transformer;
+Cross-Attention gewinnt deutlich (`multimodal/results/fusion_comparison.csv`).
+
+**Vorverarbeitung.** Der wichtigste Schritt: die Originalclips zeigen das ganze
+Gesicht, damit lag das Modell kaum über Zufallsniveau. Mit MediaPipe-Landmarks
+wird die Mundregion erkannt, zeitlich geglättet und zugeschnitten. Jeder Clip
+wird auf 25 Frames und 96×96 vereinheitlicht, im Training zufällig auf 88×88
+beschnitten. Augmentierung: horizontales Spiegeln, Time-Masking,
+ImageNet-Normalisierung.
+
+**Training.** AdamW, Warmup plus Cosine-Schedule, getrennte Lernraten für
+Backbone und Kopf, Label Smoothing, bfloat16.
+
+Die mitgelieferten Gewichte speichern ihre großen Tensoren als float16, damit
+das Paket unter die Größengrenze passt; BatchNorm-Statistiken bleiben float32
+und PyTorch rechnet beim Laden wieder hoch. Top-1 und Top-5 sind dadurch
+unverändert.
+
+---
+
+## Was liegt wo
+
+- **`demo/`** — die lauffähige Demo: Modellgewichte, Clips und Code,
+  vollständig eigenständig. Hier anfangen.
+- **`lipreading/`** — das visuelle Modell: Mund-ROI-Zuschnitt
+  (`preprocess_mouth_roi.py`), GNet-Architektur und Trainingsskripte
+  (`Transformer_based/`), die MS-TCN-Vergleichsbasis ohne Transformer
+  (`mstcn_baseline/`) sowie Auswertung, Ablationen und Plots (`analysis/`).
+- **`multimodal/`** — die Fusion von Video und Audio: Cross-Attention-Training
+  (`train.py`), die vier verglichenen Fusionsvarianten (`fusion_heads.py`),
+  Audio-Vorabdekodierung (`build_audio_cache.py`), Auswertung unter Rauschen
+  (`snr_eval.py`), alle Messwerte als CSV (`results/`) und die Abbildungen
+  (`plots/`).
+- **`camera_tracking/`** — Kamera-Vorschau zum Prüfen des Mund-Zuschnitts.
+
+---
+
+## Datensatz
+
+**GLips** (German Lipreading), Schwiebert et al. 2022, Universität Hamburg:
+250.000 Clips von je etwa 1,2 Sekunden zu 500 häufigen deutschen Wörtern,
+gesprochen von rund 100 Personen, aus öffentlichen Aufzeichnungen des Hessischen
+Landtags, mit fester Aufteilung in Trainings-, Validierungs- und Testdaten.
+
+- Paper: [Visual Speech Recognition for German (2022)](http://arxiv.org/abs/2202.13403)
+- Datensatz: https://www.fdr.uni-hamburg.de/record/10048
+- Quelle: Hessischer Landtag (https://hessischer-landtag.de)
+
+Der Datensatz ist hier wegen seiner Größe **nicht** enthalten. Die Demo braucht
+ihn auch nicht.
+
+## Einschränkungen
+
+Das Vokabular ist auf 500 Wörter begrenzt und stammt ausschließlich aus dem
+Parlamentskontext. Die stock-Aufteilung von GLips ist nicht sprecher-disjunkt —
+die Werte sind also innerhalb des Korpus zu lesen, nicht als
+sprecherunabhängig. Pro Modell gibt es nur einen Seed. Der Audio-Zweig ist
+Whisper `base`, überwiegend auf Englisch vortrainiert und eingefroren auf
+Deutsch angewandt. Die praktische Genauigkeit bei eigenen Webcam-Aufnahmen liegt
+spürbar unter den Testwerten — in der Demo ist das direkt zu erleben.
+
+## Quellen
+
+- Schwiebert et al., *A Multimodal German Dataset for Automatic Lip Reading
+  Systems and Transfer Learning*, 2022, arXiv:2202.13403 — GLips-Datensatz und
+  Vergleichswerte
+- Ameer et al., *Deep Transfer Learning for Lip Reading Based on NASNetMobile* —
+  Vergleichswerte auf der 15-Wort-Aufgabe
+- Martinez et al., *Lipreading using Temporal Convolutional Networks*, 2020 —
+  MS-TCN
+
+Modellarchitektur, Trainingscode, Vorverarbeitung, Ablationen und Auswertung
+stammen von uns. Übernommen haben wir den GLips-Datensatz, ImageNet-Gewichte für
+ResNet-18 und den vortrainierten Whisper-Encoder. Als Hilfsmittel haben wir
+Coding-Agenten (Claude) für Code-Review, Debugging und teilweise Implementation
+genutzt; alle Architekturentscheidungen und Experimente stammen von uns.
