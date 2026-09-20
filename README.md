@@ -15,7 +15,14 @@ einzelnen Consumer-Grafikkarte.
 
 ```bash
 cd demo
+chmod +x install.sh
 ./install.sh
+```
+
+Falls macOS die direkte Ausführung von install.sh verhindert, stattdessen:
+
+```bash
+bash install.sh
 ```
 
 Das Skript legt eine isolierte Python-Umgebung an, installiert alles Nötige,
@@ -60,7 +67,7 @@ direkt vergleichbar:
 |---|---|---|
 | nur Video (GNet) | 34,2 % | 53,9 % |
 | nur Audio (Whisper-Probe) | 61,2 % | 76,9 % |
-| **multimodal (Cross-Attention)** | **72,0 %** | **79,8 %** |
+| **multimodal** | **72,0 %** | **79,8 %** |
 
 Nur Video und multimodal sind auf dem zurückgehaltenen **Test**-Split gemessen,
 nur Audio auf **Val** (der Val/Test-Abstand lag beim Schwestermodell unter einem
@@ -85,10 +92,10 @@ Zeitachse gibt ein linearer Kopf die Logits über die 500 Wörter aus.
 **Audio-Zweig.** Der vortrainierte Whisper-`base`-Encoder liefert die
 Audio-Features und bleibt eingefroren und unangepasst.
 
-**Fusion.** Die Audio-Features werden per gated Cross-Attention in den visuellen
+**Fusion.** Die Audio-Features werden mit einem gemeinsamen Transformer in den visuellen
 Token-Strom eingebunden, danach wird end-to-end feinjustiert. Verglichen haben
-wir das gegen Late Fusion, Concatenation und einen gemeinsamen Transformer;
-Cross-Attention gewinnt deutlich (`multimodal/results/fusion_comparison.csv`).
+wir das gegen Late Fusion, Concatenation und Cross-Attention;
+ gemeinsamer Transformer gewinnt (`multimodal/results/fusion_comparison.csv`).
 
 **Vorverarbeitung.** Der wichtigste Schritt: die Originalclips zeigen das ganze
 Gesicht, damit lag das Modell kaum über Zufallsniveau. Mit MediaPipe-Landmarks
