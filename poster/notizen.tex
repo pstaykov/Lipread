@@ -1,0 +1,170 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage{geometry}
+\geometry{
+  left=3cm,
+  right=3cm,
+  top=2.5cm,
+  bottom=2.5cm
+}
+
+\usepackage[svgnames]{xcolor}
+\definecolor{uzhockerrot100}{RGB}{220, 96, 39}
+\definecolor{uzhflaschengruen100}{RGB}{42, 127, 98}
+\definecolor{bwkiblau}{HTML}{0083D3}
+\definecolor{conclusion}{HTML}{D6ECF8}
+\definecolor{rulegray}{RGB}{203,213,225}
+\definecolor{textgray}{RGB}{71,85,105}
+\definecolor{blausoft}{HTML}{E8F4FB}
+
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage[ngerman]{babel}
+\usepackage{csquotes}
+
+\usepackage{fontspec}
+\defaultfontfeatures[TheSans]
+{
+    Extension = .otf,
+    UprightFont = font/TheSans-LP5Plain,
+    BoldFont = font/TheSans-LP7Bld,
+    ItalicFont  = font/TheSans-LP5PlainIT,
+    BoldItalicFont = font/TheSans-LP7BldIT,
+}
+\IfFileExists{font/TheSans-LP5Plain.otf}{\setmainfont{TheSans}}{\setmainfont{Arial}}
+
+\usepackage{setspace}
+\setstretch{1.1}
+\usepackage{tcolorbox}
+\usepackage{enumitem}
+\setlist{itemsep=0.4ex, topsep=0.4ex, parsep=0pt, leftmargin=1.1em}
+
+\newcommand{\best}[1]{{\color{bwkiblau}\textbf{#1}}}
+\newcommand{\achtung}[1]{{\color{uzhockerrot100}\textbf{#1}}}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.4ex}
+
+\newcounter{psec}
+\newcommand{\psection}[1]{%
+  \par\vspace{0.8cm}\stepcounter{psec}%
+  \noindent{\color{bwkiblau}\rule{\linewidth}{2pt}}\par\vspace{0.25cm}%
+  \noindent{\color{bwkiblau}\Large\bfseries\thepsec.\hspace{0.5em}#1}\par\vspace{0.3cm}}
+\newcommand{\phead}[1]{{\color{bwkiblau}\normalsize\bfseries #1}\par\vspace{0.15cm}}
+
+\begin{document}
+
+{\color{bwkiblau}\huge\bfseries Notizen}\\[0.2cm]
+
+%=========================================================================
+\section{Datensatz und Vorverarbeitung}
+\begin{itemize}
+  \item GLips: Hessischer Landtag, ca.\ 250.000 Clips, 500 Wörter, 1,16\,s, 25\,fps, mit Ton.
+        Offizieller Split unverändert.
+  \item \achtung{Datensatz = ganzes Gesicht}, den Mund schneiden wir selbst aus (Ablation: $-29$).
+  \item GLips-15 = Ameers Wörter (zufällig). Schwieberts Auswahl unveröffentlicht $\to$ Sternchen.
+  \item FaceMesh $\to$ Quadrat $1{,}6\times$ Mundbreite. EMA $\alpha = 0{,}4$: Frame-Gewicht
+        40, 24, 14, 9, 5\,\% $\to$ nach 4 Frames nur noch ca.\ 5\,\%.
+  \item Affin: Rotation $\pm10^\circ$, Verschiebung $\pm6\,\%$, Skalierung $\pm10\,\%$, pro Clip
+        gleich, nur Training.
+\end{itemize}
+
+%=========================================================================
+\section{Modell}
+\begin{itemize}
+  \item \textbf{Conv3D} $5{\times}7{\times}7$, RGB $\to$ 64 Kanäle, zufällig initialisiert.
+  \item \textbf{ResNet-18} pro Frame: nur layer1--4 mit ImageNet-Gewichten (conv1/MaxPool ersetzt
+        durch Conv3D). \achtung{Abweichung von Martinez} (dort von Grund auf).
+  \item $3{\times}3$-Pooling $\to$ Linear 512$\to$256: Transformer 1,6\,M statt 6,3\,M Parameter.
+  \item \textbf{Multi-Scale-TCN}: $k = 3, 5, 7$, depthwise, ohne Dilation, Zweige gemittelt.
+        2 Blöcke $\to$ Sichtfeld 13 Frames.
+  \item \textbf{Transformer} $\times 2$: 8 Köpfe, FFN 1024 (Standardwerte, keine HP-Suche).
+  \item \textbf{Attentive Pooling} bleibt im Modell: Mean war 60,5 vs.\ 59,3 (im Rauschen),
+        Transformer hat schon Attention. Hauptläufe waren schon trainiert.
+        \achtung{Ehrlich sagen, nicht verteidigen.}
+\end{itemize}
+
+\subsection{NASNet (Ameer, 48,4\,\%)}
+\begin{itemize}
+  \item ImageNet-Bildnetz pro Frame, ganzes Gesicht, GRU dahinter.
+  \item Unser Fokus: Back-Ends bei festem Frontend $\to$ NASNet ist eine andere Frage.
+  \item GNet/MS-TCN auf Ameers Input (ganzes Gesicht): nur 18,9 / 22,5\,\% (Val.).
+        \achtung{Ehrlich:} NASNet dort klar besser. Unser Vorsprung kommt vom Mund-Zuschnitt.
+  \item NASNet auf Mund-Zuschnitten könnte besser sein $\to$ \textbf{nächstes Experiment}.
+  \item Nicht sagen: \enquote{technisch nicht möglich}, \enquote{kompliziert},
+        \enquote{nicht für Lippenlesen gemacht}.
+\end{itemize}
+
+\subsection{Audio (Whisper-base, eingefroren)}
+\begin{itemize}
+  \item Encoder: Log-Mel 80 $\to$ 2 Conv (Stride 2) $\to$ 6 Transformer-Blöcke (8 Köpfe, 512).
+        680.000\,h Training.
+  \item 1,16\,s auf 2\,s aufgefüllt $\to$ 100 Tokens à 512 (ca.\ 42 davon Stille).
+  \item Nur Audio = Probe: Mittelwert $\to$ MLP 512$\to$1024$\to$500. Whisper hat schon zeitlichen
+        Kontext.
+  \item \achtung{Nicht sagen} \enquote{Attention auf Attention bringt nichts}: Unser bestes Modell
+        ist genau das. Transformer-Kopf nur auf Audio = stärkere Baseline, nicht trainiert.
+  \item 61\,\%: Aufgabe schwer (Whisper-ASR nur 10,7\,\%). Zeigt nicht, dass unser Kopf stark ist.
+  \item \textbf{Warum 2\,s} (falls gefragt):
+        \begin{itemize}
+          \item Whisper verarbeitet immer 30-s-Fenster und füllt kürzeres Audio mit Stille auf.
+                Stille am Ende ist für Whisper also der Normalfall, nicht ungewohnt.
+          \item Bei unseren 1,16-s-Clips wären 30\,s zu 96\,\% Stille. Wir schneiden die Stille
+                einfach früher ab: 2\,s $\to$ 100 statt 1500 Tokens, 15$\times$ weniger Rechenzeit.
+          \item Die ersten 100 Positions-Embeddings sind genau die, mit denen Whisper trainiert
+                wurde, es ändert sich nichts an der Architektur.
+          \item Puffer statt exakt 1,16\,s: Clips variieren leicht in der Länge, nichts wird
+                abgeschnitten.
+          \item Die Stille-Tokens sind nicht leer: Über 6 Schichten Self-Attention tragen sie
+                Information aus dem gesprochenen Teil.
+        \end{itemize}
+\end{itemize}
+
+\subsection{Fusion}
+\begin{itemize}
+  \item Late/Concat $\approx$ Audio: gemittelte Vektoren, Audio dominiert.
+  \item Nicht nur Kapazität: Cross-Attention 0,52\,M (71,9) $>$ Concat 0,98\,M (61,1).
+  \item \textbf{Hauptaussage:} Der Beitrag des Videos zeigt sich unter Rauschen.
+  \item Ton aus: Fusion 30,7--32,0\,\% $\approx$ Video-Niveau.
+  \item Kein Rausch-Augment, \textbf{aber Modality Dropout} (20\,\% ohne Ton) $\to$ lernt
+        Rückfall aufs Video.
+  \item 5\,dB Babble: 57,5 vs.\ 29,6\,\% Audio. 0 / $-5$\,dB nicht getestet.
+  \item AV-HuBERT: gleiches Prinzip, aber Englisch/Sätze $\to$ kein direkter Vergleich.
+\end{itemize}
+
+%=========================================================================
+\section{Ergebnisse}
+\begin{itemize}
+  \item Vorarbeiten: Schwiebert (Datensatz-Paper, X3D, Transfer von LRW) und Ameer (NASNet).
+  \item \textbf{Formulierung:} \enquote{bestes berichtetes Ergebnis auf GLips-15}, nicht SOTA.
+        Auch ohne Transfer (59,3) vor allen veröffentlichten Werten.
+  \item \textbf{Transfer} ist ein Benchmark, keine Praxis-Anwendung: Er zeigt, wie weit man
+        theoretisch kommt (500er-Modell, nur Trainingsclips, als Start). Ausblick (JuFo): die
+        theoretische Obergrenze für deutsches Lippenlesen.
+  \item GLips-500: GNet 34,2 vs.\ MS-TCN 31,9 (\textbf{+2,3}, KI $\pm0{,}6$), beide 15 Epochen.
+  \item GLips-15: +0,1 $\to$ im Rauschen ($\pm3{,}5$). Kernaussage: Vorverarbeitung $>$ Back-End.
+  \item Generalisierungslücke wächst, Val.\ steigt noch $\to$ kein Overfitting, evtl.\ untertrainiert.
+  \item Ablationen auf GLips-15: nur Mund-ROI außerhalb des Rauschens. Stem ($-2{,}4$) = Trend.
+  \item Ein Seed pro Lauf. KIs nur über die Testmenge.
+  \item Nur Video: 34,2 (Tab.~1, direkt ausgewertet) vs.\ 33,6 in der Fusions-Pipeline
+        (gespeicherte Video-Tokens, auf denen die Fusion trainiert wurde).
+\end{itemize}
+
+\subsection{Fehleranalyse}
+\begin{itemize}
+  \item Genauigkeit vs.\ Wortlänge: $r = 0{,}74$ (Buchstaben und Phoneme).
+        $\le 5$ Phoneme: 52\,\%, $\ge 7$: 87\,\%.
+  \item Grund 1: mehr verschiedene Viseme. Grund 2: fester 1,16-s-Clip $\to$ bei kurzen Wörtern
+        mehr Nachbarwörter im Bild.
+  \item Begriff: \enquote{visuell verwechselbar} / Homoviseme, nicht Homophene.
+\end{itemize}
+
+%=========================================================================
+\section{Ethik}
+\begin{itemize}
+  \item Dual Use (Überwachung) $\to$ \textbf{Einwilligung, lokal auf dem Gerät, keine Speicherung.}
+  \item \enquote{Modell zu schwach} nur als Nebensatz, Methoden skalieren.
+  \item Nächster realistischer Schritt: Sätze statt Einzelwörter, mehr Sprecher.
+\end{itemize}
+
+\end{document}
