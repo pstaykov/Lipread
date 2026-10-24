@@ -9,3 +9,5 @@ lipreading/logs/
 *.npz
 __pycache__/
 
+poster/*.aux
+poster/*.log
