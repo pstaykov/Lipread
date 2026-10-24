@@ -1,69 +1,71 @@
-# Lipread Deutsch - GLips Architektur
+# Lipread Deutsch – Jugend forscht 2027
 
-Dieses Projekt implementiert eine Lipreading-Pipeline basierend auf dem GLips-Datensatz. Das Modell nutzt eine Kombination aus räumlich-zeitlicher Merkmalsextraktion und Transformer-basierten Sequenz-Modellierung.
+Lippenlese-Modelle werden meist an Benchmark-Werten auf bereits gesehenen Sprechern gemessen. Dieses Projekt lässt die Rangliste beiseite und stellt drei grundlegendere Fragen:
 
-## Pflichinformationen zum Datensatz
-1. **Title of dataset:** GLips
-2. **Authors & paper:** [Visual Speech Recognition for German (2022)](http://arxiv.org/abs/2202.13403)
-3. **Source of dataset:** Hessian Parliament (https://hessischer-landtag.de)
-4. https://www.fdr.uni-hamburg.de/record/10048
+1. Wie viel von Sprache ist überhaupt auf den Lippen sichtbar?
+2. Reichen wenige Lippenkoordinaten statt Videoframes aus?
+3. Wie viel verraten Lippendaten darüber, wer spricht?
 
----
+Um jede Variable zu kontrollieren, wird ein eigener Datensatz aus Plenarvideos des Deutschen Bundestages aufgebaut. Das Ergebnis ist ein Zielkonflikt: wie viel Erkennungsgenauigkeit man für wie viel Privatsphäre aufgibt, und ob ein Modell, das jeden Mund auf einen neutralen Mund abbildet, diesen Zielkonflikt verschieben kann.
 
-## Modellarchitektur
+## Bausteine
 
-### 1. Input & Augmentierung
-Die Eingabe besteht aus RGB-Videoframes, die auf die Lippenregion zugeschnitten sind.
-* **Format:** $(B, C, T, H, W)$
-    * $B$: Batch-Größe
-    * $C$: 3 (RGB-Kanäle)
-    * $T$: 25 Frames (gleichmäßig gesampelt oder gepaddet)
-    * $H, W$: 96 × 96 → zufälliger Crop auf 88 × 88 (Training), Center-Crop (Validierung)
-* **Augmentierung:** Horizontales Flipping (p=0.5), Time Masking (bis zu 3 aufeinanderfolgende Frames auf 0 gesetzt), ImageNet-Normalisierung
+| # | Baustein | Frage |
+|---|---|---|
+| 1 | **Eigener Datensatz** | Bundestagsreden mit exakten Sprecher-Labels, von Anfang an sprecherdisjunkt |
+| 2 | **Sichtbarkeitsgrenze** | Theoretische Obergrenze der Genauigkeit |
+| 3 | **Landmarken vs. Pixel vs. Audio** | Welche Eingabe reicht aus? |
+| 4 | **Identitäts-Leakage** | Wie gut identifiziert jede Eingabe den Sprecher? |
+| 5 | **Neutraler-Mund-Anonymisierer** | Lippen jedes Sprechers auf einen gemeinsamen Mund abgebildet |
 
-### 2. Spatio-Temporal Front-End (3D CNN + ResNet-18)
-* **3D CNN:** Kernel $5 \times 7 \times 7$, Stride $(1, 2, 2)$ → BatchNorm → ReLU → MaxPool $(1 \times 3 \times 3)$; extrahiert kurzzeitige Bewegungsmerkmale über die Frame-Abfolge
-* **ResNet-18 Backbone:** Stages 3–5 (ab `layer1`) verarbeiten jeden Frame einzeln und extrahieren visuelle Merkmale der Dimension 512
-* **Adaptive Average Pooling** kollabiert die räumlichen Dimensionen auf $1 \times 1$
-* **Output:** Sequenz von Frame-Features $\in \mathbb{R}^{B \times T \times 512}$
+### 1. Eigener Datensatz aus Bundestagsvideos
+Die Sprecher-Labels von GLips sind heuristisch und nicht rekonstruierbar. Ein eigener Datensatz erlaubt es, Wörter und Sprecher passend zu den Fragen zu wählen.
 
-### 3. Projektion
-Eine lineare Schicht mit LayerNorm projiziert die CNN-Features auf die Modell-Dimension:
-$$512 \rightarrow D_\text{model} = 256$$
+* **Sprecher-Labels:** Die Mediathek veröffentlicht jede Rede als eigenes Video. Die [Open Parliament TV API](https://github.com/OpenParliamentTV/OpenParliamentTV-Architecture/blob/main/PLATFORM-DATAOBJECTS.md) verknüpft jede Rede mit Sprecher (Wikidata-ID), Sitzung und Transkript. OCR des Namensbanners dient als Gegenprobe.
+* **Wort-Zeitstempel:** Forced Alignment (MFA German oder WhisperX) liefert Wort- und Phonemgrenzen. Da Protokolle redigiert und nicht wörtlich sind, wird gegen ASR-Ausgabe ausgerichtet oder nur Wörter behalten, bei denen ASR und Protokoll übereinstimmen.
+* **Clips:** Face Tracking → Mund-Zuschnitt, Clips fester Länge um jedes Zielwort, dazu FaceMesh-Landmarken und Audio.
+* **Vokabular nach Plan:** bewusst visemgleiche Paare und Beinahe-Paare, damit die Sichtbarkeitsgrenze eine testbare Vorhersage wird.
+* **Split:** nach Sprecher, ca. 80/10/10, grob ausgeglichen nach Partei und Geschlecht.
+* **Veröffentlichung:** Medien-IDs, Zeitstempel, Crop-Boxen und das Build-Skript, **keine Clips**.
+* **Optional:** GLips als externer Test (Training auf Bundestag, Test auf Landtagsvideos).
 
-### 4. Multi-Scale Temporal Convolutional Network (MS-TCN)
-Zwei aufeinanderfolgende MS-TCN-Blöcke erfassen lokale temporale Muster auf verschiedenen Skalen. Jeder Block besteht aus drei parallelen Depthwise-Separable-Konvolutionen mit Kernelgrößen $k \in \{3, 5, 7\}$, deren Ausgaben gemittelt werden:
-$$\text{MS-TCN}(x) = \text{LayerNorm}\!\left(x + \frac{1}{3}\sum_{k \in \{3,5,7\}} \text{DW-Conv}_k(x)\right)$$
-* **Output:** $\in \mathbb{R}^{B \times T \times 256}$
+### 2. Sichtbarkeitsgrenze
+Jedes Wort wird auf Phoneme und dann auf Viseme abgebildet. Wörter mit identischer Visemfolge (Homophene) sind nicht unterscheidbar. Bei ausgeglichenen Klassen ist Raten innerhalb einer Gruppe optimal:
 
-### 5. Transformer Encoder
-Einem erlernbaren Positions-Embedding folgen 4 Transformer-Encoder-Schichten (Pre-Norm):
-* **Heads:** 8, **FFN-Dim:** 1024, **Dropout:** 0.1, **Aktivierung:** GELU
-* Mean Pooling über die Zeitachse aggregiert die Sequenz zu einem fixen Vektor $\in \mathbb{R}^{B \times 256}$
+$$\text{Acc}_{\max} = \frac{\#\,\text{Homophen-Gruppen}}{\#\,\text{Wörter}}$$
 
-### 6. Classification Head
-Eine lineare Schicht projiziert auf die Zielklassen:
-* **Output:** $\in \mathbb{R}^{B \times 500}$ (Logits für 500 deutsche Wörter)
+* **Zungen-Parameter $n$:** Zungenkontraste gelten mit Wahrscheinlichkeit $n$ als sichtbar, Lippenkontraste immer, Stimmhaftigkeit und Nasalität nie (p/b/m). Die Grenze wird für $n = 0$ bis $1$ geplottet.
+* **FaceMesh-Grenze (eigenes Maß):** Wie gut trennen normalisierte FaceMesh-Lippenpunkte jedes Phonempaar? Nicht trennbare Paare werden zusammengelegt und die Homophene neu berechnet. Das begrenzt jedes reine Landmarken-Modell.
+* **Validierung:** Die Verwechslungen der Modelle sollten innerhalb der vorhergesagten Homophen-Gruppen liegen, geprüft an den eingebauten Paaren.
+* **Vokabulargröße:** Grenze für wachsende Wortlisten, da lange deutsche Wörter selten kollidieren.
 
----
+Eine deutsche Visem-Zuordnung gibt es von [Weiss & Aschenberner 2005](https://www.isca-archive.org/interspeech_2005/weiss05_interspeech.html). [Bear & Harvey 2017](https://ueaeprints.uea.ac.uk/id/eprint/64350/) zeigen, dass die Wahl der Zuordnung eine Rolle spielt.
 
-## Pipeline Visualisierung
-```
-Video (B,3,T,96,96)
-  → 3D-CNN + ResNet-18          (B, T, 512)
-  → Linear + LayerNorm          (B, T, 256)
-  → MS-TCN × 2                  (B, T, 256)
-  → Positions-Embedding
-  → Transformer Encoder × 4    (B, T, 256)
-  → Mean Pooling                (B, 256)
-  → Classifier                  (B, 500)
-```
+### 3. Landmarken vs. Pixel vs. Audio
+Gleiches Back-End für jede Eingabe, sodass sich nur die Eingabe ändert.
 
-## Ziel
-Folgende Pipeline:
-- [ ] Streaming von Video und Audio
-- [ ] Zuschnitt auf Mundbereich
-- [ ] Bestimmung von Wörtern mit Video und Audio
-- [ ] Klassifizierung mit Video und Audio Modell
-- [ ] orchestration
-- [ ] Captions
+* **Eingaben:** Pixel, FaceMesh (roh → Procrustes-ausgerichtet → Sprechermittel entfernt), Audio und deren Fusionen.
+* **„Reicht aus“** wird vorab festgelegt, z. B. Landmarken erreichen X % der Pixel-Genauigkeit auf ungesehenen Sprechern.
+* **Erwartung:** große Lücke. Auf dem englischen LRW erreichen Landmarken-Modelle ca. 61 % gegenüber ca. 89–92 % für Pixel.
+* Die FaceMesh-Grenze aus Baustein 2 zeigt, wie nah das Landmarken-Modell an sein Limit kommt.
+
+### 4. Identitäts-Leakage
+Für jede Eingabe wird ein Sprecher-Klassifikator trainiert, dazu eine lineare Probe auf den Lippenlese-Embeddings.
+
+* Jeder Normalisierungsschritt sollte etwas Wortgenauigkeit kosten und etwas Identität entfernen. Beides zu messen ist das Kernergebnis.
+* **Hauptabbildung:** Wortgenauigkeit gegen Sprecher-ID-Genauigkeit, ein Punkt pro Eingabe.
+
+### 5. Neutraler-Mund-Anonymisierer
+Die Sprecher a, b und c erscheinen alle als ein neutraler Mund d, der dieselben Bewegungen macht. Das ist das visuelle Gegenstück zur Umwandlung jeder Stimme in eine Zielstimme, einer Standardmethode der Sprach-Anonymisierung.
+
+* **Encoder:** wandelt den Eingabemund in einen Bewegungscode um, der enthält, was der Mund tut (Öffnung, Rundung, Zähne, Zunge), aber nichts darüber, wessen Mund es ist.
+* **Landmarken-Decoder (Kern):** gibt Lippenpunkte auf einer kanonischen Mundform aus.
+* **RGB-Decoder (Erweiterung):** rendert Mund d als höher aufgelöstes Video.
+* **Training:** Es gibt keine gepaarten Daten (Mund d hat nie dasselbe Wort gesagt), daher tragen drei Losses das Training:
+    * **Inhalt:** Ein eingefrorener Lippenleser muss das Wort in der Ausgabe weiterhin erkennen.
+    * **Identität:** Ein adversarialer Sprecher-Klassifikator auf dem Code, den der Encoder überlisten muss.
+    * **Realismus:** ein Realismus-Loss für die RGB-Ausgabe.
+* **Zu schlagende Baseline:** die mittlere Lippenform jedes Sprechers abziehen und die kanonische addieren.
+* **Mund d:** ein gemittelter oder synthetischer Mund, nie eine reale Person.
+* **Evaluation:** Wortgenauigkeit eines Lippenlesers auf der Ausgabe und Sprecher-ID durch einen Angreifer, der auf anonymisierten Ausgaben trainiert ist, denn der Bewegungsstil (wie weit, schnell oder asymmetrisch jemand spricht) kann Personen weiterhin identifizieren. Beide Varianten werden neue Punkte im Zielkonflikt-Plot aus Baustein 4.
+* **Veröffentlichung:** Das RGB-Modell erzeugt Mundvideo, das aus Bundestagsmaterial gelernt wurde. Vor der Freigabe seiner Gewichte wird beim Bundestag nachgefragt.
