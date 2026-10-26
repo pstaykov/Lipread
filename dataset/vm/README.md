@@ -1,18 +1,22 @@
-# Mining on a second machine (Ubuntu, CPU only)
+# Mining on a second machine (Windows, CPU only)
 
 Speakers are split by `md5(speaker_id) % 2`: the main PC mines shard 0, this machine shard 1
 (`mine_clips.py --shard k/2`, each up to 400 clips per word, 800 together). Alignment runs on the CPU.
+Needs ~65-70 GB free disk (clips ~32 GB + the miner's 30 GB safety margin).
 
+In PowerShell (Git: `winget install Git.Git`, then open a new window):
 ```
-git clone -b Jufo-2026/27 https://github.com/pstaykov/Lipread.git && cd Lipread
-bash dataset/vm/setup.sh     # once: uv + Python 3.11 env (.venv-mine), catalog + vocab -> bundestag_data/
-bash dataset/vm/run.sh       # start / resume in the background (WORKERS=<n>, default: all cores)
-bash dataset/vm/status.sh    # progress
-bash dataset/vm/stop.sh      # stop (resumable)
-bash dataset/vm/pack.sh      # -> clips_vm.tar for the main PC
+git clone -b Jufo-2026/27 https://github.com/pstaykov/Lipread.git
+cd Lipread
+powershell -ExecutionPolicy Bypass -File dataset\vm\setup.ps1     # once: uv, Python 3.11 env, data, self-check
+powershell -ExecutionPolicy Bypass -File dataset\vm\run.ps1       # start / resume (-Workers 14; default: cores - 2)
+powershell -ExecutionPolicy Bypass -File dataset\vm\status.ps1    # progress
+powershell -ExecutionPolicy Bypass -File dataset\vm\stop.ps1      # stop (resumable)
+powershell -ExecutionPolicy Bypass -File dataset\vm\pack.ps1      # -> clips_vm.tar for the main PC
 ```
+The miner keeps running when the Remote Desktop window is closed, but not after signing out.
 
-Back on the main PC (miner stopped): `tar xf clips_vm.tar -C <dir>` and
+Back on the main PC (miner stopped): `tar -xf clips_vm.tar -C <dir>` and
 `python dataset/vm/merge_clips.py <dir>/clips`.
 
 `catalog_1of2.jsonl.gz` is made on the main PC by `python dataset/vm/export_shard.py --shard 1/2`
