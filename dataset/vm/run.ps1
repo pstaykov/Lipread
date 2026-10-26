@@ -1,7 +1,7 @@
 # Start (or resume) mining in a hidden background process:
-#   powershell -ExecutionPolicy Bypass -File dataset\vm\run.ps1 [-Workers 14] [-Shard 1/2]
+#   powershell -ExecutionPolicy Bypass -File dataset\vm\run.ps1 [-Workers 14] [-Shard 1,3,5/10]
 # It keeps running when the Remote Desktop window is closed (disconnect), but not when you sign out.
-param([int]$Workers = [Math]::Max(1, [int]$env:NUMBER_OF_PROCESSORS - 2), [int]$Prep = 5, [string]$Shard = "1/2")
+param([int]$Workers = [Math]::Max(1, [int]$env:NUMBER_OF_PROCESSORS - 2), [int]$Prep = 5, [string]$Shard = "1,3,5/10")
 Set-Location (Resolve-Path "$PSScriptRoot\..\..")
 $pidFile = "bundestag_data\clips\miner.pid"
 if ((Test-Path $pidFile) -and (Get-Process -Id (Get-Content $pidFile) -ErrorAction SilentlyContinue)) {

@@ -1,7 +1,10 @@
 # Mining on a second machine (Windows, CPU only)
 
-Speakers are split by `md5(speaker_id) % 2`: the main PC mines shard 0, this machine shard 1
-(`mine_clips.py --shard k/2`, each up to 400 clips per word, 800 together). Alignment runs on the CPU.
+Speakers are split by `md5(speaker_id) % 10` in proportion to speed: this machine mines remainders 1,3,5
+(`--shard 1,3,5/10`, up to 240 clips per word), the main PC 0,2,4,6,7,8,9 (up to 560); 800 together.
+Until 2026-10-27 the split was `% 2` (odd = this machine); speeches of remainders 7,9 it had already
+mined are listed with `python dataset/vm/done_ids.py 7,9/10` and go into the PC's
+`bundestag_data/clips/skip_ids.txt`. Alignment runs on the CPU.
 Needs ~65-70 GB free disk (clips ~32 GB + the miner's 30 GB safety margin).
 
 In PowerShell (Git: `winget install Git.Git`, then open a new window):

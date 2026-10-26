@@ -3,8 +3,8 @@
     python dataset/mine_clips.py --workers 6            # resumable; stops when every word has CAP clips
     taskkill /PID <bundestag_data/clips/miner.pid> /T /F # stop (kills the worker processes too)
     kill -- -$(cat bundestag_data/clips/miner.pid)       # stop on Linux (the miner leads its process group)
-    python dataset/mine_clips.py --shard 1/2            # this machine mines only speakers with md5 % 2 == 1,
-                                                        # up to CAP / 2 clips per word (see dataset/vm/)
+    python dataset/mine_clips.py --shard 1,3,5/10       # only speakers with md5 % 10 in {1,3,5},
+                                                        # up to CAP * 3/10 clips per word (see dataset/vm/)
     python dataset/mine_clips.py --ids DE-0210008043    # test on given speeches
 
 Per speech (1-2 in main-process threads with one GPU model, 3-4 in CPU worker processes):
@@ -327,11 +327,13 @@ def main():
     ap.add_argument("--workers", type=int, default=6)
     ap.add_argument("--vocab", default=str(DATA / "words" / "vocab.csv"))
     ap.add_argument("--ids", nargs="*")
-    ap.add_argument("--shard", default="0/1", help="k/n: only speakers with md5 %% n == k, CAP / n clips per word")
+    ap.add_argument("--shard", default="0/1",
+                    help="k[,k..]/n: only speakers with md5 %% n in {k..}, CAP * len(k) / n clips per word")
     ap.add_argument("--prep", type=int, help="download + alignment threads (default: 3 with GPU, workers/4 without)")
     args = ap.parse_args()
-    k, n = map(int, args.shard.split("/"))
-    cap = CAP // n
+    ks, n = args.shard.split("/")
+    ks, n = {int(k) for k in ks.split(",")}, int(n)
+    cap = CAP * len(ks) // n
     import torch                                            # main process only; decides GPU vs CPU alignment
     gpu = torch.cuda.is_available()
     prep_threads = args.prep or (PREP_THREADS if gpu else max(PREP_THREADS, args.workers // 4))
@@ -339,6 +341,9 @@ def main():
 
     vocab = {r["word"].lower(): int(r["est"]) for r in csv.DictReader(open(args.vocab, encoding="utf-8"))}
     done = {r["id"] for r in read_jsonl(OUT / "clips_index.jsonl")}
+    skip = OUT / "skip_ids.txt"                             # speeches already mined on another machine
+    if skip.exists():
+        done |= set(skip.read_text().split())
     count, spk = Counter(), Counter()
     registered = set()
     for c in read_jsonl(OUT / "clips.jsonl"):
@@ -354,7 +359,7 @@ def main():
         print(f"removed {len(stale)} unregistered clip files", flush=True)
 
     entries = [e for e in read_jsonl(DATA / "catalog.jsonl") if e["date"] >= HD_FROM and e["id"] not in done
-               and shard_of(e["speaker_id"], n) == k]
+               and shard_of(e["speaker_id"], n) in ks]
     if args.ids:
         entries = [e for e in entries if e["id"] in set(args.ids)]
     occ = {}
@@ -362,7 +367,7 @@ def main():
         occ[e["id"]] = Counter(w.lower() for _, _, t in e["sentences"] for w in WORD.findall(t) if w.lower() in vocab)
     # rare words first: occurrences weighted by 1 / estimated clips, per minute
     entries.sort(key=lambda e: -sum(n / vocab[w] for w, n in occ[e["id"]].items()) / max(e["duration"], 1))
-    print(f"{len(entries)} speeches to go (shard {k}/{n}, cap {cap}), {len(vocab)} words, "
+    print(f"{len(entries)} speeches to go (shard {args.shard}, cap {cap}), {len(vocab)} words, "
           f"{sum(count.values())} clips so far, alignment on {'GPU' if gpu else 'CPU'}, {prep_threads} prep threads",
           flush=True)
 
