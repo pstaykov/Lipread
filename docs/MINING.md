@@ -107,6 +107,13 @@ python dataset/mine_bundestag.py mine      # video
 - `clips.jsonl`: one line per clip (word, speaker, times, score, mouth_px, source). `clips_index.jsonl`: one line per speech.
 - Test on 4 speeches (periods 18–21): 106 clips, mouth 37–85 px (median 50), all checked by eye.
 
+## Result of the clip mining (2026-10-27)
+- Two machines, speakers split by `md5(speaker_id) % 10` (`--shard`, see `dataset/vm/`): PC 0,2,4,6,7,8,9, a CPU-only Windows VM 1,3,5. Total cap 600 per word, split 420 / 180.
+- Merged with `dataset/vm/merge_clips.py`: 330,271 clips.
+- Top-up (`--topup 500`): all speeches again for the 9 words still below 500, skipping instances already mined.
+- Bug found there: the scene reference needs >= 2 x 29 face frames, so a speech with a single needed occurrence could never pass. Fixed: such speeches sample extra frames across the speech for the reference (`REF_SAMPLES`).
+- Final: 330,649 clips, all 500 words >= 500 (minimum exactly 500 for the 9 topped-up words).
+
 ## Old mine
 - After the switch to HD, `roi.mp4` and `audio.flac` of the 576p/720p mine were deleted, along with the per-frame landmarks. `meta.json` and the `facemesh.npz` masks remain. Sample speech DE-0210004073 is kept whole for `lipreading/landmarks/smoke_test.py`.
 

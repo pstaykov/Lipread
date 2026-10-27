@@ -56,7 +56,8 @@ OUT_PX = 256
 CAP = 600                     # clips per word (500 needed, headroom for later filtering)
 SPK_CAP = 25                  # clips per word per speaker
 SPEECH_CAP = 5                # clips per word per speech
-MAX_SEG = 250                 # frames per decode segment (10 s of 768x540 RGB ~ 300 MB)
+REF_SAMPLES, REF_FRAMES = 15, 4  # extra frames for the scene reference when a speech has < 2 clip windows
+MAX_SEG = 250                # frames per decode segment (10 s of 768x540 RGB ~ 300 MB)
 MIN_FREE_GB = 30.0
 PREP_THREADS = 3              # download + alignment threads in the main process (GPU shared via a lock)
 CPU_ALIGN_THREADS = 2         # torch threads per alignment without GPU (prep threads align in parallel)
@@ -295,6 +296,17 @@ def mine_speech(base, job):
             write_clip(path, frames[i:i + CLIP], c_lms, roi_wh, c, pcm)
             pending.append((c, path, c_lms, c_strips))
         del frames
+
+    # few clip windows (e.g. one rare word in the speech): sample the lectern shot across the speech for the reference
+    if pending and sum(all_ok) < 2 * CLIP:
+        sents = entry["sentences"]
+        for s, e, _ in sents[::max(1, len(sents) // REF_SAMPLES)][:REF_SAMPLES]:
+            frames = decode(mp4, int((s + e) / 2 * FPS), REF_FRAMES, interlaced, roi_wh)
+            with mp.solutions.face_mesh.FaceMesh(static_image_mode=True, max_num_faces=2, refine_landmarks=True,
+                                                 min_detection_confidence=0.5) as fm:
+                lms, strips = analyse(frames, fm)
+            all_strips += strips
+            all_ok += [p is not None for p in lms]
 
     # scene check against the speech's reference strip, then per-clip checks
     clips = []
