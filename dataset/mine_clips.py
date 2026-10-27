@@ -6,6 +6,7 @@
     python dataset/mine_clips.py --shard 1,3,5/10       # only speakers with md5 % 10 in {1,3,5},
                                                         # up to CAP * 3/10 clips per word (see dataset/vm/)
     python dataset/mine_clips.py --ids DE-0210008043    # test on given speeches
+    python dataset/mine_clips.py --topup 500            # after merging: all speeches again, for words below 500
 
 Per speech (1-2 in main-process threads with one GPU model, 3-4 in CPU worker processes):
     1. Mediathek share data -> best MP4 (1920x1080 from Sept 2016) + MP3 audio.
@@ -52,7 +53,7 @@ MIN_MOUTH_PX = 36             # lip-corner distance in source pixels
 MIN_VALID = 27                # of 29 frames
 CROP_FACE = 2.0               # crop side / face width (landmarks 234-454) -> mouth ~18 % of the crop
 OUT_PX = 256
-CAP = 800                     # clips per word (500 needed, headroom for later filtering)
+CAP = 600                     # clips per word (500 needed, headroom for later filtering)
 SPK_CAP = 25                  # clips per word per speaker
 SPEECH_CAP = 5                # clips per word per speech
 MAX_SEG = 250                 # frames per decode segment (10 s of 768x540 RGB ~ 300 MB)
@@ -216,7 +217,7 @@ def write_clip(path, frames, lms, roi_wh, info, pcm):
                         crop_box=np.array([x0, y0, side], np.int32), roi_px=np.array(roi_wh, np.int32))
 
 
-def prepare_speech(entry, needed, lock):
+def prepare_speech(entry, needed, lock, existing=None, speech_cap=SPEECH_CAP):
     """Main process (threads): media URLs, probe, MP3, alignment on the single GPU model -> worker job."""
     sid, t_start = entry["id"], time.time()
     base = {"id": sid, "speaker_id": entry["speaker_id"]}
@@ -234,20 +235,20 @@ def prepare_speech(entry, needed, lock):
     except Exception as ex:
         return {**base, "status": "error", "error": f"{type(ex).__name__}: {ex}"[:300]}, None
 
-    by_word = defaultdict(list)                            # best SPEECH_CAP instances per word
+    by_word = defaultdict(list)                            # best speech_cap instances per word
     for w, t0, t1, sc in words:
         by_word[w].append((sc, t0, t1))
     cands = []
     for w, lst in by_word.items():
-        taken = []                                         # OPTV sometimes repeats a sentence -> same instance twice
+        taken = list((existing or {}).get(w, []))          # clips mined earlier (top-up) + repeated OPTV sentences
         for sc, t0, t1 in sorted(lst, reverse=True):
             f0 = int(round((t0 + t1) / 2 * FPS)) - CLIP // 2
             if f0 < 0 or any(abs(f0 - g) < 5 for g in taken):
                 continue
+            if len(taken) >= speech_cap:
+                break
             taken.append(f0)
             cands.append({"word": w, "f0": f0, "t0": round(t0, 3), "t1": round(t1, 3), "score": round(sc, 3)})
-            if len(taken) == SPEECH_CAP:
-                break
     base.update(aligned=len(words), candidates=len(cands), src=f"{vw}x{vh}", prep_sec=round(time.time() - t_start, 1))
     if not cands:
         return {**base, "status": "done", "clips": 0}, None
@@ -330,26 +331,31 @@ def main():
     ap.add_argument("--shard", default="0/1",
                     help="k[,k..]/n: only speakers with md5 %% n in {k..}, CAP * len(k) / n clips per word")
     ap.add_argument("--prep", type=int, help="download + alignment threads (default: 3 with GPU, workers/4 without)")
+    ap.add_argument("--topup", type=int, help="target N: revisit all speeches (incl. mined ones) for words below N")
+    ap.add_argument("--speech-cap", type=int, default=SPEECH_CAP)
+    ap.add_argument("--spk-cap", type=int, default=SPK_CAP)
     args = ap.parse_args()
     ks, n = args.shard.split("/")
     ks, n = {int(k) for k in ks.split(",")}, int(n)
-    cap = CAP * len(ks) // n
+    cap = args.topup or CAP * len(ks) // n
+    index = OUT / ("topup_index.jsonl" if args.topup else "clips_index.jsonl")
     import torch                                            # main process only; decides GPU vs CPU alignment
     gpu = torch.cuda.is_available()
     prep_threads = args.prep or (PREP_THREADS if gpu else max(PREP_THREADS, args.workers // 4))
     OUT.mkdir(parents=True, exist_ok=True)
 
     vocab = {r["word"].lower(): int(r["est"]) for r in csv.DictReader(open(args.vocab, encoding="utf-8"))}
-    done = {r["id"] for r in read_jsonl(OUT / "clips_index.jsonl")}
+    done = {r["id"] for r in read_jsonl(index)}
     skip = OUT / "skip_ids.txt"                             # speeches already mined on another machine
-    if skip.exists():
+    if skip.exists() and not args.topup:
         done |= set(skip.read_text().split())
     count, spk = Counter(), Counter()
-    registered = set()
+    registered, existing = set(), defaultdict(lambda: defaultdict(list))
     for c in read_jsonl(OUT / "clips.jsonl"):
         count[c["word"]] += 1
         spk[(c["word"], c["speaker_id"])] += 1
         registered.add(c["path"])
+        existing[c["id"]][c["word"]].append(c["f0"])
     # files of clips that a stopped run moved but never recorded
     shutil.rmtree(OUT / "_tmp", ignore_errors=True)
     stale = [f for w in vocab if (OUT / w).is_dir() for f in (OUT / w).iterdir() if f"{w}/{f.stem}" not in registered]
@@ -362,9 +368,13 @@ def main():
                and shard_of(e["speaker_id"], n) in ks]
     if args.ids:
         entries = [e for e in entries if e["id"] in set(args.ids)]
+    if args.topup:
+        vocab = {w: v for w, v in vocab.items() if count[w] < cap}
+        print("top-up:", {w: count[w] for w in vocab}, flush=True)
     occ = {}
     for e in entries:
         occ[e["id"]] = Counter(w.lower() for _, _, t in e["sentences"] for w in WORD.findall(t) if w.lower() in vocab)
+    entries = [e for e in entries if occ[e["id"]]]
     # rare words first: occurrences weighted by 1 / estimated clips, per minute
     entries.sort(key=lambda e: -sum(n / vocab[w] for w, n in occ[e["id"]].items()) / max(e["duration"], 1))
     print(f"{len(entries)} speeches to go (shard {args.shard}, cap {cap}), {len(vocab)} words, "
@@ -375,14 +385,14 @@ def main():
         with contextlib.suppress(OSError):
             os.setpgrp()                                    # workers join our group -> kill -- -<pid> stops all
     (OUT / "miner.pid").write_text(str(os.getpid()))        # stop: taskkill /PID <pid> /T /F (whole tree)
-    idx = open(OUT / "clips_index.jsonl", "a", encoding="utf-8")
+    idx = open(index, "a", encoding="utf-8")
     cl = open(OUT / "clips.jsonl", "a", encoding="utf-8")
 
     def record(e, res, clips):
         kept = 0
         for c in clips:
             key = (c["word"], c["speaker_id"])
-            if count[c["word"]] >= cap or spk[key] >= SPK_CAP:
+            if count[c["word"]] >= cap or spk[key] >= args.spk_cap:
                 for ext in (".mp4", ".npz"):
                     (OUT / c["path"]).with_suffix(ext).unlink(missing_ok=True)
                 continue
@@ -411,9 +421,9 @@ def main():
                 e = next(it, None)
                 if e is None:
                     break
-                needed = [w for w in occ[e["id"]] if count[w] < cap and spk[(w, e["speaker_id"])] < SPK_CAP]
+                needed = [w for w in occ[e["id"]] if count[w] < cap and spk[(w, e["speaker_id"])] < args.spk_cap]
                 if needed:
-                    preparing[prep.submit(prepare_speech, e, needed, lock)] = e
+                    preparing[prep.submit(prepare_speech, e, needed, lock, existing.get(e["id"]), args.speech_cap)] = e
             if not preparing and not mining:
                 break
             fin, _ = wait(list(preparing) + list(mining), return_when=FIRST_COMPLETED)
