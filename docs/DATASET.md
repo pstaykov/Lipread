@@ -1,7 +1,7 @@
 # BTLips: the Bundestag word dataset
 
 GLips-style German word-level lipreading dataset from Bundestag Mediathek HD video: **500 words × 500 clips,
-speaker-disjoint 400 / 50 / 50 per word**. Layout and file formats: [`BTLips/README.txt`](../BTLips/README.txt)
+400 / 50 / 50 clips per word, globally speaker-disjoint** (each speaker in exactly one of train / val / test across all words). Layout and file formats: [`BTLips/README.txt`](../BTLips/README.txt)
 (gitignored, with `BTLips_facemesh/`). Loader: `model/data/clips.py`.
 
 | | Speakers | Clips per word | Speakers per word (median) |

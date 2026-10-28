@@ -20,7 +20,7 @@ Um jede Variable zu kontrollieren, wird ein eigener Datensatz aus Plenarvideos d
 ### 1. Eigener Datensatz aus Bundestagsvideos
 Die Sprecher-Labels von GLips sind heuristisch und nicht rekonstruierbar. Ein eigener Datensatz erlaubt es, Wörter und Sprecher passend zu den Fragen zu wählen.
 
-**Stand:** BTLips ist gebaut: 500 Wörter × 500 Clips, sprecherdisjunkt 400/50/50 pro Wort, 1.372 Sprecher, FaceMesh vorberechnet. Details: [`docs/DATASET.md`](docs/DATASET.md).
+**Stand:** BTLips ist gebaut: 500 Wörter × 500 Clips, 400/50/50 Clips pro Wort, global sprecherdisjunkt (jeder der 1.372 Sprecher in genau einem von train/val/test), FaceMesh vorberechnet. Details: [`docs/DATASET.md`](docs/DATASET.md).
 
 * **Sprecher-Labels:** Die Mediathek veröffentlicht jede Rede als eigenes Video. Die [Open Parliament TV API](https://github.com/OpenParliamentTV/OpenParliamentTV-Architecture/blob/main/PLATFORM-DATAOBJECTS.md) verknüpft jede Rede mit Sprecher (Wikidata-ID), Sitzung und Transkript. OCR des Namensbanners dient als Gegenprobe.
 * **Wort-Zeitstempel:** Forced Alignment (MFA German oder WhisperX) liefert Wort- und Phonemgrenzen. Da Protokolle redigiert und nicht wörtlich sind, wird gegen ASR-Ausgabe ausgerichtet oder nur Wörter behalten, bei denen ASR und Protokoll übereinstimmen.
