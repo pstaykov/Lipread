@@ -55,7 +55,7 @@ Hypotheses (not results): V1 is the worst for privacy. It may or may not beat V0
 - **Crops:** square, centre tracked per frame (5-frame moving average), **one size per clip** (largest bbox side × margin: face +15 %, mouth +60 %) so mouth opening isn't scaled away. Encoder input 128 × 128, scaled to [-1, 1].
 - **Rendering (V2, V3), frontal:** the aligned, pose-corrected points, i.e. the face seen from straight ahead, in a box fixed by the reference face that is the same for every clip. Contour/lip edges (124 / 40), white, 2 px, on a 256 × 256 black canvas, resized to 128 × 128. Head pose, head position and face size are therefore gone from V2/V3. V1 draws the edges onto the RGB crop at the image position.
 - **Fusion (V6):** NASNet (1056) ⊕ 256-d lip-coordinate MLP; DC-TCN's first 1×1 layer projects the 1312-d input to 512.
-- **Evaluation:** top-1, top-5, macro-F1 on the speaker-disjoint test split, 3 seeds (mean ± std), plus identity leakage (speaker classifier, linear probe; Baustein 4).
+- **Evaluation:** top-1, top-5, macro-F1 on the speaker-disjoint test split. Clips of one speaker are correlated, so 95 % intervals come from a bootstrap over the 170 test speakers, not over clips (`stats.py`). Every variant is trained with seed 0; the headline comparisons (V0_mouth, V4, V5) get 3 seeds (mean ± std; the bootstrap averages the seeds). Identity leakage: section 3, *Identity protocol*.
 
 ### Sample figure
 ![Input variants](figures/input_variants.png)
@@ -67,7 +67,7 @@ Hypotheses (not results): V1 is the worst for privacy. It may or may not beat V0
 The anonymizer works on landmarks, not pixels. It takes the aligned FaceMesh points of a clip (T × 468 × 3) and returns `x̂`: the same mouth motion, with every speaker on one shared mean face. Only the lower face moves in `x̂`. The upper face (eyes, brows, forehead) stays at the mean face. Every landmark-only variant is then built from `x̂` instead of the real points. **V4/V5** read the 128 contour or 40 lip points of `x̂` directly. **V2/V3** render the same points onto the black canvas. V0, V1 and V6 contain video pixels, so this anonymizer can't cover them.
 
 ### Speaker model
-`LipreadingModel(variant, num_classes = number of speakers)`: the exact word model from section 1, with speaker IDs instead of words. It is trained and tested on **different speeches** of the same speakers; otherwise it learns session cues (clothing, lighting) instead of identity. It measures identity leakage per input variant (Baustein 4) and is the adversary `S` below.
+`LipreadingModel(variant, num_classes = number of speakers)`: the exact word model from section 1, with speaker IDs instead of words. It is trained and tested on **different sitting days** of the same speakers (*Identity protocol* below); otherwise it learns session cues (clothing, lighting, camera, lectern) instead of identity. It measures identity leakage per input variant (Baustein 4) and is the adversary `S` below.
 
 ### Anonymizer: variational autoencoder with a fixed PCA output layer
 
@@ -103,7 +103,7 @@ Input per frame: `x_{t,L} − m̄_L`, flattened to 3|L|, standardized per coordi
 The receptive field is 17 frames (0.7 s), enough for one word and its coarticulation. Only E sees the speaker's real landmarks.
 
 #### Bottleneck
-- **Sampling:** `z = μ + σ ⊙ ε`, ε ~ N(0, I), per frame and dimension (reparameterization, so the gradient flows through μ and σ). The noise stays on **at test time** too. It is the actual protection: an `x̂` built from μ alone could carry speaker details in tiny differences.
+- **Sampling:** `z = μ + σ ⊙ ε`, ε ~ N(0, I), per frame and dimension (reparameterization, so the gradient flows through μ and σ). The noise stays on **at test time** too. It is the actual protection: an `x̂` built from μ alone could carry speaker details in tiny differences. For evaluation, `x̂` is also decoded from μ without noise, the worst case for privacy, and both are reported.
 - **Clip norm:** each of the 16 dimensions is normalized over the T frames of the clip, `z̃_j = (z_j − mean_t z_j) / (std_t z_j + 10⁻⁵)`. This removes constant offsets (always slightly open) and amplitude (always wide) per clip.
 
 #### Decoder D (0.7 M parameters)
@@ -154,11 +154,20 @@ Terms:
 Mean face and PCA decoder remove face shape by construction, and the lower-face PCA removes upper-face motion. Everything else rests on H. The risk is that `E` keeps speaker traits inside `z` (motion style, asymmetry) or hides only the training speakers from `S`. Tests:
 - **Probe on z:** freeze `E` and train a new speaker classifier on `z`. Above chance means H fails.
 - **Seen vs. unseen speakers:** compare leakage on training speakers and on held-out speakers. A clear gap means `E` overfit to its training speakers.
-- **Baseline:** subtracting each speaker's mean shape. The anonymizer has to beat it.
+- **Baselines:** subtracting each speaker's mean shape, and normalizing every dimension of `z` by the speaker's mean and std over all their clips (speaker CMVN, as in speech). The anonymizer has to beat both.
+- **Expected residual:** speaking rate and articulation amplitude are behaviour, not face shape. The clip norm removes amplitude within a clip, but rate stays. Identity that survives this way is reported as a finding.
 - **How much the resting face gives away** (same sample, leave-one-speech-out): each speaker's resting face from *other* speeches explains 38–39 % of the variance of a pose-corrected frame (49–52 % from the same speech). The nearest resting face identifies the speaker of a single 1.2 s clip among 229 at 56 % top-1 for the 128 contour points (V4) and 19 % for the 40 lip points (V5); chance is 0.4 %. Pose correction *raises* this (V4 34 % → 56 %), because it removes pose noise and leaves face shape. Correcting pose helps lipreading and the attacker alike, which makes the shared mean face necessary.
 
 ### Evaluation
-- **Identity:** a new speaker classifier trained from scratch on `x̂` (speech-split) for the held-out test speakers. `S` from training doesn't count.
+- **Identity:** the *Identity protocol* below on `x̂`, with attackers trained from scratch. `S` from training doesn't count.
+
+### Identity protocol (Baustein 4 and the anonymizer)
+Closed-set speaker accuracy can't be measured on unseen speakers, and its value depends on how many speakers there are. So:
+- **Attacker data:** only the held-out test speakers, which neither the word model nor the anonymizer has seen. Attacker training and test clips come from **different sitting days**, so a session classifier (lighting, camera, clothing, lectern) gains nothing. 156 of the 170 test speakers speak on ≥ 2 days, 144 on ≥ 3.
+- **Speaker-balanced subset:** clips per test speaker range from 1 to 969 (median 98). The subset fixes the speakers (≥ 2 days) and the number of clips per speaker, the same for every input variant.
+- **Metrics:** equal error rate (EER) of a verification attacker (same or different speaker, from the speaker model's embeddings, trials across days), plus closed-set top-1 on the fixed subset with its chance level.
+- **Attacker levels** (as in VoicePrivacy): *ignorant*, trained on original inputs and tested on anonymized ones; *informed*, trained on outputs of the same anonymizer. Informed is the headline number.
+- **Statistics:** bootstrap over speakers, as for words.
 - **Content:** word accuracy of the frozen `W` *and* of a word model retrained on `x̂`. The second catches outputs only `W` can read.
 - **Result:** word accuracy vs. speaker accuracy, one point per input variant and per β.
 
@@ -174,6 +183,7 @@ model/
 │   ├── images.py         tracked crops, overlay, mesh rendering
 │   └── variants.py       variant table, make_inputs()
 ├── train.py              train + test one variant -> runs/<variant>/
+├── stats.py              speaker-bootstrap intervals over all seeds
 └── nets/
     ├── nasnet.py         NASNet-Mobile encoder (+ weights/, gitignored)
     ├── dctcn.py          DC-TCN back-end
@@ -189,11 +199,12 @@ model/
 | `nets/nasnet.py` | NASNet-A Mobile in PyTorch, a layer-for-layer mirror of `keras.applications.nasnet`. Loads Google's original ImageNet weights (Keras `NASNet-mobile.h5` in `model/nets/weights/`) by Keras layer name and fails if any layer is unmatched. Verified: 5.327 M parameters incl. BN statistics, identical to Keras; a Samoyed photo is classified "Samoyed" (p = 0.93). |
 | `nets/dctcn.py` | DC-TCN, ported unchanged from mpc001/Lipreading_using_Temporal_Convolutional_Networks (`densetcn.py`, SE, Swish), LRW config (`lrw_resnet18_dctcn.json`): blocks [3,3,3,3], growth 384, kernels {3,5,7}, dilations {1,2,5}, reduced size 512, SE, dropout 0.2, Swish. |
 | `nets/lipreader.py` | `LipreadingModel(variant, num_classes)`: encoder(s) → DC-TCN → mean over valid frames → linear. |
-| `train.py` | `python -m model.train --variant V4 --batch 128 [--resume]`. AdamW (lr 3e-4 × √(batch/32), wd 1e-2), 1 warm-up epoch, then until val top-1 plateaus (lr halved after 2 epochs without +0.001, stop after 5), label smoothing 0.1, fp16; random horizontal flip for V0–V3. `FaceNorm` is fitted on 4,000 training clips; aligned, pose-corrected contour points are cached in `runs/cache/`. Picks the epoch with the best val top-1 and writes `runs/<variant>/metrics.csv` (incl. train top-1 and lr), `best.pt`, `last.pt` (for `--resume`), `test.json` (top-1, top-5, macro-F1). |
+| `train.py` | `python -m model.train --variant V4 --batch 128 [--seed 1] [--resume \| --test-only]`. AdamW (lr 3e-4 × √(batch/32), wd 1e-2), 1 warm-up epoch, then until val top-1 plateaus (lr halved after 2 epochs without +0.001, stop after 5), label smoothing 0.1, fp16; random horizontal flip for V0–V3. `FaceNorm` is fitted on 4,000 training clips; aligned, pose-corrected contour points are cached in `runs/cache/`. Picks the epoch with the best val top-1 and writes `runs/<variant>/metrics.csv` (incl. train top-1 and lr), `best.pt`, `last.pt` (for `--resume`), `test.json` (top-1, top-5, macro-F1), `test_pred.npy` (top-5 words per test clip); seeds ≠ 0 go to `runs/<variant>_s<seed>/`. `--test-only` re-tests `best.pt`. |
+| `stats.py` | `python -m model.stats V4 V5 …`: per variant, mean (± std over seeds) and 95 % intervals from 2,000 bootstrap resamples of whole test speakers → `runs/<variant>/stats.json`. |
 
 Memory (RTX 3060 12 GB, batch 4 × 50 frames, training mode): image variants 45.1 M parameters (NASNet 5.3 M + DC-TCN ~40 M), **5.8 GiB peak**; coordinate variants 41.5 M parameters, 0.3 GiB; V6 45.5 M. 29-frame clips should fit batch ~8 for image variants.
 
-## 5. Results (BTLips, 500 words, speaker-disjoint test, 1 seed)
+## 5. Results (BTLips, 500 words, speaker-disjoint test, seed 0)
 
 Every variant is trained until val top-1 plateaus (`train.py`); the best val epoch is tested. Chance is 0.002.
 
@@ -202,7 +213,7 @@ Every variant is trained until val top-1 plateaus (`train.py`); the best val epo
 | V4 | 128 contour points | *rerun* | | | |
 | V5 | 40 lip points | *rerun* | | | |
 
-A first run with a fixed 15-epoch cosine schedule gave V4 0.292 / 0.467 / 0.286 and V5 0.285 / 0.459 / 0.278 (best epoch 7; after that train loss kept falling while val loss rose). Queue: `runs/queue.sh`, ~2.3 h per image epoch and ~4 min per coordinate epoch on the RTX 3060.
+A first run with a fixed 15-epoch cosine schedule gave V4 0.292 / 0.467 / 0.286 and V5 0.285 / 0.459 / 0.278 (best epoch 7; after that train loss kept falling while val loss rose). Queue: `runs/queue.sh`, then `runs/queue2.sh` (seeds 1–2 for V4, V5, V0_mouth, then `stats.py`), ~2.3 h per image epoch and ~4 min per coordinate epoch on the RTX 3060.
 
 ## 6. Status
 - [x] Architecture and variants fixed (this file)

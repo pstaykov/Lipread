@@ -1,14 +1,15 @@
 """Train one input variant (docs/MODELS.md) on BTLips, pick the epoch with the best val top-1, test it.
 
-    python -m model.train --variant V4 [--resume]
+    python -m model.train --variant V4 [--seed 1] [--resume | --test-only]
 
 Same recipe for every variant: AdamW (lr 3e-4 at 32 clips per step, scaled by sqrt(batch / 32); wd 1e-2), 1 warm-up
 epoch, then trained until val top-1 plateaus: the lr is halved after 2 epochs without a gain of 0.001 and training
 stops after 5 (--patience), which also catches val falling while train keeps rising. Label smoothing 0.1, mixed precision. --batch 128 for the coordinate variants:
 their step time is launch-bound, so 128 clips cost the same time as 32. Image variants (V0-V3) are flipped horizontally at random.
 Coordinate features (aligned + pose-corrected contour points) are computed once into runs/cache/.
-Output runs/<variant>/: train.log, metrics.csv, best.pt, last.pt (full state for --resume), test.json (top-1, top-5,
-macro-F1).
+Output runs/<variant>/ (runs/<variant>_s<seed>/ for seeds other than 0): train.log, metrics.csv, best.pt, last.pt
+(full state for --resume), test.json (top-1, top-5, macro-F1), test_pred.npy (top-5 word indices per test clip, in
+split order, for model.stats). --test-only re-tests best.pt without training.
 """
 import argparse
 import csv
@@ -91,7 +92,7 @@ def coord_batches(X, y, train, batch):
         yield {'coords': X[j].float()}, y[j]
 
 
-def evaluate(model, batches, dev):
+def evaluate(model, batches, dev, preds=False):
     model.eval()
     logits, ys = [], []
     with torch.no_grad(), torch.autocast('cuda', torch.float16):
@@ -101,8 +102,9 @@ def evaluate(model, batches, dev):
     logits, ys = torch.cat(logits), torch.cat(ys)
     top5 = logits.topk(5, 1).indices
     pred = top5[:, 0]
-    return {'top1': (pred == ys).float().mean().item(), 'top5': (top5 == ys[:, None]).any(1).float().mean().item(),
-            'f1': f1_score(ys, pred, average='macro'), 'loss': F.cross_entropy(logits, ys).item()}
+    m = {'top1': (pred == ys).float().mean().item(), 'top5': (top5 == ys[:, None]).any(1).float().mean().item(),
+         'f1': f1_score(ys, pred, average='macro'), 'loss': F.cross_entropy(logits, ys).item()}
+    return (m, top5.short().numpy()) if preds else m
 
 
 def main():
@@ -111,6 +113,7 @@ def main():
     ap.add_argument('--epochs', type=int, default=100, help='upper limit')
     ap.add_argument('--patience', type=int, default=5, help='epochs without val gain before stopping')
     ap.add_argument('--resume', action='store_true', help='continue from last.pt (or the weights in best.pt)')
+    ap.add_argument('--test-only', action='store_true', help='only test best.pt')
     ap.add_argument('--batch', type=int, default=BATCH, help='clips per optimizer step')
     ap.add_argument('--micro', type=int, default=16, help='clips per forward pass (image variants)')
     ap.add_argument('--workers', type=int, default=10)
@@ -118,7 +121,7 @@ def main():
     args = ap.parse_args()
     torch.manual_seed(args.seed)
     torch.backends.cudnn.benchmark = True
-    out = RUNS / args.variant
+    out = RUNS / (args.variant if args.seed == 0 else f'{args.variant}_s{args.seed}')
     out.mkdir(parents=True, exist_ok=True)
     log = open(out / 'train.log', 'a', encoding='utf-8')
 
@@ -165,13 +168,13 @@ def main():
         ck = torch.load(out / 'best.pt', map_location=dev)
         model.load_state_dict(ck['model'])
         st.update(epoch=ck['epoch'], best=ck['val']['top1'])
-    else:
+    elif not args.test_only:
         with open(out / 'metrics.csv', 'w', newline='') as f:
             csv.writer(f).writerow(['epoch', 'train_loss', 'train_top1', 'val_top1', 'val_top5', 'val_f1', 'val_loss',
                                     'lr', 'minutes'])
     say(f'{args.variant}: {sum(p.numel() for p in model.parameters()) / 1e6:.1f} M parameters, '
         f'{len(labels["train"])} train clips, {steps} steps/epoch, from epoch {st["epoch"] + 1}')
-    for ep in range(st['epoch'] + 1, args.epochs + 1):
+    for ep in range(st['epoch'] + 1, 0 if args.test_only else args.epochs + 1):
         model.train()
         t0, losses, hits = time.time(), [], []
         for i, (x, y) in enumerate(batches('train', True)):
@@ -217,8 +220,9 @@ def main():
             break
     ck = torch.load(out / 'best.pt', map_location=dev)
     model.load_state_dict(ck['model'])
-    m = evaluate(model, batches('test', False), dev)
-    res = {'variant': args.variant, 'best_epoch': ck['epoch'], 'val': ck['val'], 'test': m}
+    m, top5 = evaluate(model, batches('test', False), dev, preds=True)
+    np.save(out / 'test_pred.npy', top5)
+    res = {'variant': args.variant, 'seed': args.seed, 'best_epoch': ck['epoch'], 'val': ck['val'], 'test': m}
     (out / 'test.json').write_text(json.dumps(res, indent=1))
     say(f'test (epoch {ck["epoch"]}): top1 {m["top1"]:.4f} top5 {m["top5"]:.4f} f1 {m["f1"]:.4f}')
 

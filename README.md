@@ -39,6 +39,7 @@ $$\text{Acc}_{\max} = \frac{\#\,\text{Homophen-Gruppen}}{\#\,\text{Wörter}}$$
 * **FaceMesh-Grenze (eigenes Maß):** Wie gut trennen normalisierte FaceMesh-Lippenpunkte jedes Phonempaar? Nicht trennbare Paare werden zusammengelegt und die Homophene neu berechnet. Das begrenzt jedes reine Landmarken-Modell.
 * **Validierung:** Die Verwechslungen der Modelle sollten innerhalb der vorhergesagten Homophen-Gruppen liegen, geprüft an den eingebauten Paaren.
 * **Vokabulargröße:** Grenze für wachsende Wortlisten, da lange deutsche Wörter selten kollidieren.
+* **Gültigkeit:** Die Grenze gilt für die Viseme des Zielworts allein. Wortdauer und Koartikulation mit Nachbarwörtern können Homophene trotzdem trennen. Liegt ein Modell über der Grenze, ist das ein Ergebnis, kein Fehler.
 
 Eine deutsche Visem-Zuordnung gibt es von [Weiss & Aschenberner 2005](https://www.isca-archive.org/interspeech_2005/weiss05_interspeech.html). [Bear & Harvey 2017](https://ueaeprints.uea.ac.uk/id/eprint/64350/) zeigen, dass die Wahl der Zuordnung eine Rolle spielt.
 
@@ -56,6 +57,7 @@ Für jede Eingabe wird ein Sprecher-Klassifikator trainiert, dazu eine lineare P
 
 * Jeder Normalisierungsschritt sollte etwas Wortgenauigkeit kosten und etwas Identität entfernen. Beides zu messen ist das Kernergebnis.
 * **Hauptabbildung:** Wortgenauigkeit gegen Sprecher-ID-Genauigkeit, ein Punkt pro Eingabe.
+* **Protokoll:** Angreifer nur auf den ungesehenen Testsprechern, Training und Test an verschiedenen Sitzungstagen (sonst wird Beleuchtung und Kamera gelernt), sprecher-ausgeglichene Teilmenge, EER (Verifikation) neben Top-1, ignoranter und informierter Angreifer wie bei VoicePrivacy. Konfidenzintervalle per Bootstrap über Sprecher, 3 Seeds für die Hauptvergleiche.
 
 ### 5. Neutraler-Mund-Anonymisierer
 Die Sprecher a, b und c erscheinen alle als ein neutraler Mund d, der dieselben Bewegungen macht. Das ist das visuelle Gegenstück zur Umwandlung jeder Stimme in eine Zielstimme, einer Standardmethode der Sprach-Anonymisierung.
