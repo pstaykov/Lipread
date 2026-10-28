@@ -121,8 +121,13 @@ python dataset/mine_bundestag.py mine      # video
 - 16 words fell below 500 -> `--topup 530 --words ...` -> scanned and cleaned again.
 - Final: 313,545 clips, 1,372 speakers, all 500 words >= 503.
 
+## Split (2026-10-28)
+- `dataset/split_clips.py`: speaker-disjoint, 400 train / 50 val / 50 test clips per word (250,000 clips, `clips/dataset.jsonl` with a `split` field; speaker -> split in `clips/split.json`).
+- The plain speaker hash (`model/data/clips.py:split_of`, 80/10/10 of the speakers) left some words with only 15 test clips, since a few speakers say a word often. Speakers are moved between the splits until every word reaches 400/50/50: 1,039 / 163 / 170 speakers.
+- Per word and split the clips are taken round-robin over the speakers (best alignment score first): median 242 / 36 / 36 speakers per word, no test speaker above 4 % of the test set.
+
 ## Old mine
 - After the switch to HD, `roi.mp4` and `audio.flac` of the 576p/720p mine were deleted, along with the per-frame landmarks. `meta.json` and the `facemesh.npz` masks remain. Sample speech DE-0210004073 is kept whole for `lipreading/landmarks/smoke_test.py`.
 
 ## Not yet done
-- Speaker-disjoint train/val/test split of the clips (500 per word), banner OCR cross-check.
+- Banner OCR cross-check.
