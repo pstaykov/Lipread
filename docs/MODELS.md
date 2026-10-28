@@ -210,7 +210,9 @@ Memory (RTX 3060 12 GB, batch 4 × 50 frames, training mode): image variants 45.
 
 Every variant is trained until val top-1 plateaus (`train.py`); the best val epoch is tested. Chance is 0.002.
 
-| Variant | Input | Epochs (best) | Test top-1 | Top-5 | Macro-F1 |
+Schedule: optimizer, learning rate, weight decay and batch size are those of Ma et al. (AdamW, 3e-4, 1e-2, 32). Instead of their fixed 80-epoch cosine schedule (~8 days per image variant here), the learning rate is halved on a val plateau with early stopping. This is the same rule for every variant, and it lets each one train until it has converged rather than up to a budget that suits some inputs better than others. The test set plays no part in it. The table lists the best and the last epoch of each variant; the curves are in `runs/<variant>/metrics.csv`.
+
+| Variant | Input | Epochs (best / last) | Test top-1 | Top-5 | Macro-F1 |
 |---|---|---|---|---|---|
 | V4 | 128 contour points | *rerun* | | | |
 | V5 | 40 lip points | *rerun* | | | |
