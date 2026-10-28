@@ -5,7 +5,8 @@
 Same recipe for every variant: AdamW (lr 3e-4 at 32 clips per step, scaled by sqrt(batch / 32); wd 1e-2), 1 warm-up
 epoch, then trained until val top-1 plateaus: the lr is halved after 2 epochs without a gain of 0.001 and training
 stops after 5 (--patience), which also catches val falling while train keeps rising. Label smoothing 0.1, mixed precision. --batch 128 for the coordinate variants:
-their step time is launch-bound, so 128 clips cost the same time as 32. Image variants (V0-V3) are flipped horizontally at random.
+their step time is launch-bound, so 128 clips cost the same time as 32. Training clips are augmented as in BWKI
+(data/augment.py: time masking for all, affine and flip for images, brightness/contrast for RGB, affine for points).
 Coordinate features (aligned + pose-corrected contour points) are computed once into runs/cache/.
 Output runs/<variant>/ (runs/<variant>_s<seed>/ for seeds other than 0): train.log, metrics.csv, best.pt, last.pt
 (full state for --resume), test.json (top-1, top-5, macro-F1), test_pred.npy (top-5 word indices per test clip, in
@@ -24,6 +25,7 @@ import torch.nn.functional as F
 from sklearn.metrics import f1_score
 
 from .data import clips
+from .data.augment import augment
 from .data.landmarks import CONTOUR_IDX, LIP_IDX, FaceNorm
 from .data.variants import VARIANTS, make_inputs, uses_video
 from .nets import LipreadingModel
@@ -68,6 +70,7 @@ def contour_cache(split):
 class VideoSet(torch.utils.data.Dataset):
     def __init__(self, variant, split, labels, norm, train):
         self.variant, self.split, self.labels, self.norm, self.train = variant, split, labels, norm, train
+        self.rgb = VARIANTS[variant][0].split('_')[0] in ('rgb', 'overlay')
         self.items = clips.read_split(split)
         self.fm = None
 
@@ -79,8 +82,8 @@ class VideoSet(torch.utils.data.Dataset):
             self.fm = clips.facemesh(self.split)
         seq = clips.to_pixels(self.fm[i])
         x = make_inputs(self.variant, seq, self.norm, clips.load_frames(self.items[i]['name']))
-        if self.train and 'coords' not in x and torch.rand(()) < 0.5:
-            x['video'] = x['video'].flip(-1)
+        if self.train:
+            x = {k: v[0] for k, v in augment({k: v[None] for k, v in x.items()}, self.rgb).items()}
         return {k: v.half() for k, v in x.items()}, self.labels[i]
 
 
@@ -89,7 +92,8 @@ def coord_batches(X, y, train, batch):
     step = batch if train else 256
     for b in range(0, len(y), step):
         j = order[b:b + step]
-        yield {'coords': X[j].float()}, y[j]
+        x = {'coords': X[j].float()}
+        yield (augment(x, False) if train else x), y[j]
 
 
 def evaluate(model, batches, dev, preds=False):

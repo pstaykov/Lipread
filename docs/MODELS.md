@@ -181,7 +181,8 @@ model/
 │   ├── clips.py          loader and speaker-disjoint split
 │   ├── landmarks.py      point sets, rigid alignment, pose correction (FaceNorm)
 │   ├── images.py         tracked crops, overlay, mesh rendering
-│   └── variants.py       variant table, make_inputs()
+│   ├── variants.py       variant table, make_inputs()
+│   └── augment.py        training augmentation (as in BWKI)
 ├── train.py              train + test one variant -> runs/<variant>/
 ├── stats.py              speaker-bootstrap intervals over all seeds
 └── nets/
@@ -195,11 +196,12 @@ model/
 | `data/clips.py` | BTLips loader: clip lists per split, FaceMesh from `BTLips_facemesh/` (memory-mapped, NaN frames interpolated, crop pixels), RGB frames from the mp4. |
 | `data/landmarks.py` | Point sets (128 contour, 40 lip, 24 rigid), rigid alignment with head angles, `FaceNorm` (GPA mean shape + pose correction, fitted on the training speakers, saved as npz), the normalization levels. |
 | `data/images.py` | Tracked crop boxes, RGB crops, overlay, mesh rendering. |
+| `data/augment.py` | One random draw per clip, the same for every frame, as BWKI's `VideoAugment`: time masking for every variant (1–2 blocks of 1–4 frames set to 0, the same frames for video and coordinates); for images a random affine (rotation ±10°, scale ±10 %, shift ±6 %) and a horizontal flip (not for V6, where it would contradict the points); for RGB (V0, V1, V6) brightness and contrast ±20 %; for coordinates the same affine on the aligned points, no flip. |
 | `data/variants.py` | Variant table (V0_face … V6) and `make_inputs(variant, …)`: one clip → `{'video', 'coords'}`. |
 | `nets/nasnet.py` | NASNet-A Mobile in PyTorch, a layer-for-layer mirror of `keras.applications.nasnet`. Loads Google's original ImageNet weights (Keras `NASNet-mobile.h5` in `model/nets/weights/`) by Keras layer name and fails if any layer is unmatched. Verified: 5.327 M parameters incl. BN statistics, identical to Keras; a Samoyed photo is classified "Samoyed" (p = 0.93). |
 | `nets/dctcn.py` | DC-TCN, ported unchanged from mpc001/Lipreading_using_Temporal_Convolutional_Networks (`densetcn.py`, SE, Swish), LRW config (`lrw_resnet18_dctcn.json`): blocks [3,3,3,3], growth 384, kernels {3,5,7}, dilations {1,2,5}, reduced size 512, SE, dropout 0.2, Swish. |
 | `nets/lipreader.py` | `LipreadingModel(variant, num_classes)`: encoder(s) → DC-TCN → mean over valid frames → linear. |
-| `train.py` | `python -m model.train --variant V4 --batch 128 [--seed 1] [--resume \| --test-only]`. AdamW (lr 3e-4 × √(batch/32), wd 1e-2), 1 warm-up epoch, then until val top-1 plateaus (lr halved after 2 epochs without +0.001, stop after 5), label smoothing 0.1, fp16; random horizontal flip for V0–V3. `FaceNorm` is fitted on 4,000 training clips; aligned, pose-corrected contour points are cached in `runs/cache/`. Picks the epoch with the best val top-1 and writes `runs/<variant>/metrics.csv` (incl. train top-1 and lr), `best.pt`, `last.pt` (for `--resume`), `test.json` (top-1, top-5, macro-F1), `test_pred.npy` (top-5 words per test clip); seeds ≠ 0 go to `runs/<variant>_s<seed>/`. `--test-only` re-tests `best.pt`. |
+| `train.py` | `python -m model.train --variant V4 --batch 128 [--seed 1] [--resume \| --test-only]`. AdamW (lr 3e-4 × √(batch/32), wd 1e-2), 1 warm-up epoch, then until val top-1 plateaus (lr halved after 2 epochs without +0.001, stop after 5), label smoothing 0.1, fp16; training augmentation as in BWKI (`data/augment.py`). `FaceNorm` is fitted on 4,000 training clips; aligned, pose-corrected contour points are cached in `runs/cache/`. Picks the epoch with the best val top-1 and writes `runs/<variant>/metrics.csv` (incl. train top-1 and lr), `best.pt`, `last.pt` (for `--resume`), `test.json` (top-1, top-5, macro-F1), `test_pred.npy` (top-5 words per test clip); seeds ≠ 0 go to `runs/<variant>_s<seed>/`. `--test-only` re-tests `best.pt`. |
 | `stats.py` | `python -m model.stats V4 V5 …`: per variant, mean (± std over seeds) and 95 % intervals from 2,000 bootstrap resamples of whole test speakers → `runs/<variant>/stats.json`. |
 
 Memory (RTX 3060 12 GB, batch 4 × 50 frames, training mode): image variants 45.1 M parameters (NASNet 5.3 M + DC-TCN ~40 M), **5.8 GiB peak**; coordinate variants 41.5 M parameters, 0.3 GiB; V6 45.5 M. 29-frame clips should fit batch ~8 for image variants.
@@ -213,7 +215,7 @@ Every variant is trained until val top-1 plateaus (`train.py`); the best val epo
 | V4 | 128 contour points | *rerun* | | | |
 | V5 | 40 lip points | *rerun* | | | |
 
-A first run with a fixed 15-epoch cosine schedule gave V4 0.292 / 0.467 / 0.286 and V5 0.285 / 0.459 / 0.278 (best epoch 7; after that train loss kept falling while val loss rose). Queue: `runs/queue.sh`, then `runs/queue2.sh` (seeds 1–2 for V4, V5, V0_mouth, then `stats.py`), ~2.3 h per image epoch and ~4 min per coordinate epoch on the RTX 3060.
+A first run with a fixed 15-epoch cosine schedule gave V4 0.292 / 0.467 / 0.286 and V5 0.285 / 0.459 / 0.278 (best epoch 7; after that train loss kept falling while val loss rose). A V0_mouth run with flip-only augmentation reached 0.420 val top-1 after 6 epochs (train 0.513) and was replaced by the BWKI augmentation (`runs/_flip_only/`). Queue: `runs/queue.sh` (V4, V5 with 3 seeds, then the image variants, then seeds 1–2 for V0_mouth, then `stats.py`), ~2.3 h per image epoch and ~4 min per coordinate epoch on the RTX 3060.
 
 ## 6. Status
 - [x] Architecture and variants fixed (this file)
