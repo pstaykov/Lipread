@@ -344,6 +344,7 @@ def main():
                     help="k[,k..]/n: only speakers with md5 %% n in {k..}, CAP * len(k) / n clips per word")
     ap.add_argument("--prep", type=int, help="download + alignment threads (default: 3 with GPU, workers/4 without)")
     ap.add_argument("--topup", type=int, help="target N: revisit all speeches (incl. mined ones) for words below N")
+    ap.add_argument("--words", nargs="*", help="top-up only these words")
     ap.add_argument("--speech-cap", type=int, default=SPEECH_CAP)
     ap.add_argument("--spk-cap", type=int, default=SPK_CAP)
     args = ap.parse_args()
@@ -368,6 +369,8 @@ def main():
         spk[(c["word"], c["speaker_id"])] += 1
         registered.add(c["path"])
         existing[c["id"]][c["word"]].append(c["f0"])
+    for c in read_jsonl(OUT / "rejected.jsonl"):             # clean_clips.py rejects: don't mine them again
+        existing[c["id"]][c["word"]].append(c["f0"])
     # files of clips that a stopped run moved but never recorded
     shutil.rmtree(OUT / "_tmp", ignore_errors=True)
     stale = [f for w in vocab if (OUT / w).is_dir() for f in (OUT / w).iterdir() if f"{w}/{f.stem}" not in registered]
@@ -381,7 +384,7 @@ def main():
     if args.ids:
         entries = [e for e in entries if e["id"] in set(args.ids)]
     if args.topup:
-        vocab = {w: v for w, v in vocab.items() if count[w] < cap}
+        vocab = {w: v for w, v in vocab.items() if count[w] < cap and (not args.words or w in args.words)}
         print("top-up:", {w: count[w] for w in vocab}, flush=True)
     occ = {}
     for e in entries:

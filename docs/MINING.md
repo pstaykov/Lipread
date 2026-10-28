@@ -114,8 +114,15 @@ python dataset/mine_bundestag.py mine      # video
 - Bug found there: the scene reference needs >= 2 x 29 face frames, so a speech with a single needed occurrence could never pass. Fixed: such speeches sample extra frames across the speech for the reference (`REF_SAMPLES`).
 - Final: 330,649 clips, all 500 words >= 500 (minimum exactly 500 for the 9 topped-up words).
 
+## Cleanup (2026-10-28)
+- `dataset/scan_clips.py` -> `scan.csv`: re-aligns the word on each clip's own audio (offset from the clip centre) and computes lip opening, yaw and landmark jumps.
+- `dataset/clean_clips.py` (`--dry` first) rejects clips with a camera cut inside (frames 3..25), a static mouth, a profile face, the word more than 0.2 s off centre, or the mouth leaving the crop. Cuts, missing faces or a mouth outside the crop in the 3 edge frames are repaired with the nearest good frame. Rejects go to `clips/_rejected/` and `rejected.jsonl`; the miner never mines them again.
+- 18,106 rejected (outside 8,235, static 5,298, offword 3,965, profile 607, cut 1), 9,135 repaired.
+- 16 words fell below 500 -> `--topup 530 --words ...` -> scanned and cleaned again.
+- Final: 313,545 clips, 1,372 speakers, all 500 words >= 503.
+
 ## Old mine
 - After the switch to HD, `roi.mp4` and `audio.flac` of the 576p/720p mine were deleted, along with the per-frame landmarks. `meta.json` and the `facemesh.npz` masks remain. Sample speech DE-0210004073 is kept whole for `lipreading/landmarks/smoke_test.py`.
 
 ## Not yet done
-- Speaker-disjoint train/val/test split of the clips, banner OCR cross-check.
+- Speaker-disjoint train/val/test split of the clips (500 per word), banner OCR cross-check.
