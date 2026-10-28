@@ -215,7 +215,7 @@ Every variant is trained until val top-1 plateaus (`train.py`); the best val epo
 | V4 | 128 contour points | *rerun* | | | |
 | V5 | 40 lip points | *rerun* | | | |
 
-A first run with a fixed 15-epoch cosine schedule gave V4 0.292 / 0.467 / 0.286 and V5 0.285 / 0.459 / 0.278 (best epoch 7; after that train loss kept falling while val loss rose). A V0_mouth run with flip-only augmentation reached 0.420 val top-1 after 6 epochs (train 0.513) and was replaced by the BWKI augmentation (`runs/_flip_only/`). Queue: `runs/queue.sh` (V4, V5 with 3 seeds, then the image variants, then seeds 1–2 for V0_mouth, then `stats.py`), ~2.3 h per image epoch and ~4 min per coordinate epoch on the RTX 3060.
+A first run with a fixed 15-epoch cosine schedule gave V4 0.292 / 0.467 / 0.286 and V5 0.285 / 0.459 / 0.278 (best epoch 7; after that train loss kept falling while val loss rose). A V0_mouth run with flip-only augmentation reached 0.420 val top-1 after 6 epochs (train 0.513) and was replaced by the BWKI augmentation (both runs deleted). Queue: `runs/queue.sh` (V4, V5 with 3 seeds, then the image variants, then seeds 1–2 for V0_mouth, then `stats.py`), ~2.3 h per image epoch and ~4 min per coordinate epoch on the RTX 3060.
 
 ## 6. Status
 - [x] Architecture and variants fixed (this file)
