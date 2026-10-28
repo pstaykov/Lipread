@@ -189,18 +189,20 @@ model/
 | `nets/nasnet.py` | NASNet-A Mobile in PyTorch, a layer-for-layer mirror of `keras.applications.nasnet`. Loads Google's original ImageNet weights (Keras `NASNet-mobile.h5` in `model/nets/weights/`) by Keras layer name and fails if any layer is unmatched. Verified: 5.327 M parameters incl. BN statistics, identical to Keras; a Samoyed photo is classified "Samoyed" (p = 0.93). |
 | `nets/dctcn.py` | DC-TCN, ported unchanged from mpc001/Lipreading_using_Temporal_Convolutional_Networks (`densetcn.py`, SE, Swish), LRW config (`lrw_resnet18_dctcn.json`): blocks [3,3,3,3], growth 384, kernels {3,5,7}, dilations {1,2,5}, reduced size 512, SE, dropout 0.2, Swish. |
 | `nets/lipreader.py` | `LipreadingModel(variant, num_classes)`: encoder(s) → DC-TCN → mean over valid frames → linear. |
-| `train.py` | `python -m model.train --variant V4 --epochs 15 --batch 128`. AdamW (lr 3e-4 × √(batch/32), wd 1e-2), cosine with 1 warm-up epoch, label smoothing 0.1, fp16; random horizontal flip for V0–V3. `FaceNorm` is fitted on 4,000 training clips; aligned, pose-corrected contour points are cached in `runs/cache/`. Picks the epoch with the best val top-1 and writes `runs/<variant>/metrics.csv`, `best.pt`, `test.json` (top-1, top-5, macro-F1). |
+| `train.py` | `python -m model.train --variant V4 --batch 128 [--resume]`. AdamW (lr 3e-4 × √(batch/32), wd 1e-2), 1 warm-up epoch, then until val top-1 plateaus (lr halved after 2 epochs without +0.001, stop after 5), label smoothing 0.1, fp16; random horizontal flip for V0–V3. `FaceNorm` is fitted on 4,000 training clips; aligned, pose-corrected contour points are cached in `runs/cache/`. Picks the epoch with the best val top-1 and writes `runs/<variant>/metrics.csv` (incl. train top-1 and lr), `best.pt`, `last.pt` (for `--resume`), `test.json` (top-1, top-5, macro-F1). |
 
 Memory (RTX 3060 12 GB, batch 4 × 50 frames, training mode): image variants 45.1 M parameters (NASNet 5.3 M + DC-TCN ~40 M), **5.8 GiB peak**; coordinate variants 41.5 M parameters, 0.3 GiB; V6 45.5 M. 29-frame clips should fit batch ~8 for image variants.
 
 ## 5. Results (BTLips, 500 words, speaker-disjoint test, 1 seed)
 
+Every variant is trained until val top-1 plateaus (`train.py`); the best val epoch is tested. Chance is 0.002.
+
 | Variant | Input | Epochs (best) | Test top-1 | Top-5 | Macro-F1 |
 |---|---|---|---|---|---|
-| V4 | 128 contour points | 15 (7) | 0.292 | 0.467 | 0.286 |
-| V5 | 40 lip points | 15 (7) | 0.285 | 0.459 | 0.278 |
+| V4 | 128 contour points | *rerun* | | | |
+| V5 | 40 lip points | *rerun* | | | |
 
-Chance is 0.002. Both coordinate models overfit after epoch 7 (train loss keeps falling, val drops slightly); the best val epoch is tested. The image variants run in `runs/queue.sh` (8 epochs each, ~2.3 h per epoch on the RTX 3060).
+A first run with a fixed 15-epoch cosine schedule gave V4 0.292 / 0.467 / 0.286 and V5 0.285 / 0.459 / 0.278 (best epoch 7; after that train loss kept falling while val loss rose). Queue: `runs/queue.sh`, ~2.3 h per image epoch and ~4 min per coordinate epoch on the RTX 3060.
 
 ## 6. Status
 - [x] Architecture and variants fixed (this file)

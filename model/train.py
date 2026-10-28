@@ -1,12 +1,14 @@
 """Train one input variant (docs/MODELS.md) on BTLips, pick the epoch with the best val top-1, test it.
 
-    python -m model.train --variant V4 --epochs 30
+    python -m model.train --variant V4 [--resume]
 
-Same recipe for every variant: AdamW (lr 3e-4 at 32 clips per step, scaled by sqrt(batch / 32); wd 1e-2), cosine
-schedule with 1 warm-up epoch, label smoothing 0.1, mixed precision. --batch 128 for the coordinate variants:
+Same recipe for every variant: AdamW (lr 3e-4 at 32 clips per step, scaled by sqrt(batch / 32); wd 1e-2), 1 warm-up
+epoch, then trained until val top-1 plateaus: the lr is halved after 2 epochs without a gain of 0.001 and training
+stops after 5 (--patience), which also catches val falling while train keeps rising. Label smoothing 0.1, mixed precision. --batch 128 for the coordinate variants:
 their step time is launch-bound, so 128 clips cost the same time as 32. Image variants (V0-V3) are flipped horizontally at random.
 Coordinate features (aligned + pose-corrected contour points) are computed once into runs/cache/.
-Output runs/<variant>/: train.log, metrics.csv, best.pt, test.json (top-1, top-5, macro-F1).
+Output runs/<variant>/: train.log, metrics.csv, best.pt, last.pt (full state for --resume), test.json (top-1, top-5,
+macro-F1).
 """
 import argparse
 import csv
@@ -29,6 +31,7 @@ RUNS = clips.REPO / 'runs'
 CACHE = RUNS / 'cache'
 BATCH = 32
 NORM_CLIPS = 4000
+MIN_GAIN = 0.001
 
 
 def facenorm():
@@ -105,7 +108,9 @@ def evaluate(model, batches, dev):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--variant', required=True, choices=VARIANTS)
-    ap.add_argument('--epochs', type=int, default=30)
+    ap.add_argument('--epochs', type=int, default=100, help='upper limit')
+    ap.add_argument('--patience', type=int, default=5, help='epochs without val gain before stopping')
+    ap.add_argument('--resume', action='store_true', help='continue from last.pt (or the weights in best.pt)')
     ap.add_argument('--batch', type=int, default=BATCH, help='clips per optimizer step')
     ap.add_argument('--micro', type=int, default=16, help='clips per forward pass (image variants)')
     ap.add_argument('--workers', type=int, default=10)
@@ -145,46 +150,71 @@ def main():
         steps = -(-len(Y['train']) // args.batch)
 
     model = LipreadingModel(args.variant, len(word_ix)).to(dev)
-    opt = torch.optim.AdamW(model.parameters(), lr=3e-4 * math.sqrt(args.batch / BATCH), weight_decay=1e-2)
-    total, warm = steps * args.epochs, steps
-    sched = torch.optim.lr_scheduler.LambdaLR(
-        opt, lambda k: (k + 1) / warm if k < warm else 0.5 * (1 + math.cos(math.pi * (k - warm) / (total - warm))))
+    base_lr = 3e-4 * math.sqrt(args.batch / BATCH)
+    opt = torch.optim.AdamW(model.parameters(), lr=base_lr, weight_decay=1e-2)
     scaler = torch.amp.GradScaler()
     accum = args.batch // args.micro if video else 1
+    st = {'epoch': 0, 'step': 0, 'scale': 1.0, 'best': -1.0, 'stale': 0}        # stale: epochs without val gain
+    if args.resume and (out / 'last.pt').exists():
+        ck = torch.load(out / 'last.pt', map_location=dev)
+        model.load_state_dict(ck['model'])
+        opt.load_state_dict(ck['opt'])
+        scaler.load_state_dict(ck['scaler'])
+        st = ck['state']
+    elif args.resume:                                         # weights only: warm up again
+        ck = torch.load(out / 'best.pt', map_location=dev)
+        model.load_state_dict(ck['model'])
+        st.update(epoch=ck['epoch'], best=ck['val']['top1'])
+    else:
+        with open(out / 'metrics.csv', 'w', newline='') as f:
+            csv.writer(f).writerow(['epoch', 'train_loss', 'train_top1', 'val_top1', 'val_top5', 'val_f1', 'val_loss',
+                                    'lr', 'minutes'])
     say(f'{args.variant}: {sum(p.numel() for p in model.parameters()) / 1e6:.1f} M parameters, '
-        f'{len(labels["train"])} train clips, {steps} steps/epoch, {args.epochs} epochs')
-    best = -1
-    with open(out / 'metrics.csv', 'w', newline='') as f:
-        csv.writer(f).writerow(['epoch', 'train_loss', 'val_top1', 'val_top5', 'val_f1', 'val_loss', 'minutes'])
-    for ep in range(1, args.epochs + 1):
+        f'{len(labels["train"])} train clips, {steps} steps/epoch, from epoch {st["epoch"] + 1}')
+    for ep in range(st['epoch'] + 1, args.epochs + 1):
         model.train()
-        t0, losses = time.time(), []
+        t0, losses, hits = time.time(), [], []
         for i, (x, y) in enumerate(batches('train', True)):
             with torch.autocast('cuda', torch.float16):
                 logits = model(**{k: v.to(dev, non_blocking=True).float() for k, v in x.items()})
                 loss = F.cross_entropy(logits.float(), y.to(dev), label_smoothing=0.1) / accum
             scaler.scale(loss).backward()
+            hits.append((logits.argmax(1) == y.to(dev)).float().mean())
             if (i + 1) % accum == 0:
+                for g in opt.param_groups:
+                    g['lr'] = base_lr * st['scale'] * min(1.0, (st['step'] + 1) / steps)
+                st['step'] += 1
                 scaler.unscale_(opt)
                 torch.nn.utils.clip_grad_norm_(model.parameters(), 5.0)
                 scaler.step(opt)
                 scaler.update()
                 opt.zero_grad(set_to_none=True)
-                sched.step()
             losses.append(loss.item() * accum)
             if video and i % 500 == 0:
                 say(f'  ep {ep} step {i // accum}/{steps} loss {np.mean(losses[-500:]):.3f} '
                     f'{(time.time() - t0) / 60:.1f} min')
         m = evaluate(model, batches('val', False), dev)
-        mins = (time.time() - t0) / 60
-        say(f'ep {ep}: train loss {np.mean(losses):.3f}, val top1 {m["top1"]:.4f} top5 {m["top5"]:.4f} '
-            f'f1 {m["f1"]:.4f}, {mins:.1f} min')
+        mins, lr, acc = (time.time() - t0) / 60, opt.param_groups[0]['lr'], torch.stack(hits).mean().item()
+        say(f'ep {ep}: train loss {np.mean(losses):.3f} top1 {acc:.4f}, val top1 {m["top1"]:.4f} top5 {m["top5"]:.4f} '
+            f'f1 {m["f1"]:.4f}, lr {lr:.2e}, {mins:.1f} min')
         with open(out / 'metrics.csv', 'a', newline='') as f:
-            csv.writer(f).writerow([ep, round(float(np.mean(losses)), 4), round(m['top1'], 4), round(m['top5'], 4),
-                                    round(m['f1'], 4), round(m['loss'], 4), round(mins, 1)])
-        if m['top1'] > best:
-            best = m['top1']
+            csv.writer(f).writerow([ep, round(float(np.mean(losses)), 4), round(acc, 4), round(m['top1'], 4),
+                                    round(m['top5'], 4), round(m['f1'], 4), round(m['loss'], 4), f'{lr:.2e}',
+                                    round(mins, 1)])
+        if m['top1'] > st['best']:
             torch.save({'model': model.state_dict(), 'epoch': ep, 'val': m, 'words': list(word_ix)}, out / 'best.pt')
+        if m['top1'] > st['best'] + MIN_GAIN:
+            st['stale'] = 0
+        else:
+            st['stale'] += 1
+            if st['stale'] % 2 == 0:
+                st['scale'] /= 2
+        st['best'], st['epoch'] = max(st['best'], m['top1']), ep
+        torch.save({'model': model.state_dict(), 'opt': opt.state_dict(), 'scaler': scaler.state_dict(), 'state': st},
+                   out / 'last.pt')
+        if st['stale'] >= args.patience:
+            say(f'stopped: no val gain for {args.patience} epochs')
+            break
     ck = torch.load(out / 'best.pt', map_location=dev)
     model.load_state_dict(ck['model'])
     m = evaluate(model, batches('test', False), dev)
