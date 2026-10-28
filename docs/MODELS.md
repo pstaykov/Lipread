@@ -193,7 +193,16 @@ model/
 
 Memory (RTX 3060 12 GB, batch 4 × 50 frames, training mode): image variants 45.1 M parameters (NASNet 5.3 M + DC-TCN ~40 M), **5.8 GiB peak**; coordinate variants 41.5 M parameters, 0.3 GiB; V6 45.5 M. 29-frame clips should fit batch ~8 for image variants.
 
-## 5. Status
+## 5. Results (BTLips, 500 words, speaker-disjoint test, 1 seed)
+
+| Variant | Input | Epochs (best) | Test top-1 | Top-5 | Macro-F1 |
+|---|---|---|---|---|---|
+| V4 | 128 contour points | 15 (7) | 0.292 | 0.467 | 0.286 |
+| V5 | 40 lip points | 15 (7) | 0.285 | 0.459 | 0.278 |
+
+Chance is 0.002. Both coordinate models overfit after epoch 7 (train loss keeps falling, val drops slightly); the best val epoch is tested. The image variants run in `runs/queue.sh` (8 epochs each, ~2.3 h per epoch on the RTX 3060).
+
+## 6. Status
 - [x] Architecture and variants fixed (this file)
 - [x] Sample figures (`docs/figures/`)
 - [x] NASNet port verified against the Keras weights; DC-TCN, coordinate MLP, rendering and all 8 variants run end-to-end on the sample clip
