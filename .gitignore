@@ -1,11 +1,12 @@
-/lipreading/GLips
-.idea
-*.iml
+/GLips
+/bundestag_data
+/_bwki_archive
+/lipreading
 *.pth
-/lipreading/GLips_mouth
-multimodal/cache/
-multimodal/logs/
-lipreading/logs/
 *.npz
 __pycache__/
+.idea
+.vscode
+*.iml
 
+model/nets/weights/

@@ -9,7 +9,6 @@ Lippenlese-Modelle werden meist an Benchmark-Werten auf bereits gesehenen Sprech
 Um jede Variable zu kontrollieren, wird ein eigener Datensatz aus Plenarvideos des Deutschen Bundestages aufgebaut. Das Ergebnis ist ein Zielkonflikt: wie viel Erkennungsgenauigkeit man für wie viel Privatsphäre aufgibt, und ob ein Modell, das jeden Mund auf einen neutralen Mund abbildet, diesen Zielkonflikt verschieben kann.
 
 ## Bausteine
-
 | # | Baustein | Frage |
 |---|---|---|
 | 1 | **Eigener Datensatz** | Bundestagsreden mit exakten Sprecher-Labels, von Anfang an sprecherdisjunkt |
@@ -48,6 +47,7 @@ Gleiches Back-End für jede Eingabe, sodass sich nur die Eingabe ändert.
 * **„Reicht aus“** wird vorab festgelegt, z. B. Landmarken erreichen X % der Pixel-Genauigkeit auf ungesehenen Sprechern.
 * **Erwartung:** große Lücke. Auf dem englischen LRW erreichen Landmarken-Modelle ca. 61 % gegenüber ca. 89–92 % für Pixel.
 * Die FaceMesh-Grenze aus Baustein 2 zeigt, wie nah das Landmarken-Modell an sein Limit kommt.
+* **Modell:** NASNet-Mobile-Encoder pro Frame → DC-TCN-Back-End (Ma et al., LRW). Acht Eingabevarianten (RGB mit Gesichts- und Mund-Zuschnitt, RGB mit FaceMesh-Overlay, gerendertes Mesh Gesicht/Mund, Koordinaten Gesicht/Mund, RGB + Koordinaten). Details und Begründung: [`docs/MODELS.md`](docs/MODELS.md).
 
 ### 4. Identitäts-Leakage
 Für jede Eingabe wird ein Sprecher-Klassifikator trainiert, dazu eine lineare Probe auf den Lippenlese-Embeddings.
