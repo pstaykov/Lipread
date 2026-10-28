@@ -1,7 +1,7 @@
-/GLips
+/BTLips
+/BTLips_facemesh
 /bundestag_data
-/_bwki_archive
-/lipreading
+/runs
 *.pth
 *.npz
 __pycache__/
