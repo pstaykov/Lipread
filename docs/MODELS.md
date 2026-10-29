@@ -215,7 +215,7 @@ Schedule: optimizer, learning rate, weight decay and batch size are those of Ma 
 | Variant | Input | Epochs (best / last) | Test top-1 | Top-5 | Macro-F1 |
 |---|---|---|---|---|---|
 | V4 | 128 contour points | 11–12 / 16–17 | 0.281 ± 0.003 [0.252, 0.310] | 0.448 | 0.276 |
-| V5 | 40 lip points | 11–12 / 16–17 | 0.282 ± 0.000 [0.253, 0.312] | 0.451 | 0.277 |
+| V5 | 40 lip points | 11–12 / 16–17 | 0.282 ± 0.0002 [0.253, 0.312] | 0.451 | 0.277 |
 
 A first run with a fixed 15-epoch cosine schedule gave V4 0.292 / 0.467 / 0.286 and V5 0.285 / 0.459 / 0.278 (best epoch 7; after that train loss kept falling while val loss rose). A V0_mouth run with flip-only augmentation reached 0.420 val top-1 after 6 epochs (train 0.513) and was replaced by the BWKI augmentation (both runs deleted). Queue: `runs/queue.sh` (V4, V5 with 3 seeds, then the image variants, then seeds 1–2 for V0_mouth, then `stats.py`), ~2.3 h per image epoch and ~4 min per coordinate epoch on the RTX 3060.
 
