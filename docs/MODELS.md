@@ -206,16 +206,16 @@ model/
 
 Memory (RTX 3060 12 GB, batch 4 × 50 frames, training mode): image variants 45.1 M parameters (NASNet 5.3 M + DC-TCN ~40 M), **5.8 GiB peak**; coordinate variants 41.5 M parameters, 0.3 GiB; V6 45.5 M. 29-frame clips should fit batch ~8 for image variants.
 
-## 5. Results (BTLips, 500 words, speaker-disjoint test, seed 0)
+## 5. Results (BTLips, 500 words, speaker-disjoint test)
 
-Every variant is trained until val top-1 plateaus (`train.py`); the best val epoch is tested. Chance is 0.002.
+Every variant is trained until val top-1 plateaus (`train.py`); the best val epoch is tested. Chance is 0.002. Top-1: mean ± std over seeds (3 for V4, V5, V0_mouth; otherwise seed 0) [95 % speaker-bootstrap interval, `stats.py`]; top-5 and F1 are seed means.
 
 Schedule: optimizer, learning rate, weight decay and batch size are those of Ma et al. (AdamW, 3e-4, 1e-2, 32). Instead of their fixed 80-epoch cosine schedule (~8 days per image variant here), the learning rate is halved on a val plateau with early stopping. This is the same rule for every variant, and it lets each one train until it has converged rather than up to a budget that suits some inputs better than others. The test set plays no part in it. The table lists the best and the last epoch of each variant; the curves are in `runs/<variant>/metrics.csv`.
 
 | Variant | Input | Epochs (best / last) | Test top-1 | Top-5 | Macro-F1 |
 |---|---|---|---|---|---|
-| V4 | 128 contour points | 12 / 17 | 0.282 | 0.448 | 0.277 |
-| V5 | 40 lip points | *rerun* | | | |
+| V4 | 128 contour points | 11–12 / 16–17 | 0.281 ± 0.003 [0.252, 0.310] | 0.448 | 0.276 |
+| V5 | 40 lip points | 11–12 / 16–17 | 0.282 ± 0.000 [0.253, 0.312] | 0.451 | 0.277 |
 
 A first run with a fixed 15-epoch cosine schedule gave V4 0.292 / 0.467 / 0.286 and V5 0.285 / 0.459 / 0.278 (best epoch 7; after that train loss kept falling while val loss rose). A V0_mouth run with flip-only augmentation reached 0.420 val top-1 after 6 epochs (train 0.513) and was replaced by the BWKI augmentation (both runs deleted). Queue: `runs/queue.sh` (V4, V5 with 3 seeds, then the image variants, then seeds 1–2 for V0_mouth, then `stats.py`), ~2.3 h per image epoch and ~4 min per coordinate epoch on the RTX 3060.
 
