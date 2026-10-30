@@ -3,8 +3,8 @@
     python -m model.train --variant V4 [--seed 1] [--resume | --test-only]
 
 Same recipe for every variant: AdamW (lr 3e-4 at 32 clips per step, scaled by sqrt(batch / 32); wd 1e-2), 1 warm-up
-epoch, then trained until val top-1 plateaus: the lr is halved after 2 epochs without a gain of 0.001 and training
-stops after 5 (--patience), which also catches val falling while train keeps rising. Label smoothing 0.1, mixed precision. --batch 128 for the coordinate variants:
+epoch, then at most 15 epochs (--epochs): the lr is halved after 2 epochs without a val top-1 gain of 0.001 and training
+stops early after 5 (--patience). Label smoothing 0.1, mixed precision. --batch 128 for the coordinate variants:
 their step time is launch-bound, so 128 clips cost the same time as 32. Training clips are augmented as in BWKI
 (data/augment.py: time masking for all, affine and flip for images, brightness/contrast for RGB, affine for points).
 Coordinate features (aligned + pose-corrected contour points) are computed once into runs/cache/.
@@ -114,7 +114,7 @@ def evaluate(model, batches, dev, preds=False):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--variant', required=True, choices=VARIANTS)
-    ap.add_argument('--epochs', type=int, default=100, help='upper limit')
+    ap.add_argument('--epochs', type=int, default=15)
     ap.add_argument('--patience', type=int, default=5, help='epochs without val gain before stopping')
     ap.add_argument('--resume', action='store_true', help='continue from last.pt (or the weights in best.pt)')
     ap.add_argument('--test-only', action='store_true', help='only test best.pt')
