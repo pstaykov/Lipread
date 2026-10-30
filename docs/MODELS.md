@@ -46,14 +46,10 @@ Hypotheses (not results): V1 is the worst for privacy. It may or may not beat V0
 ### Variant details
 - **Landmarks:** MediaPipe FaceMesh (as in BWKI), run with `refine_landmarks=True`; the 10 iris points are dropped, so indices match BWKI's 468. "Full face" = 128 points of `FACEMESH_CONTOURS`, "mouth" = 40 points of `FACEMESH_LIPS`.
 - **Matched pairs:** V2 ↔ V4 and V3 ↔ V5 use the same points and differ only in representation (image + NASNet vs. numbers + MLP). The other 340 points (cheeks, forehead) barely move in speech but encode face shape, so they are left out.
-- **Coordinate normalization (V4–V6):** raw pixels → aligned → aligned + pose-corrected (default) → speaker mean removed; the other levels are the Baustein 4 ablation. The reference is the GPA mean shape of the training speakers (`FaceNorm`, fitted once).
-- **Head pose:** a nod must not look like a vowel. Two steps:
-  - *Rigid alignment:* translation, scale and 3D rotation are fitted only on 24 points that don't move when speaking (forehead, temples, nose bridge, eye corners, cheekbones at the ears). The pose estimate then doesn't depend on the mouth, and jaw opening stays fully in the lip coordinates.
-  - *Pose correction:* FaceMesh guesses depth from one image, so a tilted head still leaves a deformation after alignment (flatter lips, chin closer to the mouth). Per point, this shift is learned as a quadratic function of the three head angles (pitch, yaw, roll), within speakers so face shape stays out of the fit, and subtracted. "No motion" is then the resting face rotated with the head, not the frontal resting face.
-  - *Measured* (10,865 clips, 229 speakers, `FaceNorm` fitted on 4,000 training clips, evaluated on held-out speakers): head pitch varies ~3° within a clip and ~8° between clips. Within speakers, pitch correlates with lip opening (points 13–14) at r = −0.27 after rigid alignment and r = −0.04 after pose correction. Rigid points move a third as much as the lips within a clip (FaceMesh jitter included).
+- **Coordinate normalization (V4–V6):** raw pixels → Procrustes-aligned (default) → speaker mean removed; the other two levels are the Baustein 4 ablation. The transform is fitted on all 468 points (fitting on the lips alone would scale away mouth opening); the reference is the GPA mean shape of the training speakers (`FaceNorm`, fitted once).
 - **Coordinate encoder (V4, V5):** per-frame MLP (BN → 512 → 1056, BN + ReLU), matching NASNet's T × 1056 output.
 - **Crops:** square, centre tracked per frame (5-frame moving average), **one size per clip** (largest bbox side × margin: face +15 %, mouth +60 %) so mouth opening isn't scaled away. Encoder input 128 × 128, scaled to [-1, 1].
-- **Rendering (V2, V3), frontal:** the aligned, pose-corrected points, i.e. the face seen from straight ahead, in a box fixed by the reference face that is the same for every clip. Contour/lip edges (124 / 40), white, 2 px, on a 256 × 256 black canvas, resized to 128 × 128. Head pose, head position and face size are therefore gone from V2/V3. V1 draws the edges onto the RGB crop at the image position.
+- **Rendering (V2, V3):** contour/lip edges (124 / 40), white, 2 px, on a 256 × 256 black canvas of the V0 crop, resized to 128 × 128. V1 draws the same onto the RGB crop.
 - **Fusion (V6):** NASNet (1056) ⊕ 256-d lip-coordinate MLP; DC-TCN's first 1×1 layer projects the 1312-d input to 512.
 - **Evaluation:** top-1, top-5, macro-F1 on the speaker-disjoint test split. Clips of one speaker are correlated, so 95 % intervals come from a bootstrap over the 170 test speakers, not over clips (`stats.py`). Every variant is trained with seed 0; the headline comparisons (V0_mouth, V4, V5) get 3 seeds (mean ± std; the bootstrap averages the seeds). Identity leakage: section 3, *Identity protocol*.
 
@@ -71,7 +67,7 @@ The anonymizer works on landmarks, not pixels. It takes the aligned FaceMesh poi
 
 ### Anonymizer: variational autoencoder with a fixed PCA output layer
 
-Input: the aligned, pose-corrected landmarks of one clip (`FaceNorm`), `x` (T × 468 × 3), of which E reads only the lower-face points L. Output: `x̂` (T × 468 × 3), with every speaker on the same mean face. V2–V5 are then built from `x̂` as usual.
+Input: the Procrustes-aligned landmarks of one clip (`FaceNorm`), `x` (T × 468 × 3), of which E reads only the lower-face points L. Output: `x̂` (T × 468 × 3), with every speaker on the same mean face. V2–V5 are then built from `x̂` as usual.
 
 ```mermaid
 flowchart LR
@@ -83,8 +79,8 @@ flowchart LR
 
 #### Step 0: fixed quantities (computed once from the training speakers, not trained)
 - **Mean face m̄** (1404 = 468 × 3): generalized-Procrustes mean shape over all training frames. All clips are aligned to it (`FaceNorm.ref`).
-- **Lower face L** (`LOWER_IDX`, to add to `data/landmarks.py`): every mesh point that lies below the nose base (landmark 2) in m̄, minus `RIGID_IDX`. This covers the lips, chin, jaw line and lower cheeks. |L| is fixed once m̄ is fitted. The upper face is left out on purpose. Blinks, brow raises and forehead motion aren't speech, and how often a speaker does them is an identity cue. In a full-face PCA they would take modes, and D could pass them through to `x̂`.
-- **Motion PCA.** For every training frame, take the aligned, pose-corrected landmarks of speaker *s* at time *t* on L, minus that speaker's mean shape on L: `d = x_{s,t,L} − x̄_{s,L}` (3|L| numbers). Because pose is already corrected, this is articulation, not nodding: how far each point is from the speaker's resting face. PCA over all `d` (≈ 200 k sampled frames, 3|L| × 3|L| covariance) gives:
+- **Lower face L** (`LOWER_IDX`, to add to `data/landmarks.py`): every mesh point that lies below the nose base (landmark 2) in m̄. This covers the lips, chin, jaw line and lower cheeks. |L| is fixed once m̄ is fitted. The upper face is left out on purpose. Blinks, brow raises and forehead motion aren't speech, and how often a speaker does them is an identity cue. In a full-face PCA they would take modes, and D could pass them through to `x̂`.
+- **Motion PCA.** For every training frame, take the aligned landmarks of speaker *s* at time *t* on L, minus that speaker's mean shape on L: `d = x_{s,t,L} − x̄_{s,L}` (3|L| numbers): how far each point is from the speaker's resting face. PCA over all `d` (≈ 200 k sampled frames, 3|L| × 3|L| covariance) gives:
   - **modes uₖ** (3|L| each, embedded in 1404 with zeros outside L): patterns in which the lower-face points move together. Expected examples: k = 1 jaw opening, k = 2 lips spread vs. rounded, k = 3 upper lip raised.
   - **variances λₖ**: how much of the motion each mode explains.
   - K = 24 modes (to be confirmed: smallest K that explains ≥ 99 % of the variance; likely fewer than for the full face, since no modes go to blinks or brows).
@@ -156,7 +152,7 @@ Mean face and PCA decoder remove face shape by construction, and the lower-face 
 - **Seen vs. unseen speakers:** compare leakage on training speakers and on held-out speakers. A clear gap means `E` overfit to its training speakers.
 - **Baselines:** subtracting each speaker's mean shape, and normalizing every dimension of `z` by the speaker's mean and std over all their clips (speaker CMVN, as in speech). The anonymizer has to beat both.
 - **Expected residual:** speaking rate and articulation amplitude are behaviour, not face shape. The clip norm removes amplitude within a clip, but rate stays. Identity that survives this way is reported as a finding.
-- **How much the resting face gives away** (same sample, leave-one-speech-out): each speaker's resting face from *other* speeches explains 38–39 % of the variance of a pose-corrected frame (49–52 % from the same speech). The nearest resting face identifies the speaker of a single 1.2 s clip among 229 at 56 % top-1 for the 128 contour points (V4) and 19 % for the 40 lip points (V5); chance is 0.4 %. Pose correction *raises* this (V4 34 % → 56 %), because it removes pose noise and leaves face shape. Correcting pose helps lipreading and the attacker alike, which makes the shared mean face necessary.
+- **How much the resting face gives away** (pilot, 229 speakers, leave-one-speech-out, measured with an earlier normalization): the nearest resting face from other speeches identifies the speaker of a single 1.2 s clip at 34–56 % top-1 for the 128 contour points (V4) and 19 % for the 40 lip points (V5); chance is 0.4 %. Face shape alone is a strong identity cue, which makes the shared mean face necessary.
 
 ### Evaluation
 - **Identity:** the *Identity protocol* below on `x̂`, with attackers trained from scratch. `S` from training doesn't count.
@@ -179,7 +175,7 @@ Package, run from the repo root (`from model.nets import LipreadingModel`).
 model/
 ├── data/                 word clip → model input
 │   ├── clips.py          loader and speaker-disjoint split
-│   ├── landmarks.py      point sets, rigid alignment, pose correction (FaceNorm)
+│   ├── landmarks.py      point sets, Procrustes alignment (FaceNorm)
 │   ├── images.py         tracked crops, overlay, mesh rendering
 │   ├── variants.py       variant table, make_inputs()
 │   └── augment.py        training augmentation (as in BWKI)
@@ -194,30 +190,31 @@ model/
 | File | Content |
 |---|---|
 | `data/clips.py` | BTLips loader: clip lists per split, FaceMesh from `BTLips_facemesh/` (memory-mapped, NaN frames interpolated, crop pixels), RGB frames from the mp4. |
-| `data/landmarks.py` | Point sets (128 contour, 40 lip, 24 rigid), rigid alignment with head angles, `FaceNorm` (GPA mean shape + pose correction, fitted on the training speakers, saved as npz), the normalization levels. |
+| `data/landmarks.py` | Point sets (128 contour, 40 lip), Procrustes alignment on all 468 points, `FaceNorm` (GPA mean shape of the training speakers, saved as npz), the normalization levels. |
 | `data/images.py` | Tracked crop boxes, RGB crops, overlay, mesh rendering. |
 | `data/augment.py` | One random draw per clip, the same for every frame, as BWKI's `VideoAugment`: time masking for every variant (1–2 blocks of 1–4 frames set to 0, the same frames for video and coordinates); for images a random affine (rotation ±10°, scale ±10 %, shift ±6 %) and a horizontal flip (not for V6, where it would contradict the points); for RGB (V0, V1, V6) brightness and contrast ±20 %; for coordinates the same affine on the aligned points, no flip. |
 | `data/variants.py` | Variant table (V0_face … V6) and `make_inputs(variant, …)`: one clip → `{'video', 'coords'}`. |
 | `nets/nasnet.py` | NASNet-A Mobile in PyTorch, a layer-for-layer mirror of `keras.applications.nasnet`. Loads Google's original ImageNet weights (Keras `NASNet-mobile.h5` in `model/nets/weights/`) by Keras layer name and fails if any layer is unmatched. Verified: 5.327 M parameters incl. BN statistics, identical to Keras; a Samoyed photo is classified "Samoyed" (p = 0.93). |
 | `nets/dctcn.py` | DC-TCN, ported unchanged from mpc001/Lipreading_using_Temporal_Convolutional_Networks (`densetcn.py`, SE, Swish), LRW config (`lrw_resnet18_dctcn.json`): blocks [3,3,3,3], growth 384, kernels {3,5,7}, dilations {1,2,5}, reduced size 512, SE, dropout 0.2, Swish. |
 | `nets/lipreader.py` | `LipreadingModel(variant, num_classes)`: encoder(s) → DC-TCN → mean over valid frames → linear. |
-| `train.py` | `python -m model.train --variant V4 --batch 128 [--seed 1] [--resume \| --test-only]`. AdamW (lr 3e-4 × √(batch/32), wd 1e-2), 1 warm-up epoch, then until val top-1 plateaus (lr halved after 2 epochs without +0.001, stop after 5), label smoothing 0.1, fp16; training augmentation as in BWKI (`data/augment.py`). `FaceNorm` is fitted on 4,000 training clips; aligned, pose-corrected contour points are cached in `runs/cache/`. Picks the epoch with the best val top-1 and writes `runs/<variant>/metrics.csv` (incl. train top-1 and lr), `best.pt`, `last.pt` (for `--resume`), `test.json` (top-1, top-5, macro-F1), `test_pred.npy` (top-5 words per test clip); seeds ≠ 0 go to `runs/<variant>_s<seed>/`. `--test-only` re-tests `best.pt`. |
+| `train.py` | `python -m model.train --variant V4 --batch 128 [--seed 1] [--resume \| --test-only]`. AdamW (lr 3e-4 × √(batch/32), wd 1e-2), 1 warm-up epoch, then at most 15 epochs (lr halved after 2 epochs without +0.001 val top-1, early stop after 5), label smoothing 0.1, fp16; training augmentation as in BWKI (`data/augment.py`). `FaceNorm` is fitted on 4,000 training clips; Procrustes-aligned contour points are cached in `runs/cache/`. Picks the epoch with the best val top-1 and writes `runs/<variant>/metrics.csv` (incl. train top-1 and lr), `best.pt`, `last.pt` (for `--resume`), `test.json` (top-1, top-5, macro-F1), `test_pred.npy` (top-5 words per test clip); seeds ≠ 0 go to `runs/<variant>_s<seed>/`. `--test-only` re-tests `best.pt`. |
 | `stats.py` | `python -m model.stats V4 V5 …`: per variant, mean (± std over seeds) and 95 % intervals from 2,000 bootstrap resamples of whole test speakers → `runs/<variant>/stats.json`. |
 
 Memory (RTX 3060 12 GB, batch 4 × 50 frames, training mode): image variants 45.1 M parameters (NASNet 5.3 M + DC-TCN ~40 M), **5.8 GiB peak**; coordinate variants 41.5 M parameters, 0.3 GiB; V6 45.5 M. 29-frame clips should fit batch ~8 for image variants.
 
 ## 5. Results (BTLips, 500 words, speaker-disjoint test)
 
-Every variant is trained until val top-1 plateaus (`train.py`); the best val epoch is tested. Chance is 0.002. Top-1: mean ± std over seeds (3 for V4, V5, V0_mouth; otherwise seed 0) [95 % speaker-bootstrap interval, `stats.py`]; top-5 and F1 are seed means.
+Every variant is trained for at most 15 epochs (`train.py`); the best val epoch is tested. Chance is 0.002. Top-1: mean ± std over seeds (3 for V4, V5, V0_mouth; otherwise seed 0) [95 % speaker-bootstrap interval, `stats.py`]; top-5 and F1 are seed means.
 
-Schedule: optimizer, learning rate, weight decay and batch size are those of Ma et al. (AdamW, 3e-4, 1e-2, 32). Instead of their fixed 80-epoch cosine schedule (~8 days per image variant here), the learning rate is halved on a val plateau with early stopping. This is the same rule for every variant, and it lets each one train until it has converged rather than up to a budget that suits some inputs better than others. The test set plays no part in it. The table lists the best and the last epoch of each variant; the curves are in `runs/<variant>/metrics.csv`.
+Schedule: optimizer, learning rate, weight decay and batch size are those of Ma et al. (AdamW, 3e-4, 1e-2, 32). Instead of their 80-epoch cosine schedule (~8 days per image variant here), every variant gets the same budget of 15 epochs; the learning rate is halved after 2 epochs without a val gain, and training stops early after 5. Every variant run so far overfits before epoch 15 (V0_mouth: best val at epoch 13, then train top-1 0.71 vs. val 0.44 at epoch 15), so the cap only cuts epochs past the best one. The test set plays no part in it. The table lists the best and the last epoch of each variant; the curves are in `runs/<variant>/metrics.csv`.
 
 | Variant | Input | Epochs (best / last) | Test top-1 | Top-5 | Macro-F1 |
 |---|---|---|---|---|---|
-| V4 | 128 contour points | 11–12 / 16–17 | 0.281 ± 0.003 [0.252, 0.310] | 0.448 | 0.276 |
-| V5 | 40 lip points | 11–12 / 16–17 | 0.282 ± 0.0002 [0.253, 0.312] | 0.451 | 0.277 |
+| V0_mouth | RGB, mouth crop | 13 / 15 | 0.467 (seed 0) | 0.621 | 0.464 |
+| V4 | 128 contour points | *rerun (Procrustes)* | | | |
+| V5 | 40 lip points | *rerun (Procrustes)* | | | |
 
-A first run with a fixed 15-epoch cosine schedule gave V4 0.292 / 0.467 / 0.286 and V5 0.285 / 0.459 / 0.278 (best epoch 7; after that train loss kept falling while val loss rose). A V0_mouth run with flip-only augmentation reached 0.420 val top-1 after 6 epochs (train 0.513) and was replaced by the BWKI augmentation (both runs deleted). Queue: `runs/queue.sh` (V4, V5 with 3 seeds, then the image variants, then seeds 1–2 for V0_mouth, then `stats.py`), ~2.3 h per image epoch and ~4 min per coordinate epoch on the RTX 3060.
+With the earlier rigid alignment + pose correction, V4 and V5 reached 0.281 ± 0.003 and 0.282 ± 0.0002 test top-1 (3 seeds); they are rerun with the Procrustes normalization above. A first run with a fixed 15-epoch cosine schedule gave V4 0.292 / 0.467 / 0.286 and V5 0.285 / 0.459 / 0.278 (best epoch 7; after that train loss kept falling while val loss rose). A V0_mouth run with flip-only augmentation reached 0.420 val top-1 after 6 epochs (train 0.513) and was replaced by the BWKI augmentation (both runs deleted). Queue: `runs/queue.sh` (V4, V5 with 3 seeds, then the image variants, then seeds 1–2 for V0_mouth, then `stats.py`), ~2.3 h per image epoch and ~4 min per coordinate epoch on the RTX 3060.
 
 ## 6. Status
 - [x] Architecture and variants fixed (this file)

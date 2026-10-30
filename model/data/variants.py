@@ -41,13 +41,10 @@ def make_inputs(variant, seq_px, norm, frames=None, size=images.ENC_SIZE):
     if image is not None:
         kind, region = image.split('_')
         box_idx, margin = (FACE_IDX, images.FACE_MARGIN) if region == 'face' else (LIP_IDX, images.MOUTH_MARGIN)
+        box = images.clip_boxes(seq_px, box_idx, margin)                     # the V0 crop for every image kind
         if kind == 'render':
-            # Frontal: aligned, pose-corrected mesh in a box fixed by the reference face, the same for every clip.
-            x = norm(seq_px)[0]
-            box = np.repeat(images.clip_boxes(norm.ref[None], box_idx, margin), len(x), 0)
-            clip = images.render_clip(x, CONTOUR_EDGES if region == 'face' else LIP_EDGES, box, size)
+            clip = images.render_clip(seq_px, CONTOUR_EDGES if region == 'face' else LIP_EDGES, box, size)
         else:
-            box = images.clip_boxes(seq_px, box_idx, margin)
             clip = (images.rgb_clip(frames, box, size) if kind == 'rgb'
                     else images.overlay_clip(frames, seq_px, CONTOUR_EDGES, box, size))
         out['video'] = torch.from_numpy(clip).permute(0, 3, 1, 2).float() / 127.5 - 1   # Keras 'tf' scaling

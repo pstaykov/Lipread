@@ -7,7 +7,7 @@ epoch, then at most 15 epochs (--epochs): the lr is halved after 2 epochs withou
 stops early after 5 (--patience). Label smoothing 0.1, mixed precision. --batch 128 for the coordinate variants:
 their step time is launch-bound, so 128 clips cost the same time as 32. Training clips are augmented as in BWKI
 (data/augment.py: time masking for all, affine and flip for images, brightness/contrast for RGB, affine for points).
-Coordinate features (aligned + pose-corrected contour points) are computed once into runs/cache/.
+Coordinate features (Procrustes-aligned contour points) are computed once into runs/cache/.
 Output runs/<variant>/ (runs/<variant>_s<seed>/ for seeds other than 0): train.log, metrics.csv, best.pt, last.pt
 (full state for --resume), test.json (top-1, top-5, macro-F1), test_pred.npy (top-5 word indices per test clip, in
 split order, for model.stats). --test-only re-tests best.pt without training.
@@ -38,13 +38,13 @@ MIN_GAIN = 0.001
 
 
 def facenorm():
-    path = CACHE / 'facenorm.npz'
+    path = CACHE / 'facenorm_procrustes.npz'
     if path.exists():
         return FaceNorm.load(path)
     idx = clips.read_split('train')
     fm = clips.facemesh('train')
     pick = np.sort(np.random.default_rng(0).choice(len(idx), NORM_CLIPS, replace=False))
-    norm = FaceNorm.fit([clips.to_pixels(fm[i]) for i in pick], [idx[i]['speaker'] for i in pick])
+    norm = FaceNorm.fit([clips.to_pixels(fm[i]) for i in pick])
     CACHE.mkdir(parents=True, exist_ok=True)
     norm.save(path)
     return norm
@@ -52,13 +52,13 @@ def facenorm():
 
 def _contour(args):
     split, lo, hi = args
-    norm, fm = FaceNorm.load(CACHE / 'facenorm.npz'), clips.facemesh(split)
-    return np.stack([norm(clips.to_pixels(fm[i]))[0][:, CONTOUR_IDX] for i in range(lo, hi)]).astype(np.float16)
+    norm, fm = FaceNorm.load(CACHE / 'facenorm_procrustes.npz'), clips.facemesh(split)
+    return np.stack([norm(clips.to_pixels(fm[i]))[:, CONTOUR_IDX] for i in range(lo, hi)]).astype(np.float16)
 
 
 def contour_cache(split):
-    """(N, 29, 128, 3) float16 aligned, pose-corrected contour points (V4; V5 = its lip subset)."""
-    path = CACHE / f'contour_{split}.npy'
+    """(N, 29, 128, 3) float16 Procrustes-aligned contour points (V4; V5 = its lip subset)."""
+    path = CACHE / f'contour_procrustes_{split}.npy'
     if not path.exists():
         n = len(clips.read_split(split))
         with Pool(10) as p:
