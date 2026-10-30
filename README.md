@@ -57,7 +57,7 @@ Für jede Eingabe wird ein Sprecher-Klassifikator trainiert, dazu eine lineare P
 
 * Jeder Normalisierungsschritt sollte etwas Wortgenauigkeit kosten und etwas Identität entfernen. Beides zu messen ist das Kernergebnis.
 * **Hauptabbildung:** Wortgenauigkeit gegen Sprecher-ID-Genauigkeit, ein Punkt pro Eingabe.
-* **Protokoll:** Angreifer nur auf den ungesehenen Testsprechern, Training und Test an verschiedenen Sitzungstagen (sonst wird Beleuchtung und Kamera gelernt), sprecher-ausgeglichene Teilmenge, EER (Verifikation) neben Top-1, ignoranter und informierter Angreifer wie bei VoicePrivacy. Konfidenzintervalle per Bootstrap über Sprecher, 3 Seeds für die Hauptvergleiche.
+* **Protokoll:** Angreifer nur auf den ungesehenen Testsprechern, Training und Test an verschiedenen Sitzungstagen (sonst wird Beleuchtung und Kamera gelernt), sprecher-ausgeglichene Teilmenge, EER (Verifikation) neben Top-1, ignoranter und informierter Angreifer wie bei VoicePrivacy. Konfidenzintervalle per Bootstrap über Sprecher (ein Lauf pro Variante).
 
 ### 5. Neutraler-Mund-Anonymisierer
 Die Sprecher a, b und c erscheinen alle als ein neutraler Mund d, der dieselben Bewegungen macht. Das ist das visuelle Gegenstück zur Umwandlung jeder Stimme in eine Zielstimme, einer Standardmethode der Sprach-Anonymisierung.

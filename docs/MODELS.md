@@ -51,7 +51,7 @@ Hypotheses (not results): V1 is the worst for privacy. It may or may not beat V0
 - **Crops:** square, centre tracked per frame (5-frame moving average), **one size per clip** (largest bbox side × margin: face +15 %, mouth +60 %) so mouth opening isn't scaled away. Encoder input 128 × 128, scaled to [-1, 1].
 - **Rendering (V2, V3):** contour/lip edges (124 / 40), white, 2 px, on a 256 × 256 black canvas of the V0 crop, resized to 128 × 128. V1 draws the same onto the RGB crop.
 - **Fusion (V6):** NASNet (1056) ⊕ 256-d lip-coordinate MLP; DC-TCN's first 1×1 layer projects the 1312-d input to 512.
-- **Evaluation:** top-1, top-5, macro-F1 on the speaker-disjoint test split. Clips of one speaker are correlated, so 95 % intervals come from a bootstrap over the 170 test speakers, not over clips (`stats.py`). Every variant is trained with seed 0; the headline comparisons (V0_mouth, V4, V5) get 3 seeds (mean ± std; the bootstrap averages the seeds). Identity leakage: section 3, *Identity protocol*.
+- **Evaluation:** top-1, top-5, macro-F1 on the speaker-disjoint test split. Clips of one speaker are correlated, so 95 % intervals come from a bootstrap over the 170 test speakers, not over clips (`stats.py`). Every variant is trained once (seed 0); there is no budget for repeated seeds, so the speaker bootstrap is the only uncertainty estimate. Identity leakage: section 3, *Identity protocol*.
 
 ### Sample figure
 ![Input variants](figures/input_variants.png)
@@ -180,7 +180,7 @@ model/
 │   ├── variants.py       variant table, make_inputs()
 │   └── augment.py        training augmentation (as in BWKI)
 ├── train.py              train + test one variant -> runs/<variant>/
-├── stats.py              speaker-bootstrap intervals over all seeds
+├── stats.py              speaker-bootstrap intervals
 └── nets/
     ├── nasnet.py         NASNet-Mobile encoder (+ weights/, gitignored)
     ├── dctcn.py          DC-TCN back-end
@@ -197,24 +197,24 @@ model/
 | `nets/nasnet.py` | NASNet-A Mobile in PyTorch, a layer-for-layer mirror of `keras.applications.nasnet`. Loads Google's original ImageNet weights (Keras `NASNet-mobile.h5` in `model/nets/weights/`) by Keras layer name and fails if any layer is unmatched. Verified: 5.327 M parameters incl. BN statistics, identical to Keras; a Samoyed photo is classified "Samoyed" (p = 0.93). |
 | `nets/dctcn.py` | DC-TCN, ported unchanged from mpc001/Lipreading_using_Temporal_Convolutional_Networks (`densetcn.py`, SE, Swish), LRW config (`lrw_resnet18_dctcn.json`): blocks [3,3,3,3], growth 384, kernels {3,5,7}, dilations {1,2,5}, reduced size 512, SE, dropout 0.2, Swish. |
 | `nets/lipreader.py` | `LipreadingModel(variant, num_classes)`: encoder(s) → DC-TCN → mean over valid frames → linear. |
-| `train.py` | `python -m model.train --variant V4 --batch 128 [--seed 1] [--resume \| --test-only]`. AdamW (lr 3e-4 × √(batch/32), wd 1e-2), 1 warm-up epoch, then at most 15 epochs (lr halved after 2 epochs without +0.001 val top-1, early stop after 5), label smoothing 0.1, fp16; training augmentation as in BWKI (`data/augment.py`). `FaceNorm` is fitted on 4,000 training clips; Procrustes-aligned contour points are cached in `runs/cache/`. Picks the epoch with the best val top-1 and writes `runs/<variant>/metrics.csv` (incl. train top-1 and lr), `best.pt`, `last.pt` (for `--resume`), `test.json` (top-1, top-5, macro-F1), `test_pred.npy` (top-5 words per test clip); seeds ≠ 0 go to `runs/<variant>_s<seed>/`. `--test-only` re-tests `best.pt`. |
-| `stats.py` | `python -m model.stats V4 V5 …`: per variant, mean (± std over seeds) and 95 % intervals from 2,000 bootstrap resamples of whole test speakers → `runs/<variant>/stats.json`. |
+| `train.py` | `python -m model.train --variant V4 --batch 128 [--resume \| --test-only]`. AdamW (lr 3e-4 × √(batch/32), wd 1e-2), 1 warm-up epoch, then at most 15 epochs (lr halved after 2 epochs without +0.001 val top-1, early stop after 5), label smoothing 0.1, fp16; training augmentation as in BWKI (`data/augment.py`). `FaceNorm` is fitted on 4,000 training clips; Procrustes-aligned contour points are cached in `runs/cache/`. Picks the epoch with the best val top-1 and writes `runs/<variant>/metrics.csv` (incl. train top-1 and lr), `best.pt`, `last.pt` (for `--resume`), `test.json` (top-1, top-5, macro-F1), `test_pred.npy` (top-5 words per test clip). `--test-only` re-tests `best.pt`. |
+| `stats.py` | `python -m model.stats V4 V5 …`: per variant, top-1, top-5, F1 and 95 % intervals from 2,000 bootstrap resamples of whole test speakers → `runs/<variant>/stats.json`. |
 
 Memory (RTX 3060 12 GB, batch 4 × 50 frames, training mode): image variants 45.1 M parameters (NASNet 5.3 M + DC-TCN ~40 M), **5.8 GiB peak**; coordinate variants 41.5 M parameters, 0.3 GiB; V6 45.5 M. 29-frame clips should fit batch ~8 for image variants.
 
 ## 5. Results (BTLips, 500 words, speaker-disjoint test)
 
-Every variant is trained for at most 15 epochs (`train.py`); the best val epoch is tested. Chance is 0.002. Top-1: mean ± std over seeds (3 for V4, V5, V0_mouth; otherwise seed 0) [95 % speaker-bootstrap interval, `stats.py`]; top-5 and F1 are seed means.
+Every variant is trained for at most 15 epochs (`train.py`); the best val epoch is tested. Chance is 0.002. One run per variant (seed 0); top-1 [95 % speaker-bootstrap interval, `stats.py`].
 
 Schedule: optimizer, learning rate, weight decay and batch size are those of Ma et al. (AdamW, 3e-4, 1e-2, 32). Instead of their 80-epoch cosine schedule (~8 days per image variant here), every variant gets the same budget of 15 epochs; the learning rate is halved after 2 epochs without a val gain, and training stops early after 5. Every variant run so far overfits before epoch 15 (V0_mouth: best val at epoch 13, then train top-1 0.71 vs. val 0.44 at epoch 15), so the cap only cuts epochs past the best one. The test set plays no part in it. The table lists the best and the last epoch of each variant; the curves are in `runs/<variant>/metrics.csv`.
 
 | Variant | Input | Epochs (best / last) | Test top-1 | Top-5 | Macro-F1 |
 |---|---|---|---|---|---|
-| V0_mouth | RGB, mouth crop | 13 / 15 | 0.467 (seed 0) | 0.621 | 0.464 |
+| V0_mouth | RGB, mouth crop | 13 / 15 | 0.467 | 0.621 | 0.464 |
 | V4 | 128 contour points | *rerun (Procrustes)* | | | |
 | V5 | 40 lip points | *rerun (Procrustes)* | | | |
 
-With the earlier rigid alignment + pose correction, V4 and V5 reached 0.281 ± 0.003 and 0.282 ± 0.0002 test top-1 (3 seeds); they are rerun with the Procrustes normalization above. A first run with a fixed 15-epoch cosine schedule gave V4 0.292 / 0.467 / 0.286 and V5 0.285 / 0.459 / 0.278 (best epoch 7; after that train loss kept falling while val loss rose). A V0_mouth run with flip-only augmentation reached 0.420 val top-1 after 6 epochs (train 0.513) and was replaced by the BWKI augmentation (both runs deleted). Queue: `runs/queue.sh` (V4, V5 with 3 seeds, then the image variants, then seeds 1–2 for V0_mouth, then `stats.py`), ~2.3 h per image epoch and ~4 min per coordinate epoch on the RTX 3060.
+With the earlier rigid alignment + pose correction, V4 and V5 reached 0.281 ± 0.003 and 0.282 ± 0.0002 test top-1 (3 seeds); they are rerun with the Procrustes normalization above. A first run with a fixed 15-epoch cosine schedule gave V4 0.292 / 0.467 / 0.286 and V5 0.285 / 0.459 / 0.278 (best epoch 7; after that train loss kept falling while val loss rose). A V0_mouth run with flip-only augmentation reached 0.420 val top-1 after 6 epochs (train 0.513) and was replaced by the BWKI augmentation (both runs deleted). Queue (`runs/queue_procrustes.sh`): V4, V5, then V3, V2, V1, V6, then `stats.py`; ~2.3 h per image epoch and ~4 min per coordinate epoch on the RTX 3060.
 
 ## 6. Status
 - [x] Architecture and variants fixed (this file)
