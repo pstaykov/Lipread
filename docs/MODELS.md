@@ -46,7 +46,7 @@ Hypotheses (not results): V1 is the worst for privacy. It may or may not beat V0
 ### Variant details
 - **Landmarks:** MediaPipe FaceMesh (as in BWKI), run with `refine_landmarks=True`; the 10 iris points are dropped, so indices match BWKI's 468. "Full face" = 128 points of `FACEMESH_CONTOURS`, "mouth" = 40 points of `FACEMESH_LIPS`.
 - **Matched pairs:** V2 ↔ V4 and V3 ↔ V5 use the same points and differ only in representation (image + NASNet vs. numbers + MLP). The other 340 points (cheeks, forehead) barely move in speech but encode face shape, so they are left out.
-- **Coordinate normalization (V4–V6):** raw pixels → Procrustes-aligned (default) → speaker mean removed; the other two levels are the Baustein 4 ablation. The transform is fitted on all 468 points (fitting on the lips alone would scale away mouth opening); the reference is the GPA mean shape of the training speakers (`FaceNorm`, fitted once).
+- **Coordinate normalization (V4–V6):** raw pixels → Procrustes-aligned (default) → speaker mean removed; the other two levels are the Baustein 4 ablation. *Speaker statistics* (here and in section 3): one value per speaker, computed only from that speaker's clips and applied to all of them. It is the mean of the speaker's per-word means, so a speaker's frequent words don't shift it (BTLips speakers say very different word mixes, 1–969 clips each). Per-word statistics within a speaker are never used: they would erase the differences between words. The transform is fitted on all 468 points (fitting on the lips alone would scale away mouth opening); the reference is the GPA mean shape of the training speakers (`FaceNorm`, fitted once).
 - **Coordinate encoder (V4, V5):** per-frame MLP (BN → 512 → 1056, BN + ReLU), matching NASNet's T × 1056 output.
 - **Crops:** square, centre tracked per frame (5-frame moving average), **one size per clip** (largest bbox side × margin: face +15 %, mouth +60 %) so mouth opening isn't scaled away. Encoder input 128 × 128, scaled to [-1, 1].
 - **Rendering (V2, V3):** contour/lip edges (124 / 40), white, 2 px, on a 256 × 256 black canvas of the V0 crop, resized to 128 × 128. V1 draws the same onto the RGB crop.
@@ -136,7 +136,9 @@ Terms:
 
 #### Training
 - **Trainable:** E and D. W, m̄ and the PCA modes are fixed.
-- **Adversary S:** the V4 speaker model, trained on `x̂.detach()` with ordinary cross-entropy on speaker labels. One S step, then one E/D step, per batch. S is re-initialized every 5 epochs, so E can't settle on fooling one fixed classifier.
+- **Adversary S:** the V4 speaker model, trained on `x̂.detach()` with ordinary cross-entropy on speaker labels. One S step, then one E/D step, per batch. S is re-initialized every 5 epochs, so E can't settle on fooling one fixed classifier. Adversarially trained data tends to fool only the training-time adversary, while a fresh classifier still recovers the attribute (Elazar & Goldberg, 2018); this is why the reported numbers come only from fresh attackers (*Evaluation*).
+- **More adversaries (if compute allows):** several S with different architectures and inputs (positions, velocities), each re-initialized at different times, so E has no single decision boundary to hide behind.
+- **Distribution matching (option):** an extra loss term that compares the outputs of different speakers directly instead of training a classifier on them. MMD (maximum mean discrepancy) with a Gaussian kernel, between each speaker's `x̂` in the batch and the pooled `x̂` of all speakers; it is 0 when the two sets of samples have the same distribution. With no decision boundary there is nothing to trick, but it only sees differences the kernel picks up. It complements S, it doesn't replace it. Batches then need several clips per speaker.
 - **Warm-up:** β and λ rise linearly from 0 over the first 10 epochs, so E first learns to produce readable motion before the bottleneck tightens.
 - **Optimizer:** Adam, learning rate 3 × 10⁻⁴, batch 32 clips, speaker-disjoint split as for the word models.
 - **Sweep:** β over a log grid (e.g. 10⁻³ … 1). Each β is one point on the accuracy–privacy curve.
@@ -150,17 +152,21 @@ Terms:
 Mean face and PCA decoder remove face shape by construction, and the lower-face PCA removes upper-face motion. Everything else rests on H. The risk is that `E` keeps speaker traits inside `z` (motion style, asymmetry) or hides only the training speakers from `S`. Tests:
 - **Probe on z:** freeze `E` and train a new speaker classifier on `z`. Above chance means H fails.
 - **Seen vs. unseen speakers:** compare leakage on training speakers and on held-out speakers. A clear gap means `E` overfit to its training speakers.
-- **Baselines:** subtracting each speaker's mean shape, and normalizing every dimension of `z` by the speaker's mean and std over all their clips (speaker CMVN, as in speech). The anonymizer has to beat both.
+- **Baselines:** (1) mean face only: each speaker's mean shape replaced by m̄, with no learned anonymization. This measures how much identity the motion alone carries. (2) Speaker CMVN: every dimension of `z` normalized by the speaker's mean and std (speaker statistics as in section 2), as in speech. (3) Noise: Gaussian noise of several strengths added to the aligned landmarks, giving a word-vs-speaker accuracy curve. Plain noise is the simple version of differential privacy, so the anonymizer has to lie above that curve. The anonymizer has to beat all three.
 - **Expected residual:** speaking rate and articulation amplitude are behaviour, not face shape. The clip norm removes amplitude within a clip, but rate stays. Identity that survives this way is reported as a finding.
+- **Speaking rate (to investigate):** time-warping each speaker to a common rate, with one time-scale factor per speaker (speaker statistics as in section 2). Warping each clip to a template of its word would remove more, but it needs the word, which the anonymizer doesn't know at test time.
+- **Not removed on purpose:** left–right asymmetry. Some speakers form a sound mainly with one side of the mouth, so symmetrizing would erase content as well as the habit.
+- **Out of scope:** recognizing visemes and re-synthesizing the motion from them. The anonymity would be near perfect, but it needs a model that already reads the word, which defeats the purpose. One shared mean face (k-Same with k = all speakers) is enough; formal differential privacy would need so much noise that the words are lost too, so it is only the noise baseline above.
 - **How much the resting face gives away** (pilot, 229 speakers, leave-one-speech-out, measured with an earlier normalization): the nearest resting face from other speeches identifies the speaker of a single 1.2 s clip at 34–56 % top-1 for the 128 contour points (V4) and 19 % for the 40 lip points (V5); chance is 0.4 %. Face shape alone is a strong identity cue, which makes the shared mean face necessary.
 
 ### Evaluation
-- **Identity:** the *Identity protocol* below on `x̂`, with attackers trained from scratch. `S` from training doesn't count.
+- **Identity:** the *Identity protocol* below on `x̂`, with attackers trained from scratch after the anonymizer is frozen. `S` from training doesn't count.
 
 ### Identity protocol (Baustein 4 and the anonymizer)
 Closed-set speaker accuracy can't be measured on unseen speakers, and its value depends on how many speakers there are. So:
 - **Attacker data:** only the held-out test speakers, which neither the word model nor the anonymizer has seen. Attacker training and test clips come from **different sitting days**, so a session classifier (lighting, camera, clothing, lectern) gains nothing. 156 of the 170 test speakers speak on ≥ 2 days, 144 on ≥ 3.
 - **Speaker-balanced subset:** clips per test speaker range from 1 to 969 (median 98). The subset fixes the speakers (≥ 2 days) and the number of clips per speaker, the same for every input variant.
+- **Open set:** the training adversary `S` only learns what separates the training speakers; a habit none of them share is never pushed out. The attackers here only see unseen speakers, so the result shows whether the anonymization generalizes beyond the people it was trained against.
 - **Metrics:** equal error rate (EER) of a verification attacker (same or different speaker, from the speaker model's embeddings, trials across days), plus closed-set top-1 on the fixed subset with its chance level.
 - **Attacker levels** (as in VoicePrivacy): *ignorant*, trained on original inputs and tested on anonymized ones; *informed*, trained on outputs of the same anonymizer. Informed is the headline number.
 - **Statistics:** bootstrap over speakers, as for words.

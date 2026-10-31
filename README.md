@@ -67,9 +67,10 @@ Die Sprecher a, b und c erscheinen alle als ein neutraler Mund d, der dieselben 
 * **RGB-Decoder (Erweiterung):** rendert Mund d als höher aufgelöstes Video.
 * **Training:** Es gibt keine gepaarten Daten (Mund d hat nie dasselbe Wort gesagt), daher tragen drei Losses das Training:
     * **Inhalt:** Ein eingefrorener Lippenleser muss das Wort in der Ausgabe weiterhin erkennen.
-    * **Identität:** Ein adversarialer Sprecher-Klassifikator auf dem Code, den der Encoder überlisten muss.
+    * **Identität:** Ein Sprecher-Klassifikator auf der Ausgabe, dessen Vorhersage zur Gleichverteilung gedrängt wird (nicht zu einem falschen Sprecher, das wäre umkehrbar). Er wird regelmäßig neu initialisiert, damit der Encoder nicht nur eine Entscheidungsgrenze austrickst.
     * **Realismus:** ein Realismus-Loss für die RGB-Ausgabe.
-* **Zu schlagende Baseline:** die mittlere Lippenform jedes Sprechers abziehen und die kanonische addieren.
+* **Zu schlagende Baselines:** die mittlere Lippenform jedes Sprechers durch die kanonische ersetzen; Sprecher-Normalisierung von Amplitude und Geschwindigkeit; Gaußsches Rauschen in mehreren Stärken.
+* **Bewusst nicht entfernt:** Asymmetrie, weil manche Sprecher einen Laut vor allem mit einer Mundhälfte bilden.
 * **Mund d:** ein gemittelter oder synthetischer Mund, nie eine reale Person.
-* **Evaluation:** Wortgenauigkeit eines Lippenlesers auf der Ausgabe und Sprecher-ID durch einen Angreifer, der auf anonymisierten Ausgaben trainiert ist, denn der Bewegungsstil (wie weit, schnell oder asymmetrisch jemand spricht) kann Personen weiterhin identifizieren. Beide Varianten werden neue Punkte im Zielkonflikt-Plot aus Baustein 4.
+* **Evaluation:** Wortgenauigkeit eines Lippenlesers auf der Ausgabe und Sprecher-ID durch einen Angreifer, der auf anonymisierten Ausgaben trainiert ist, denn der Bewegungsstil (wie weit, schnell oder asymmetrisch jemand spricht) kann Personen weiterhin identifizieren. Gezählt wird nur ein Angreifer, der nach dem Anonymisierer neu trainiert und auf ungesehenen Sprechern getestet wird; der Trainings-Gegner lässt sich überlisten. Beide Varianten werden neue Punkte im Zielkonflikt-Plot aus Baustein 4.
 * **Veröffentlichung:** Das RGB-Modell erzeugt Mundvideo, das aus Bundestagsmaterial gelernt wurde. Vor der Freigabe seiner Gewichte wird beim Bundestag nachgefragt.
