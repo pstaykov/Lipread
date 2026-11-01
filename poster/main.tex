@@ -2,7 +2,6 @@
 % GNet - Poster zum BWKI-Finale (A0 hochkant)
 % Vorlage: a0poster Portrait Poster for LiRI/UZH (CC BY-NC-SA 3.0),
 %   Kettl & Weiser, angepasst von Danny McDonald
-% Kompilieren: xelatex main.tex  (fontspec)
 % Bilder/Daten: python make_figures.py  ->  figures/
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -435,12 +434,16 @@ einmal, finden, gegen, geworden, herrn, investitionen, kommunen, linke, möglich
 \begin{tikzpicture}
   \begin{axis}[
       scale only axis, width=\rcol-2.6cm, height=5.6cm,
-      xlabel={Epoche}, ylabel={Top-1 (\%)}, xmin=0.5, xmax=15.5, ymin=10, ymax=45,
+      xlabel={Epoche}, ylabel={Top-1 (\%)}, xmin=0, xmax=46, ymin=0, ymax=52,
       title={GLips-500}, legend pos=south east, legend cell align=left,
       legend style={font=\footnotesize, draw=none, fill=white, fill opacity=0.85, text opacity=1},
     ]
-    \addplot[cGNet, line width=3pt, mark=*, mark size=3.5pt] table[x=epoch, y=val] {figures/curve_gnet500.dat};
-    \addplot[cMSTCN, line width=3pt, mark=square*, mark size=3.5pt] table[x=epoch, y=val] {figures/curve_mstcn500.dat};
+    \fill[black!6] (axis cs:30.5,0) rectangle (axis cs:46,52);
+    \draw[black!50, line width=1.6pt, densely dotted] (axis cs:30.5,0) -- (axis cs:30.5,52);
+    \node[anchor=north west, font=\footnotesize, text=black!60, align=left] at (axis cs:31,51.5) {500 Kl.};
+    \node[anchor=north east, font=\footnotesize, text=black!60, align=right] at (axis cs:30,51.5) {Vortraining, 498 Kl.};
+    \addplot[cGNet, line width=3pt] table[x=epoch, y=val] {figures/curve_gnet500.dat};
+    \addplot[cMSTCN, line width=3pt] table[x=epoch, y=val] {figures/curve_mstcn500.dat};
     \addplot[cGNet, line width=2pt, dashed] table[x=epoch, y=train] {figures/curve_gnet500.dat};
     \legend{GNet (Val.), MS-TCN (Val.), GNet (Training)}
   \end{axis}
@@ -665,7 +668,7 @@ Lugaresi et al., arXiv:1906.08172, 2019 (MediaPipe)\par}
 
 \newpage
 %----------------------------------------------------------------------------------------
-%	SEITE 2: vollständige Literatur
+%	Seite 2: vollständige Literatur
 %----------------------------------------------------------------------------------------
 {\color{bwkiblau}\fontsize{46pt}{50pt}\selectfont\bfseries Literatur}\par\vspace{0.8cm}
 {\small

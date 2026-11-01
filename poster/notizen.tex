@@ -16,12 +16,16 @@
 \definecolor{rulegray}{RGB}{203,213,225}
 \definecolor{textgray}{RGB}{71,85,105}
 \definecolor{blausoft}{HTML}{E8F4FB}
+\colorlet{cGNet}{bwkiblau}
+\colorlet{cMSTCN}{uzhockerrot100}
 
 \usepackage{graphicx}
 \usepackage{booktabs}
 \usepackage{amsmath}
 \usepackage[ngerman]{babel}
 \usepackage{csquotes}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
 
 \usepackage{fontspec}
 \defaultfontfeatures[TheSans]
@@ -57,114 +61,172 @@
 {\color{bwkiblau}\huge\bfseries Notizen}\\[0.2cm]
 
 %=========================================================================
-\section{Datensatz und Vorverarbeitung}
+\section{Datensatz}
+
 \begin{itemize}
-  \item GLips: Hessischer Landtag, ca.\ 250.000 Clips, 500 Wörter, 1,16\,s, 25\,fps, mit Ton.
-        Offizieller Split unverändert.
-  \item \achtung{Datensatz = ganzes Gesicht}, den Mund schneiden wir selbst aus (Ablation: $-29$).
-  \item GLips-15 = Ameers Wörter (zufällig). Schwieberts Auswahl unveröffentlicht $\to$ Sternchen.
-  \item FaceMesh $\to$ Quadrat $1{,}6\times$ Mundbreite. EMA $\alpha = 0{,}4$: Frame-Gewicht
-        40, 24, 14, 9, 5\,\% $\to$ nach 4 Frames nur noch ca.\ 5\,\%.
-  \item Affin: Rotation $\pm10^\circ$, Verschiebung $\pm6\,\%$, Skalierung $\pm10\,\%$, pro Clip
-        gleich, nur Training.
+  \item Auf Schritt 1 \enquote{Rohclip} zeigen. \achtung{Wichtig:} nicht die
+        Lippen, sondern das ganze Gesicht. Schwiebert zeigt mund ROI
+  \item Hessischer Landtag, ca.\ 250.000 Clips, je 1,16\,s, 25\,fps, mit Tonspur, offizieller Train-/Val-/Test-Split, 1.018 Aufnahmen.
+  \item 15 Wörter nach Ameer et al. \achtung{Schwiebert et al.\ veröffentlichen ihre Wortauswahl nicht} Teilmengen zufällig?  Werte nur näherungsweise vergleichbar -> Gebiet noch nicht groß erforscht.
+  \item alphabetisch ersten 15 Wörter getestet, aber die waren sich zu ähnlich. Ameers Wörter sind zufällig gewählt.
+  \item Unterschiede quality der sessions zeigen dazu kommen wir später
 \end{itemize}
 
-%=========================================================================
+\subsection{Vorverarbeitung}
+\begin{itemize}
+  \item MediaPipe FaceMesh (Google) liefert die Lippen-Landmarks. Quadrat mit Seitenlänge
+        $\max(\text{Breite}, \text{Höhe}) \times 1{,}6$, zentriert auf die Mitte der Bounding-Box
+        der Lippen.
+  \item Glättung mit EMA, $\alpha = 0{,}4$ (der aktuelle Frame zählt 40\,\%, der Verlauf 60\,\%):
+        \[
+          \tilde{x}_t = \tfrac{1}{2}\bigl(\min_i x_{i,t} + \max_i x_{i,t}\bigr),\qquad
+          x_t = \alpha\,\tilde{x}_t + (1-\alpha)\,x_{t-1},\quad \alpha = 0{,}4
+        \]
+        $\tilde{x}_t$ = rohe Mitte aus den Landmarks, $x_t$ = geglättete Mitte für den Zuschnitt.
+        Nach ca.\ 5 Frames (0,2\,s) zählt ein Frame weniger als 8\,\%.
+  \item Falls gefragt, was \enquote{Affin} bei der Augmentierung heißt: Rotation $\pm10^\circ$,
+        Verschiebung $\pm6\,\%$, Skalierung $\pm10\,\%$. Einmal pro Clip gezogen und auf alle
+        Frames gleich angewendet, nur im Training.
+\end{itemize}
+
+\newpage
+
 \section{Modell}
+
+\subsection{Einordnung der Vorarbeiten}
 \begin{itemize}
-  \item \textbf{Conv3D} $5{\times}7{\times}7$, RGB $\to$ 64 Kanäle, zufällig initialisiert.
-  \item \textbf{ResNet-18} pro Frame: nur layer1--4 mit ImageNet-Gewichten (conv1/MaxPool ersetzt
-        durch Conv3D). \achtung{Abweichung von Martinez} (dort von Grund auf).
-  \item $3{\times}3$-Pooling $\to$ Linear 512$\to$256: Transformer 1,6\,M statt 6,3\,M Parameter.
-  \item \textbf{Multi-Scale-TCN}: $k = 3, 5, 7$, depthwise, ohne Dilation, Zweige gemittelt.
-        2 Blöcke $\to$ Sichtfeld 13 Frames.
-  \item \textbf{Transformer} $\times 2$: 8 Köpfe, FFN 1024 (Standardwerte, keine HP-Suche).
-  \item \textbf{Attentive Pooling} bleibt im Modell: Mean war 60,5 vs.\ 59,3 (im Rauschen),
-        Transformer hat schon Attention. Hauptläufe waren schon trainiert.
-        \achtung{Ehrlich sagen, nicht verteidigen.}
+  \item \textbf{Martinez et al.\ (2020)} setzten mit dem MS-TCN den damaligen State of the Art auf
+        LRW (BBC). Unser Frontend folgt ihrem Aufbau.
+  \item \textbf{Schwiebert et al.\ (2022)} stellen GLips vor und zeigen Transfer zwischen LRW und
+        GLips. X3D architektur. Verbesserungsbedarf
+  \item \textbf{Ameer et al.}\ nutzen \textbf{NASNetMobile}: ein auf
+        ImageNet vortrainiertes, kleines Bildnetz (4,7\,M Parameter), angewendet auf jeden Frame
+        des ganzen Gesichts (128$\times$128, 16 Frames), dahinter ein GRU. Ergebnis: 48,4\,\%.
 \end{itemize}
 
-\subsection{NASNet (Ameer, 48,4\,\%)}
+\phead{Warum wir NASNet nicht auf unsere Mund-Zuschnitte anwenden}
+Wir vergleichen zeitliche Back-Ends (MS-TCN vs.Transformer)
+
+
+\subsection{Architektur}
 \begin{itemize}
-  \item ImageNet-Bildnetz pro Frame, ganzes Gesicht, GRU dahinter.
-  \item Unser Fokus: Back-Ends bei festem Frontend $\to$ NASNet ist eine andere Frage.
-  \item GNet/MS-TCN auf Ameers Input (ganzes Gesicht): nur 18,9 / 22,5\,\% (Val.).
-        \achtung{Ehrlich:} NASNet dort klar besser. Unser Vorsprung kommt vom Mund-Zuschnitt.
-  \item NASNet auf Mund-Zuschnitten könnte besser sein $\to$ \textbf{nächstes Experiment}.
-  \item Nicht sagen: \enquote{technisch nicht möglich}, \enquote{kompliziert},
-        \enquote{nicht für Lippenlesen gemacht}.
+  \item \textbf{Conv3D} ($5\times7\times7$) über Zeit, Höhe und Breite, RGB rein, 64 Kanäle raus.
+        Danach MaxPool.
+  \item \textbf{ResNet-18}, auf jedem Frame einzeln. Am Ende
+        512 Kanäle $\times$ $3\times3$ Pixel pro Frame. Das kleine $3\times3$ ist gewollt: Das
+        ResNet verdichtet die Information in die 512 Kanäle, darum geht beim räumlichen Pooling
+        wenig verloren.
+  \item \textbf{Räumliches Average-Pooling} $3\times3 \to 1$: Mittelwert über die 9 Positionen,
+        keine lernbaren Gewichte.
+  \item \textbf{Linear 512 $\to$ 256} + LayerNorm: legt die Arbeitsbreite fest (die
+        Residualverbindungen brauchen gleiche Größe), hält den Transformer klein
+        ($\approx$\,1,6\,M statt 6,3\,M Parameter) und normalisiert die Merkmale.
+  \item \textbf{Multi-Scale-TCN}, Kernel 3, 5, 7 wie bei Martinez. Aber ohne Dilation und
+        depthwise (siehe unten).
+  \item \textbf{Transformer}: 8 Köpfe ist der Standardwert. Für eine Hyperparametersuche oder
+        Kreuzvalidierung hatten wir keine Ressourcen. Die Köpfe können z.\,B.\ auf
+        Mundöffnung, Vokal oder Nachbar-Frames achten.
+  \item \textbf{FFN 1024}: Standard, $4\times$ die Breite 256. Kleines 2-Schicht-Netz pro Token
+        innerhalb jeder Transformer-Schicht.
+
 \end{itemize}
 
-\subsection{Audio (Whisper-base, eingefroren)}
+\subsubsection{Multi-Scale-TCN (in GNet)}
 \begin{itemize}
-  \item Encoder: Log-Mel 80 $\to$ 2 Conv (Stride 2) $\to$ 6 Transformer-Blöcke (8 Köpfe, 512).
-        680.000\,h Training.
-  \item 1,16\,s auf 2\,s aufgefüllt $\to$ 100 Tokens à 512 (ca.\ 42 davon Stille).
-  \item Nur Audio = Probe: Mittelwert $\to$ MLP 512$\to$1024$\to$500. Whisper hat schon zeitlichen
-        Kontext.
-  \item \achtung{Nicht sagen} \enquote{Attention auf Attention bringt nichts}: Unser bestes Modell
-        ist genau das. Transformer-Kopf nur auf Audio = stärkere Baseline, nicht trainiert.
-  \item 61\,\%: Aufgabe schwer (Whisper-ASR nur 10,7\,\%). Zeigt nicht, dass unser Kopf stark ist.
-  \item \textbf{Warum 2\,s} (falls gefragt):
-        \begin{itemize}
-          \item Whisper verarbeitet immer 30-s-Fenster und füllt kürzeres Audio mit Stille auf.
-                Stille am Ende ist für Whisper also der Normalfall, nicht ungewohnt.
-          \item Bei unseren 1,16-s-Clips wären 30\,s zu 96\,\% Stille. Wir schneiden die Stille
-                einfach früher ab: 2\,s $\to$ 100 statt 1500 Tokens, 15$\times$ weniger Rechenzeit.
-          \item Die ersten 100 Positions-Embeddings sind genau die, mit denen Whisper trainiert
-                wurde, es ändert sich nichts an der Architektur.
-          \item Puffer statt exakt 1,16\,s: Clips variieren leicht in der Länge, nichts wird
-                abgeschnitten.
-          \item Die Stille-Tokens sind nicht leer: Über 6 Schichten Self-Attention tragen sie
-                Information aus dem gesprochenen Teil.
-        \end{itemize}
+  \item Drei Zweige parallel mit Kernel $k = 3, 5, 7$.
+  \item \textbf{Depthwise:} Jeder der 256 Kanäle bekommt seinen eigenen Filter mit $k$ Gewichten
+        über die Zeit. Padding $k/2$ (abgerundet), damit die 25 Frames erhalten bleiben.
+  \item \textbf{1$\times$1-Convolution:} mischt danach die 256 Kanäle innerhalb eines Frames.
+  \item Die drei Zweige werden \textbf{gemittelt} (nicht aneinandergehängt), dann Residual +
+        LayerNorm. Ergebnis bleibt $25 \times 256$: ein Token pro Frame.
+  \item Zwei Blöcke hintereinander: Sichtfeld 13 Frames ($\approx$\,0,5\,s). Den Rest des Clips
+        verbindet der Transformer.
 \end{itemize}
 
-\subsection{Fusion}
+\subsubsection{Audio}
 \begin{itemize}
-  \item Late/Concat $\approx$ Audio: gemittelte Vektoren, Audio dominiert.
-  \item Nicht nur Kapazität: Cross-Attention 0,52\,M (71,9) $>$ Concat 0,98\,M (61,1).
-  \item \textbf{Hauptaussage:} Der Beitrag des Videos zeigt sich unter Rauschen.
-  \item Ton aus: Fusion 30,7--32,0\,\% $\approx$ Video-Niveau.
-  \item Kein Rausch-Augment, \textbf{aber Modality Dropout} (20\,\% ohne Ton) $\to$ lernt
-        Rückfall aufs Video.
-  \item 5\,dB Babble: 57,5 vs.\ 29,6\,\% Audio. 0 / $-5$\,dB nicht getestet.
-  \item AV-HuBERT: gleiches Prinzip, aber Englisch/Sätze $\to$ kein direkter Vergleich.
+  \item \textbf{Whisper-base-Encoder}, mehrsprachig, eingefroren. Nur der Encoder, also nur
+        Audio-Merkmale, kein Sprachmodell.
+  \item 1,16\,s Ton, mit Stille auf 2\,s aufgefüllt $\to$ 100 Tokens à 512.
+  \item Whisper fügt vor seinen 6 Blöcken eigene sinusförmige Positions-Embeddings hinzu. Die
+        Position steckt also schon im Inhalt der Tokens (als Information, keine magischen
+        Zahlen). Für die Fusion: Linear auf 256 + Typ-Embedding (Video/Audio).
+  \item \textbf{Nur Audio:} Mittelwert über die 100 Tokens $\to$ $1 \times 512$, LayerNorm,
+        Linear 512 $\to$ 1024, GELU, Dropout 0,3, Linear 1024 $\to$ 500.
+        \achtung{Whisper hat in seinen Embeddings schon globalen zeitlichen Kontext}
+        (Self-Attention über alle Tokens), deshalb braucht es kein GNet-Back-End.
+\end{itemize}
+
+\subsubsection{Fusion}
+\begin{itemize}
+  \item Joint Transformer mit 3 Schichten: ein bewusst kleiner Fusionskopf auf bereits tiefen
+        Merkmalen.
 \end{itemize}
 
 %=========================================================================
 \section{Ergebnisse}
 \begin{itemize}
-  \item Vorarbeiten: Schwiebert (Datensatz-Paper, X3D, Transfer von LRW) und Ameer (NASNet).
-  \item \textbf{Formulierung:} \enquote{bestes berichtetes Ergebnis auf GLips-15}, nicht SOTA.
-        Auch ohne Transfer (59,3) vor allen veröffentlichten Werten.
-  \item \textbf{Transfer} ist ein Benchmark, keine Praxis-Anwendung: Er zeigt, wie weit man
-        theoretisch kommt (500er-Modell, nur Trainingsclips, als Start). Ausblick (JuFo): die
-        theoretische Obergrenze für deutsches Lippenlesen.
-  \item GLips-500: GNet 34,2 vs.\ MS-TCN 31,9 (\textbf{+2,3}, KI $\pm0{,}6$), beide 15 Epochen.
-  \item GLips-15: +0,1 $\to$ im Rauschen ($\pm3{,}5$). Kernaussage: Vorverarbeitung $>$ Back-End.
-  \item Generalisierungslücke wächst, Val.\ steigt noch $\to$ kein Overfitting, evtl.\ untertrainiert.
-  \item Ablationen auf GLips-15: nur Mund-ROI außerhalb des Rauschens. Stem ($-2{,}4$) = Trend.
-  \item Ein Seed pro Lauf. KIs nur über die Testmenge.
-  \item Nur Video: 34,2 (Tab.~1, direkt ausgewertet) vs.\ 33,6 in der Fusions-Pipeline
-        (gespeicherte Video-Tokens, auf denen die Fusion trainiert wurde).
+  \item Gesunde Trainingskurven. Auf 500 Wörtern beginnt Overfitting (Training steigt weiter,
+        Validierung flacht ab), deshalb Abbruch nach 15 Epochen.
+  \item MS-TCN auf 500 Wörtern: ca 30\% leicht unter GNet. Lässt sich vermuten, dass auf mehr vokabular und mehr Daten GNet besser wird, da Transformer besser auf vielen Daten sind.
+  \item Technische schwierigkeiten deswegen bei 30 prozent anfang. Voller plot:
+
+        \begin{center}
+        \begin{tikzpicture}
+          \begin{axis}[
+              width=0.95\linewidth, height=6.5cm,
+              xlabel={Epoche}, ylabel={Top-1 (\%)}, xmin=0, xmax=46, ymin=0, ymax=52,
+              title={GLips-500}, legend pos=south east, legend cell align=left,
+              legend style={font=\footnotesize, draw=none, fill=white, fill opacity=0.85, text opacity=1},
+              tick label style={font=\footnotesize}, grid=major, grid style={rulegray},
+            ]
+            \fill[black!6] (axis cs:30.5,0) rectangle (axis cs:46,52);
+            \draw[black!50, line width=1pt, densely dotted] (axis cs:30.5,0) -- (axis cs:30.5,52);
+            \node[anchor=north west, font=\footnotesize, text=black!60] at (axis cs:31,51.5) {500 Kl.};
+            \node[anchor=north east, font=\footnotesize, text=black!60] at (axis cs:30,51.5) {Vortraining, 498 Kl.};
+            \addplot[cGNet, line width=1.8pt] table[x=epoch, y=val] {figures/curve_gnet500.dat};
+            \addplot[cMSTCN, line width=1.8pt] table[x=epoch, y=val] {figures/curve_mstcn500.dat};
+            \addplot[cGNet, line width=1.2pt, dashed] table[x=epoch, y=train] {figures/curve_gnet500.dat};
+            \legend{GNet (Val.), MS-TCN (Val.), GNet (Training)}
+          \end{axis}
+        \end{tikzpicture}
+        \end{center}
+  \item \textbf{Transfer:} Alle Gewichte des 500-Wörter-Modells außer dem Klassifikator dienen als Initialisierung, dann wird alles weitertrainiert. Das 500er-Modell hat nur Trainingsclips gesehen.
+  \item \textbf{Ausgegraut} im Vergleich mit Vorarbeiten:
+        \begin{itemize}
+          \item GNet + Transfer, weil es mit Vortraining auf allen 500 Wörtern nicht direkt mit den
+                Vorarbeiten vergleichbar ist.
+          \item Ameer (NASNet), weil es auf dem ganzen Gesicht ohne Mund-Zuschnitt arbeitet. Wir
+                richten uns nach der etablierten Lipreading-Architektur;
+        \end{itemize}
 \end{itemize}
 
-\subsection{Fehleranalyse}
+\subsection{Ablationen}
 \begin{itemize}
-  \item Genauigkeit vs.\ Wortlänge: $r = 0{,}74$ (Buchstaben und Phoneme).
-        $\le 5$ Phoneme: 52\,\%, $\ge 7$: 87\,\%.
-  \item Grund 1: mehr verschiedene Viseme. Grund 2: fester 1,16-s-Clip $\to$ bei kurzen Wörtern
-        mehr Nachbarwörter im Bild.
-  \item Begriff: \enquote{visuell verwechselbar} / Homoviseme, nicht Homophene.
+  \item \textbf{Transformer vs.\ MS-TCN:} kein messbarer Vorteil. Beide sehen den ganzen Clip, und der ganze zeitliche Kontext reicht. Deshalb vermutlich auch nur ein kleiner Vorteil für DC-TCN (nur mit Ensemble). Auf mehr Vokabular und mehr Daten lässt sich ein Vorteil von GNet erahnen.
+  \item \textbf{Mean-Pooling reicht}
+  \item \textbf{Ohne Multi-Scale-Stem:} etwas schlechter (56,9 statt 59,3), selbsterklärend.
+  \item \textbf{Ohne Mund-ROI:} $-29$ Punkte, die Lippen sind das Wichtigste.
 \end{itemize}
 
-%=========================================================================
-\section{Ethik}
+\newpage
+
+\section{Diskussion}
 \begin{itemize}
-  \item Dual Use (Überwachung) $\to$ \textbf{Einwilligung, lokal auf dem Gerät, keine Speicherung.}
-  \item \enquote{Modell zu schwach} nur als Nebensatz, Methoden skalieren.
-  \item Nächster realistischer Schritt: Sätze statt Einzelwörter, mehr Sprecher.
+  \item Alle Aufnahmen stammen aus einem Landtag: frontal, gut ausgeleuchtet, erwachsene Sprecher.
+  \item Ähnliche Wörter wie „herrn“, „einmal“ und „linke“ untrennbar.
+  \item Sprecher überschneiden sich zwischen Train und Test (keine Sprecher-Labels in GLips).
+  \item Auf 15 Wörter merk sich das Modell die Länge nicht das Wort
+  \item Das Vokabular ist auf 500 Einzelwörter begrenzt, ganze Sätze werden nicht erkannt.
+
+\end{itemize}
+\subsection{Zukünftige Arbeit}
+\begin{itemize}
+  \item Frontends Vergleichen
+  \item Sentence Level
+  \item Super resolution
+  \item Mehr Daten
+  \item speaker disjoint
 \end{itemize}
 
 \end{document}
