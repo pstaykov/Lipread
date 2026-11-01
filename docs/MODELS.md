@@ -217,6 +217,7 @@ Schedule: optimizer, learning rate, weight decay and batch size are those of Ma 
 | Variant | Input | Epochs (best / last) | Test top-1 | Top-5 | Macro-F1 |
 |---|---|---|---|---|---|
 | V0_mouth | RGB, mouth crop | 13 / 15 | 0.467 | 0.621 | 0.464 |
+| V0_face | RGB, face crop | 13 / 15 | 0.443 | 0.610 | 0.439 |
 | V4 | 128 contour points | *rerun (Procrustes)* | | | |
 | V5 | 40 lip points | *rerun (Procrustes)* | | | |
 
