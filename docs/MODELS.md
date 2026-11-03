@@ -33,7 +33,7 @@ The **DC-TCN back-end, head, clip length, splits (speaker-disjoint) and training
 | **V0_face** | RGB video, face crop (same crop as V1/V2) | NASNet | Baseline for V1/V2 | high |
 | **V0_mouth** | RGB video, mouth crop (same crop as V3, as in BWKI) | NASNet | Baseline for V3/V6 | high |
 | **V1** | RGB with the FaceMesh drawn on top at 100 % opacity | NASNet | Does an explicit mesh help the pixel model? | **highest** (face + mesh geometry) |
-| **V2** | Rendered mesh, **full face**, black background, no video | NASNet | Mesh as an image, without skin/texture | medium |
+| **V2** | Rendered mesh, **full face**, black background, no video | NASNet | Mesh as an image, without skin/texture | dropped |
 | **V3** | Rendered mesh, **mouth only**, black background | NASNet | Mesh, restricted to the lips | low–medium |
 | **V4** | Coordinates, **face contours** (128 points × xyz, the points V2 draws) | Coordinate MLP (replaces NASNet) | Do landmarks suffice? | medium |
 | **V5** | Coordinates, **mouth only** (40 lip points × xyz, the points V3 draws) | Coordinate MLP (replaces NASNet) | Do lip landmarks alone suffice? | lowest |
@@ -45,7 +45,7 @@ Hypotheses (not results): V1 is the worst for privacy. It may or may not beat V0
 
 ### Variant details
 - **Landmarks:** MediaPipe FaceMesh (as in BWKI), run with `refine_landmarks=True`; the 10 iris points are dropped, so indices match BWKI's 468. "Full face" = 128 points of `FACEMESH_CONTOURS`, "mouth" = 40 points of `FACEMESH_LIPS`.
-- **Matched pairs:** V2 ↔ V4 and V3 ↔ V5 use the same points and differ only in representation (image + NASNet vs. numbers + MLP). The other 340 points (cheeks, forehead) barely move in speech but encode face shape, so they are left out.
+- **Matched pairs:** V2 ↔ V4 and V3 ↔ V5 use the same points and differ only in representation (image + NASNet vs. numbers + MLP). V3 ↔ V5 answered it (V3 is no better than V5), so V2 was not trained. The other 340 points (cheeks, forehead) barely move in speech but encode face shape, so they are left out.
 - **Coordinate normalization (V4–V6):** raw pixels → Procrustes-aligned (default) → speaker mean removed; the other two levels are the Baustein 4 ablation. *Speaker statistics* (here and in section 3): one value per speaker, computed only from that speaker's clips and applied to all of them. It is the mean of the speaker's per-word means, so a speaker's frequent words don't shift it (BTLips speakers say very different word mixes, 1–969 clips each). Per-word statistics within a speaker are never used: they would erase the differences between words. The transform is fitted on all 468 points (fitting on the lips alone would scale away mouth opening); the reference is the GPA mean shape of the training speakers (`FaceNorm`, fitted once).
 - **Coordinate encoder (V4, V5):** per-frame MLP (BN → 512 → 1056, BN + ReLU), matching NASNet's T × 1056 output.
 - **Crops:** square, centre tracked per frame (5-frame moving average), **one size per clip** (largest bbox side × margin: face +15 %, mouth +60 %) so mouth opening isn't scaled away. Encoder input 128 × 128, scaled to [-1, 1].
@@ -220,8 +220,9 @@ Schedule: optimizer, learning rate, weight decay and batch size are those of Ma 
 | V0_face | RGB, face crop | 13 / 15 | 0.443 | 0.610 | 0.439 |
 | V4 | 128 contour points | 12 / 15 | 0.295 | 0.466 | 0.292 |
 | V5 | 40 lip points | 12 / 15 | 0.292 | 0.455 | 0.288 |
+| V3 | Rendered lip mesh, black | 12 / 15 | 0.275 | 0.446 | 0.267 |
 
-With the earlier rigid alignment + pose correction, V4 and V5 reached 0.281 ± 0.003 and 0.282 ± 0.0002 test top-1 (3 seeds); Procrustes on all 468 points (above) does slightly better. A first run with a fixed 15-epoch cosine schedule gave V4 0.292 / 0.467 / 0.286 and V5 0.285 / 0.459 / 0.278 (best epoch 7; after that train loss kept falling while val loss rose). A V0_mouth run with flip-only augmentation reached 0.420 val top-1 after 6 epochs (train 0.513) and was replaced by the BWKI augmentation (both runs deleted). Queue (`runs/queue_procrustes.sh`): V4, V5, then V3, V2, V1, V6, then `stats.py`; ~2.3 h per image epoch and ~4 min per coordinate epoch on the RTX 3060.
+With the earlier rigid alignment + pose correction, V4 and V5 reached 0.281 ± 0.003 and 0.282 ± 0.0002 test top-1 (3 seeds); Procrustes on all 468 points (above) does slightly better. A first run with a fixed 15-epoch cosine schedule gave V4 0.292 / 0.467 / 0.286 and V5 0.285 / 0.459 / 0.278 (best epoch 7; after that train loss kept falling while val loss rose). A V0_mouth run with flip-only augmentation reached 0.420 val top-1 after 6 epochs (train 0.513) and was replaced by the BWKI augmentation (both runs deleted). Queue: V4, V5, V3, then V1, V6, then `stats.py` (V2 dropped); ~2.3 h per image epoch and ~4 min per coordinate epoch on the RTX 3060.
 
 ## 6. Status
 - [x] Architecture and variants fixed (this file)
