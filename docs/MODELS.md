@@ -221,6 +221,7 @@ Schedule: optimizer, learning rate, weight decay and batch size are those of Ma 
 | V4 | 128 contour points | 12 / 15 | 0.295 | 0.466 | 0.292 |
 | V5 | 40 lip points | 12 / 15 | 0.292 | 0.455 | 0.288 |
 | V3 | Rendered lip mesh, black | 12 / 15 | 0.275 | 0.446 | 0.267 |
+| V6 | Fusion: V0_mouth + V5 lip points | 15 / 15 | 0.473 | 0.623 | 0.469 |
 
 With the earlier rigid alignment + pose correction, V4 and V5 reached 0.281 ± 0.003 and 0.282 ± 0.0002 test top-1 (3 seeds); Procrustes on all 468 points (above) does slightly better. A first run with a fixed 15-epoch cosine schedule gave V4 0.292 / 0.467 / 0.286 and V5 0.285 / 0.459 / 0.278 (best epoch 7; after that train loss kept falling while val loss rose). A V0_mouth run with flip-only augmentation reached 0.420 val top-1 after 6 epochs (train 0.513) and was replaced by the BWKI augmentation (both runs deleted). Queue: V4, V5, V3, then V1, V6, then `stats.py` (V2 dropped); ~2.3 h per image epoch and ~4 min per coordinate epoch on the RTX 3060.
 

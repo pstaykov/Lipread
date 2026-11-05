@@ -35,6 +35,9 @@ def main():
     for variant in sys.argv[1:]:
         runs = sorted(d for d in [RUNS / variant, *RUNS.glob(f'{variant}_s*')] if (d / 'test_pred.npy').exists())
         preds = [np.load(d / 'test_pred.npy').astype(np.int64) for d in runs]
+        if not preds:
+            print(f'{variant}: no test_pred.npy yet, skipped')
+            continue
         per_seed = np.array([scores(p, y) for p in preds])
         boot = np.array([np.mean([scores(p[j], y[j]) for p in preds], 0) for j in draws])
         lo, hi = np.percentile(boot, [2.5, 97.5], 0)
