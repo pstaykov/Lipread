@@ -214,16 +214,24 @@ Every variant is trained for at most 15 epochs (`train.py`); the best val epoch 
 
 Schedule: optimizer, learning rate, weight decay and batch size are those of Ma et al. (AdamW, 3e-4, 1e-2, 32). Instead of their 80-epoch cosine schedule (~8 days per image variant here), every variant gets the same budget of 15 epochs; the learning rate is halved after 2 epochs without a val gain, and training stops early after 5. Every variant run so far overfits before epoch 15 (V0_mouth: best val at epoch 13, then train top-1 0.71 vs. val 0.44 at epoch 15), so the cap only cuts epochs past the best one. The test set plays no part in it. The table lists the best and the last epoch of each variant; the curves are in `runs/<variant>/metrics.csv`.
 
-| Variant | Input | Epochs (best / last) | Test top-1 | Top-5 | Macro-F1 |
+| Variant | Input | Epochs (best / last) | Test top-1 [95 %] | Top-5 | Macro-F1 |
 |---|---|---|---|---|---|
-| V0_mouth | RGB, mouth crop | 13 / 15 | 0.467 | 0.621 | 0.464 |
-| V0_face | RGB, face crop | 13 / 15 | 0.443 | 0.610 | 0.439 |
-| V4 | 128 contour points | 12 / 15 | 0.295 | 0.466 | 0.292 |
-| V5 | 40 lip points | 12 / 15 | 0.292 | 0.455 | 0.288 |
-| V3 | Rendered lip mesh, black | 12 / 15 | 0.275 | 0.446 | 0.267 |
-| V6 | Fusion: V0_mouth + V5 lip points | 15 / 15 | 0.473 | 0.623 | 0.469 |
+| V6 | Fusion: V0_mouth + V5 lip points | 15 / 15 | **0.473** [0.435, 0.513] | 0.623 | 0.469 |
+| V0_mouth | RGB, mouth crop | 13 / 15 | 0.467 [0.430, 0.505] | 0.621 | 0.464 |
+| V0_face | RGB, face crop | 13 / 15 | 0.443 [0.407, 0.479] | 0.610 | 0.439 |
+| V1 | RGB face crop + drawn mesh | 13 / 15 | 0.443 [0.405, 0.479] | 0.604 | 0.441 |
+| V4 | 128 contour points | 12 / 15 | 0.295 [0.265, 0.326] | 0.466 | 0.292 |
+| V5 | 40 lip points | 12 / 15 | 0.292 [0.262, 0.322] | 0.455 | 0.288 |
+| V3 | Rendered lip mesh, black | 12 / 15 | 0.275 [0.245, 0.305] | 0.446 | 0.267 |
+| V2 | Rendered contour mesh, black | – | dropped | | |
 
-With the earlier rigid alignment + pose correction, V4 and V5 reached 0.281 ± 0.003 and 0.282 ± 0.0002 test top-1 (3 seeds); Procrustes on all 468 points (above) does slightly better. A first run with a fixed 15-epoch cosine schedule gave V4 0.292 / 0.467 / 0.286 and V5 0.285 / 0.459 / 0.278 (best epoch 7; after that train loss kept falling while val loss rose). A V0_mouth run with flip-only augmentation reached 0.420 val top-1 after 6 epochs (train 0.513) and was replaced by the BWKI augmentation (both runs deleted). Queue: V4, V5, V3, then V1, V6, then `stats.py` (V2 dropped); ~2.3 h per image epoch and ~4 min per coordinate epoch on the RTX 3060.
+- **Pixels vs. landmarks:** every RGB variant (0.44–0.47) is far above every landmark-only variant (0.28–0.30); the intervals don't overlap. Landmarks lose about a third of the word information.
+- **No gain from adding landmarks to pixels:** V6 vs. V0_mouth (+0.006) and V1 vs. V0_face (±0.000) are well inside the intervals.
+- **Mouth vs. face crop:** V0_mouth is 2.4 points above V0_face, inside the intervals; the mouth carries the words.
+- **Representation:** V3 (lips drawn as an image) is below V5 (the same points as numbers), so V2 was not trained.
+- **Lips vs. contour:** V5 ≈ V4. The 40 lip points carry nearly all the word information of the 128 contour points.
+
+With the earlier rigid alignment + pose correction, V4 and V5 reached 0.281 ± 0.003 and 0.282 ± 0.0002 test top-1 (3 seeds); Procrustes on all 468 points (above) does slightly better. A first run with a fixed 15-epoch cosine schedule gave V4 0.292 / 0.467 / 0.286 and V5 0.285 / 0.459 / 0.278 (best epoch 7; after that train loss kept falling while val loss rose). A V0_mouth run with flip-only augmentation reached 0.420 val top-1 after 6 epochs (train 0.513) and was replaced by the BWKI augmentation (both runs deleted). V1 crashed once in epoch 6 (cuDNN error) and was resumed from epoch 5. ~2.3 h per image epoch and ~4 min per coordinate epoch on the RTX 3060.
 
 ## 6. Status
 - [x] Architecture and variants fixed (this file)
