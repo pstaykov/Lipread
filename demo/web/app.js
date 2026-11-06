@@ -42,7 +42,7 @@ function modelColHtml(key, pred, truth) {
 }
 
 function clipSrc(clip) {
-  return `clips/${encodeURIComponent(clip.clip_files[currentCondition])}`;
+  return `data/clips/${encodeURIComponent(clip.clip_files[currentCondition])}`;
 }
 
 function updateAudioCols(clip) {
@@ -196,7 +196,7 @@ function renderRecordResult(data) {
   document.getElementById('result-video-skeleton').style.display = 'none';
   const preview = document.getElementById('result-preview');
   preview.style.display = 'block';
-  preview.src = `clips/${encodeURIComponent(data.clip_file)}`;
+  preview.src = `data/clips/${encodeURIComponent(data.clip_file)}`;
   const cols = ['video_only', 'audio_only', 'multimodal']
     .map(k => `<div class="model-col ${MODEL_CHANNEL[k]}">${modelColHtml(k, data[k], data.target)}</div>`).join('');
   document.getElementById('record-cols').innerHTML = cols;
@@ -293,7 +293,7 @@ async function setupRecording() {
 }
 
 async function main() {
-  const res = await fetch('predictions.json');
+  const res = await fetch('data/predictions.json');
   DATA = await res.json();
 
   setupNoisePicker();
@@ -305,6 +305,6 @@ async function main() {
 
 main().catch(err => {
   document.getElementById('clips').textContent =
-    'predictions.json konnte nicht geladen werden — Ordner per HTTP-Server öffnen (z. B. `python -m http.server`), nicht als file://.';
+    'predictions.json konnte nicht geladen werden — Ordner per HTTP-Server öffnen (z. B. `python server/serve.py`), nicht als file://.';
   console.error(err);
 });

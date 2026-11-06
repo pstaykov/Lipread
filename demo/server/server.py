@@ -2,11 +2,11 @@
 endpoint that crops a freshly recorded webcam clip to the same mouth-ROI format
 the models were trained on, then runs all three models on it.
 
-Needs the full model code + checkpoints in models/ (already shipped alongside
-this file) plus mediapipe + flask (see requirements.txt). No GLips dataset
+Needs the full model code + checkpoints in ../models/ (already shipped in the
+demo folder) plus mediapipe + flask (see requirements.txt). No GLips dataset
 access needed -- this runs fully standalone from inside this folder.
 
-Usage:  python server.py [port]   (default 8000)
+Usage:  python server/server.py [port]   (default 8000)
 """
 import os
 import sys
@@ -20,7 +20,10 @@ import numpy as np
 from flask import Flask, request, jsonify, send_from_directory
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-CLIPS_DIR = os.path.join(HERE, 'clips')
+DEMO_DIR = os.path.dirname(HERE)
+WEB_DIR = os.path.join(DEMO_DIR, 'web')
+DATA_DIR = os.path.join(DEMO_DIR, 'data')
+CLIPS_DIR = os.path.join(DATA_DIR, 'clips')
 RECORDED_DIR = os.path.join(CLIPS_DIR, 'recorded')
 os.makedirs(RECORDED_DIR, exist_ok=True)
 
@@ -39,12 +42,15 @@ def no_cache(resp):
 
 @app.route('/')
 def index():
-    return send_from_directory(HERE, 'index.html')
+    return send_from_directory(WEB_DIR, 'index.html')
 
 
 @app.route('/<path:path>')
 def static_files(path):
-    return send_from_directory(HERE, path)
+    # /data/... -> demo/data/ (predictions, clips); everything else -> demo/web/
+    if path.startswith('data/'):
+        return send_from_directory(DATA_DIR, path[len('data/'):])
+    return send_from_directory(WEB_DIR, path)
 
 
 @app.route('/api/classes')

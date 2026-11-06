@@ -8,7 +8,7 @@ together, nothing else needs to be downloaded.
 
 This is a demo, not a pitch: the sample is a fixed-seed random draw across 16
 distinct classes (not cherry-picked), and one of the 16 clips (`haushalt`) is
-misclassified by all three models. See `predictions.json` for the raw output.
+misclassified by all three models. See `data/predictions.json` for the raw output.
 
 ## Quick start
 
@@ -44,23 +44,27 @@ without the "Selbst aufnehmen" webcam section.
 python -m venv venv
 venv/bin/activate          # or venv\Scripts\activate on Windows
 pip install -r requirements.txt
-python server.py           # or `python serve.py` for no live recording
+python server/server.py    # or `python server/serve.py` for no live recording
 ```
 Then open `http://localhost:8000`. (Must be served over HTTP, not opened as a
-`file://` path — the page fetches `predictions.json`.)
+`file://` path — the page fetches `data/predictions.json`.)
 
 ## What's here
 
 ```
 install.sh / install.ps1 / install.bat   One-command setup + launch (see above).
 requirements.txt      Full dependency list, for manual installs.
-index.html / app.js / style.css   The demo page.
-server.py             Flask server: static site + live-recording API.
-serve.py              Static-only fallback server, no recording feature.
-live_infer.py         Mouth-ROI crop + inference for a freshly recorded clip.
-predictions.json      Precomputed predictions for the 16 shipped test clips.
-clips/                The 16 test clips, each in 5 audio conditions.
-babble_pool.npz       Small sample of real speech, for babble-noise mixing.
+web/
+  index.html / app.js / style.css   The demo page.
+server/
+  server.py           Flask server: static site + live-recording API.
+  serve.py            Static-only fallback server, no recording feature.
+  live_infer.py       Mouth-ROI crop + inference for a freshly recorded clip.
+data/                 Served under /data/ by both servers.
+  predictions.json    Precomputed predictions for the 16 shipped test clips.
+  clips/              The 16 test clips, each in 5 audio conditions
+                      (live recordings land in clips/recorded/, gitignored).
+  babble_pool.npz     Small sample of real speech, for babble-noise mixing.
 models/
   video_only/    GNet, visual-only.            test:  34.2% top-1 / 53.9% top-5
   audio_only/    Whisper-base probe, audio-only. val:  61.2% top-1 / 76.9% top-5
@@ -109,7 +113,7 @@ every condition.
   demo, no "Selbst aufnehmen" section, rather than failing outright).
 - Live-recording crop quality (and therefore video-only accuracy) depends on
   face detection succeeding every frame. Good lighting and a front-facing
-  webcam angle help; `server.py` reports the detection rate and warns below
+  webcam angle help; `server/server.py` reports the detection rate and warns below
   50%.
 - Single-seed models; GLips's stock split is not speaker-disjoint, so these
   are within-corpus rather than speaker-independent numbers.

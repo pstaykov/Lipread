@@ -115,11 +115,11 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
-$ServerScript = 'serve.py'
+$ServerScript = 'server\serve.py'
 Write-Info "Installiere Live-Aufnahme-Extras (flask, mediapipe, opencv)..."
 & $VenvPy -m pip install -q @RecordDeps
 if ($LASTEXITCODE -eq 0) {
-    $ServerScript = 'server.py'
+    $ServerScript = 'server\server.py'
 } elseif ($PythonCompat) {
     Write-Info "Hinweis: Live-Aufnahme-Extras konnten nicht installiert werden (siehe Ausgabe oben)."
     Write-Info "Die Demo läuft trotzdem -- nur 'Selbst aufnehmen' bleibt ausgeblendet."

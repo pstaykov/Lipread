@@ -17,6 +17,7 @@ import torch.nn.functional as F
 import mediapipe as mp
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+DEMO_DIR = os.path.dirname(HERE)  # demo/ (live_infer.py lives in demo/server/)
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -36,7 +37,7 @@ def _load_babble_pool():
     global _babble_pool
     if _babble_pool is not None:
         return _babble_pool
-    path = os.path.join(HERE, 'babble_pool.npz')
+    path = os.path.join(DEMO_DIR, 'data', 'babble_pool.npz')
     if not os.path.exists(path):
         _babble_pool = False  # sentinel: tried, not available
         return None
@@ -143,9 +144,9 @@ def _load_module(name, path):
     return mod
 
 
-video_dir = os.path.join(HERE, 'models', 'video_only')
-audio_dir = os.path.join(HERE, 'models', 'audio_only')
-mm_dir = os.path.join(HERE, 'models', 'multimodal')
+video_dir = os.path.join(DEMO_DIR, 'models', 'video_only')
+audio_dir = os.path.join(DEMO_DIR, 'models', 'audio_only')
+mm_dir = os.path.join(DEMO_DIR, 'models', 'multimodal')
 
 vmod = _load_module('live_video_model', os.path.join(video_dir, 'model.py'))
 vdata = _load_module('live_video_dataset', os.path.join(video_dir, 'dataset.py'))

@@ -95,10 +95,10 @@ if ! "$VENV_PY" -m pip install -q "${CORE_DEPS[@]}"; then
   exit 1
 fi
 
-SERVER_SCRIPT="serve.py"
+SERVER_SCRIPT="server/serve.py"
 log "Installiere Live-Aufnahme-Extras (flask, mediapipe, opencv)..."
 if "$VENV_PY" -m pip install -q "${RECORD_DEPS[@]}"; then
-  SERVER_SCRIPT="server.py"
+  SERVER_SCRIPT="server/server.py"
 elif [ "$PYTHON_COMPAT" -eq 1 ]; then
   log "Hinweis: Live-Aufnahme-Extras konnten nicht installiert werden (siehe Ausgabe oben)."
   log "Die Demo läuft trotzdem -- nur 'Selbst aufnehmen' bleibt ausgeblendet."
